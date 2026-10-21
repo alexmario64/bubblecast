@@ -62,3 +62,4 @@ The poll overlay has its own settings (`poll*` keys in `core.mjs`): position (co
 
 Bots: common bots are built in, and each user keeps their own ignored-bot list. `filterBots` hides them on stream overlays (default on); `dockFilterBots` hides them in the dock (default off). The relay always keeps bot messages, so toggling the dock filter reveals or hides them immediately.
 
+Theme colors live in `public/theme.css` and are shared by Studio and the dock, so each color scheme looks the same in both. Component styles (`style.css`, `dock.css`) use only those tokens. The dock reports problems and keeps them visible (capture errors, unconfirmed sends), while successful sends confirm briefly and clear.
