@@ -1,4 +1,7 @@
-export const defaults={direction:'left',accent:'#21b8df',bubble:'#f3f7f8',text:'#33464e',fontSize:24,duration:18,maxMessages:7,width:420,badgeSize:24,floatAmount:9,resolution:'2160',floatMotion:true,badges:true,platforms:true,linkMode:'strip',bttv:true,twitchId:'',filterBots:true,dockFilterBots:false,ignoredBots:[],uiTheme:'rose',pollColors:'chat',pollAccent:'#21b8df',pollBubble:'#f3f7f8',pollText:'#33464e',pollBar:'#21b8df',pollPosition:'bottom-left',pollAnimation:'slide',pollWidth:420,pollFontSize:24,pollBarHeight:8,pollResultSeconds:15,pollShowVotes:true,pollShowPercent:true,pollShowPlatforms:true,pollShowFooter:true,pollHighlightLeader:true,pollFloatMotion:true,pollLiveLabel:'Live poll',pollFinalLabel:'Final results'};
+export const defaults={direction:'left',accent:'#21b8df',bubble:'#f3f7f8',text:'#33464e',fontSize:24,duration:18,maxMessages:7,width:420,badgeSize:24,floatAmount:9,resolution:'2160',floatMotion:true,badges:true,platforms:true,linkMode:'strip',fontFamily:'Komika Axis',bttv:true,twitchId:'',filterBots:true,dockFilterBots:false,ignoredBots:[],uiTheme:'rose',pollColors:'chat',pollAccent:'#21b8df',pollBubble:'#f3f7f8',pollText:'#33464e',pollBar:'#21b8df',pollPosition:'bottom-left',pollAnimation:'slide',pollWidth:420,pollFontSize:24,pollBarHeight:8,pollResultSeconds:15,pollShowVotes:true,pollShowPercent:true,pollShowPlatforms:true,pollShowFooter:true,pollHighlightLeader:true,pollFloatMotion:true,pollLiveLabel:'Live poll',pollFinalLabel:'Final results'};
+// CSS family names only: no quotes, commas or markup.
+export function fontFamily(value){const name=typeof value==='string'?value.replace(/["'`]/g,'').replace(/\s+/g,' ').trim():'';return /^[\p{L}\p{N} ._&+-]{1,60}$/u.test(name)?name:'';}
+export const fontStack=name=>'"'+(fontFamily(name)||'Komika Axis')+'"';
 export const pollPositions=['bottom-left','bottom-right','top-left','top-right','center'];
 const hiddenBotNames=new Set(['streamelements','stream elements','nightbot','night bot','streamlabs','moobot','fossabot','wizebot','botrix','sery_bot','soundalerts','pretzelrocks','botisimo','mixitupbot','firebot']);
 const senderName=user=>user.trim().replace(/^@/,'').trim().toLowerCase();
@@ -19,6 +22,7 @@ export function settings(input={}) {
  for(const [k,min,max] of [['pollWidth',280,900],['pollFontSize',14,40],['pollBarHeight',4,20],['pollResultSeconds',3,120]]) if(input[k]!==''&&input[k]!=null&&Number.isFinite(+input[k]))s[k]=Math.round(Math.max(min,Math.min(max,+input[k])));
  for(const k of ['pollShowVotes','pollShowPercent','pollShowPlatforms','pollShowFooter','pollHighlightLeader','pollFloatMotion']) if(typeof input[k]==='boolean')s[k]=input[k];
  for(const k of ['pollLiveLabel','pollFinalLabel']) if(typeof input[k]==='string'&&input[k].trim())s[k]=input[k].replace(/\s+/g,' ').trim().slice(0,24);
+ s.fontFamily=fontFamily(input.fontFamily)||defaults.fontFamily;
  s.twitchId=/^\d{1,20}$/.test(input.twitchId)?input.twitchId:'';s.ignoredBots=ignoredNames(input.ignoredBots);return s;
 }
 // Match ordinary URLs, bare domains, email addresses, and common obfuscated links.

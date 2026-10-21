@@ -13,4 +13,4 @@ The user has directed that all work from now on happens in https://github.com/al
 - Bump package.json, desktop/package.json and desktop/main.cjs together when shipping a helper update. Restart the background helper and refresh affected OBS sources.
 - Keep the dock's independent poll pane separate from chat filters and preserve existing iframe sessions when opening or resizing it.
 - This project targets Windows for streaming (OBS runs on Windows). macOS is supported for development only: the server, UI, tests and background helper run there, but every change must keep the Windows paths working. The Windows CI workflow must pass on each PR.
-- Browser sources are transparent; platform logos must remain transparent. Keep Komika Axis and the established bubble style for overlays.
+- Browser sources are transparent; platform logos must remain transparent. Komika Axis is the default overlay font (users may choose any installed font); keep the established bubble style for overlays.

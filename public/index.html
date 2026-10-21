@@ -85,6 +85,11 @@
    <div class="preview-tools"><button type="button" class="button" id="test">Send test bubble</button><button type="button" class="button" id="demo">Play demo</button><button type="button" class="button subtle" id="clear">Clear</button></div>
   </div>
   <div class="groups">
+   <fieldset class="group"><legend>Font</legend>
+    <label class="row"><span>Overlay font <small>Used by chat and poll overlays.</small></span><input name="fontFamily" list="fontOptions" maxlength="60" spellcheck="false" placeholder="Komika Axis"></label>
+    <datalist id="fontOptions"><option value="Komika Axis"><option value="Arial Rounded MT Bold"><option value="Comic Sans MS"><option value="Impact"><option value="Trebuchet MS"><option value="Verdana"><option value="Segoe UI"><option value="Bahnschrift"><option value="Georgia"><option value="Arial"></datalist>
+    <div class="row stacked font-preview"><span class="font-sample" id="fontSample">Hello chat! 123</span><span class="font-status" id="fontStatus"></span><button type="button" class="button" id="browseFonts" hidden>Browse installed fonts…</button></div>
+   </fieldset>
    <fieldset class="group"><legend>Motion &amp; size</legend>
     <div class="row"><span>Slide direction</span><div class="segmented"><label><input type="radio" name="direction" value="left">← Left</label><label><input type="radio" name="direction" value="right">Right →</label></div></div>
     <label class="row"><span>Floating motion</span><input type="checkbox" name="floatMotion" class="switch"></label>
@@ -202,7 +207,6 @@
  </fieldset>
  <fieldset class="group wide"><legend>Automatic setup</legend>
   <div class="source-row"><div><strong>Add the chat overlay to your current scene</strong><span id="obsMessage">Needs OBS WebSocket enabled with a password (Tools → WebSocket Server Settings).</span></div><button type="button" class="button" id="installObs">Add to OBS</button></div>
-  <div class="source-row"><div><strong>Overlay font</strong><span id="fontStatus">Checking for Komika Axis…</span></div></div>
  </fieldset>
 </section>
 

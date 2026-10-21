@@ -47,7 +47,7 @@ const server=http.createServer(async(req,res)=>{
  catch(e){res.writeHead(400,{'Content-Type':'text/plain; charset=utf-8','Referrer-Policy':'no-referrer'});return res.end(e.message+' Return to Bubblecast and retry Connect YouTube.');}
  }
  if(u.pathname==='/fonts/komika-axis.ttf'){
- const candidates=[join(process.env.LOCALAPPDATA||'','Microsoft','Windows','Fonts','KOMIKAX.ttf'),join(process.env.WINDIR||'C:/Windows','Fonts','KOMIKAX.ttf'),join(process.env.HOME||'','Library','Fonts','KOMIKAX.ttf'),'/Library/Fonts/KOMIKAX.ttf'];for(const path of candidates){try{const font=await readFile(path);res.writeHead(200,{'Content-Type':'font/ttf','Cache-Control':'private, max-age=86400'});return res.end(font);}catch{}}return json({error:'Install Komika Axis for this user account.'},404);
+ const candidates=[join(process.env.LOCALAPPDATA||'','Microsoft','Windows','Fonts'),join(process.env.WINDIR||'C:/Windows','Fonts'),join(process.env.HOME||'','Library','Fonts'),'/Library/Fonts'].flatMap(dir=>['KOMIKAX.ttf','KOMIKAX_.ttf'].map(file=>join(dir,file)));for(const path of candidates){try{const font=await readFile(path);res.writeHead(200,{'Content-Type':'font/ttf','Cache-Control':'private, max-age=86400'});return res.end(font);}catch{}}return json({error:'Install Komika Axis for this user account.'},404);
  }
  if(u.pathname==='/api/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Connection':'keep-alive'});res.write(`event: settings\ndata: ${JSON.stringify(state)}\n\n`);res.write('event: polls\ndata: '+JSON.stringify(polls.snapshot())+'\n\n');clients.add(res);req.on('close',()=>clients.delete(res));return;}
  if(u.pathname==='/api/polls'&&req.method==='GET')return json({polls:polls.snapshot()});
