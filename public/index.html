@@ -112,12 +112,11 @@
     <label class="row"><span>Links in chat</span><select name="linkMode"><option value="strip">Hide link, keep message</option><option value="drop">Hide whole message</option><option value="show">Show as plain text</option></select></label>
    </fieldset>
    <fieldset class="group" id="botGroup"><legend>Bots</legend>
-    <label class="row"><span>Hide bots on stream overlay</span><input type="checkbox" name="filterBots" class="switch"></label>
-    <label class="row"><span>Hide bots in chat dock</span><input type="checkbox" name="dockFilterBots" class="switch"></label>
-    <div class="row stacked"><span>Your ignored bots <small>Nightbot, StreamElements, Streamlabs and other common bots are always included.</small></span>
-     <div class="chips" id="botChips" aria-label="Ignored bots"></div>
+    <label class="row"><span>Keep bots off stream <small>Turn off to show every bot on stream.</small></span><input type="checkbox" name="filterBots" class="switch"></label>
+    <div class="row stacked"><span>Where each bot appears <small>Bots stay off stream unless checked. The chat dock shows them unless unchecked, here or from the dock's Bots menu.</small></span>
+     <div class="bot-table" id="botTable" role="table" aria-label="Bot visibility"></div>
      <div class="chip-input"><input id="botName" placeholder="Add a bot username" maxlength="60" spellcheck="false" aria-label="Bot username"><button type="button" class="button" id="addBot">Add</button></div>
-     <textarea name="ignoredBots" id="ignoredBots" hidden></textarea>
+     <textarea name="ignoredBots" id="ignoredBots" hidden></textarea><textarea name="overlayShownBots" id="overlayShownBots" hidden></textarea><textarea name="dockHiddenBots" id="dockHiddenBots" hidden></textarea>
     </div>
    </fieldset>
   </div>

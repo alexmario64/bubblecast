@@ -60,6 +60,6 @@ Studio (`/`) is organized as sidebar pages: Overview (setup checklist, channel s
 
 The poll overlay has its own settings (`poll*` keys in `core.mjs`): position (corners or center), entrance animation, width, text size, bar thickness, final-results duration, colors that follow the chat overlay or are custom, which details are shown, leader highlight, floating motion and the live/final labels.
 
-Bots: common bots are built in, and each user keeps their own ignored-bot list. `filterBots` hides them on stream overlays (default on); `dockFilterBots` hides them in the dock (default off). The relay always keeps bot messages, so toggling the dock filter reveals or hides them immediately.
+Bots: common bots are built in (`knownBots` in `core.mjs`), and each user adds their own (`ignoredBots`). Stream overlays hide every bot unless it is listed in `overlayShownBots` (the `filterBots` switch turns this off entirely). The dock shows every bot unless it is listed in `dockHiddenBots`. Studio's Chat overlay → Bots table edits both columns, and the dock's Bots menu edits the dock column. The relay always keeps bot messages, so changes apply immediately without losing chat.
 
 Theme colors live in `public/theme.css` and are shared by Studio and the dock, so each color scheme looks the same in both. Component styles (`style.css`, `dock.css`) use only those tokens. The dock reports problems and keeps them visible (capture errors, unconfirmed sends), while successful sends confirm briefly and clear.
