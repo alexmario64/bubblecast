@@ -68,3 +68,5 @@ Live viewers (1.17.0): every 30 seconds the helper runs `desktop/viewer-probe.mj
 
 Brand and themes (1.18.0): the logo is the bubble trio in `public/logo-glyph.svg`, drawn on a theme tile (`--logo-tile`: the accent gradient on rose and red, midnight on Midnight and White). `public/favicon.svg` is the full icon on the midnight tile; `logos/tray.png`, `logos/tray@2x.png` and `logos/icon-256.png` are rendered from it for the helper's tray and windows. Interface themes are rose, red, midnight (dark) and white; all colors, including status colors (`--good`, `--warn`, `--bad`, `--live`), come from `public/theme.css`.
 
+Studio → Appearance holds the app theme (`uiTheme`) and the chat dock theme (`dockTheme`: `app` to match, or its own theme). The dock's Connections sheet edits `dockTheme`.
+

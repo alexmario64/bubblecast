@@ -7,7 +7,7 @@ import {mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url)),out=root+'.local/screenshots/',base='http://127.0.0.1:3927';
 const desktop={width:1440,height:960},dockNarrow={width:440,height:860},dockWide={width:1180,height:780},canvas={width:1280,height:720};
-const studioPages=['overview','connections','chat','polls','dock','obs'];
+const studioPages=['overview','connections','appearance','chat','polls','dock','obs'];
 const shots=[
  ...['rose','red','midnight','white'].flatMap(theme=>studioPages.map(page=>({name:`studio-${page}-${theme}`,path:'/#'+page,viewport:desktop,theme}))),
  {name:'studio-overview-narrow',path:'/#overview',viewport:{width:420,height:880}},

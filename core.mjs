@@ -1,7 +1,9 @@
-export const defaults={direction:'left',accent:'#21b8df',bubble:'#f3f7f8',text:'#33464e',fontSize:24,duration:18,maxMessages:7,width:420,badgeSize:24,floatAmount:9,resolution:'2160',floatMotion:true,badges:true,platforms:true,linkMode:'strip',fontFamily:'Komika Axis',bttv:true,twitchId:'',filterBots:true,ignoredBots:[],overlayShownBots:[],dockHiddenBots:[],uiTheme:'rose',pollColors:'chat',pollAccent:'#21b8df',pollBubble:'#f3f7f8',pollText:'#33464e',pollBar:'#21b8df',pollPosition:'bottom-left',pollAnimation:'slide',pollWidth:420,pollFontSize:24,pollBarHeight:8,pollResultSeconds:15,pollShowVotes:true,pollShowPercent:true,pollShowPlatforms:true,pollShowFooter:true,pollHighlightLeader:true,pollFloatMotion:true,pollLiveLabel:'Live poll',pollFinalLabel:'Final results'};
+export const defaults={direction:'left',accent:'#21b8df',bubble:'#f3f7f8',text:'#33464e',fontSize:24,duration:18,maxMessages:7,width:420,badgeSize:24,floatAmount:9,resolution:'2160',floatMotion:true,badges:true,platforms:true,linkMode:'strip',fontFamily:'Komika Axis',bttv:true,twitchId:'',filterBots:true,ignoredBots:[],overlayShownBots:[],dockHiddenBots:[],uiTheme:'rose',dockTheme:'app',pollColors:'chat',pollAccent:'#21b8df',pollBubble:'#f3f7f8',pollText:'#33464e',pollBar:'#21b8df',pollPosition:'bottom-left',pollAnimation:'slide',pollWidth:420,pollFontSize:24,pollBarHeight:8,pollResultSeconds:15,pollShowVotes:true,pollShowPercent:true,pollShowPlatforms:true,pollShowFooter:true,pollHighlightLeader:true,pollFloatMotion:true,pollLiveLabel:'Live poll',pollFinalLabel:'Final results'};
 // CSS family names only: no quotes, commas or markup.
 export function fontFamily(value){const name=typeof value==='string'?value.replace(/["'`]/g,'').replace(/\s+/g,' ').trim():'';return /^[\p{L}\p{N} ._&+-]{1,60}$/u.test(name)?name:'';}
 export const fontStack=name=>'"'+(fontFamily(name)||'Komika Axis')+'"';
+// The dock follows the app theme unless it has its own.
+export const dockThemeOf=s=>s.dockTheme&&s.dockTheme!=='app'?s.dockTheme:s.uiTheme||'rose';
 export const pollPositions=['bottom-left','bottom-right','top-left','top-right','center'];
 // Built-in bots, as shown in settings. Matching ignores case and a leading @.
 export const knownBots=['StreamElements','Nightbot','Streamlabs','Moobot','Fossabot','WizeBot','Botrix','Sery_Bot','SoundAlerts','PretzelRocks','Botisimo','MixItUpBot','Firebot'];
@@ -16,6 +18,7 @@ export function hiddenInDock(user,s=defaults){return isBot(user,s)&&ignoredNames
 export function settings(input={}) {
  const s={...defaults};
  if(['rose','red','midnight','white'].includes(input.uiTheme))s.uiTheme=input.uiTheme;
+ if(['app','rose','red','midnight','white'].includes(input.dockTheme))s.dockTheme=input.dockTheme;
  for(const k of ['direction','linkMode']) if((k==='direction'?['left','right']:['strip','drop','show']).includes(input[k])) s[k]=input[k];
  if(['1080','1440','2160'].includes(String(input.resolution)))s.resolution=String(input.resolution);
  for(const k of ['accent','bubble','text']) if(/^#[a-f0-9]{6}$/i.test(input[k])) s[k]=input[k];
