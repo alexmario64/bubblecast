@@ -1,4 +1,5 @@
 import {kickFrame} from './kick-chat.mjs';
+import {twitchHermesEvent,kickEvent} from './stream-events.mjs';
 import {TwitchPoll} from './twitch-poll.mjs';
 import {extractPolls} from '../polls.mjs';
 import {NetworkFeed,youtubeActions,tiktokPayload} from '../network-chat.mjs';
@@ -36,8 +37,8 @@ export function attachNetworkCapture(contents,{platform,sourceKey,onMessage,onEr
    else {const messages=tiktokPayload(bytes,{push:false});feed.accept(messages,{baseline:needsBaseline});if(messages!==null)needsBaseline=false;}
   }
   if(['twitch','tiktok','kick'].includes(platform)&&method==='Network.webSocketCreated'&&allowedURL(params.url,platform,true))sockets.add(params.requestId);
-  if(platform==='twitch'&&method==='Network.webSocketFrameReceived'&&sockets.has(params.requestId)&&params.response?.opcode===1&&params.response.payloadData?.length<1024*1024){publishPolls(JSON.parse(params.response.payloadData));}
-  if(platform==='kick'&&method==='Network.webSocketFrameReceived'&&sockets.has(params.requestId)&&[1,2].includes(params.response?.opcode)&&params.response.payloadData?.length<1024*1024){const messages=kickFrame(params.response.opcode===2?Buffer.from(params.response.payloadData,'base64').toString('utf8'):params.response.payloadData);if(Array.isArray(messages)&&!feed.ready)contents.executeJavaScript('window.__bubblecastKickNetworkReady=true').catch(report);feed.accept(messages);}
+  if(platform==='twitch'&&method==='Network.webSocketFrameReceived'&&sockets.has(params.requestId)&&params.response?.opcode===1&&params.response.payloadData?.length<1024*1024){const event=twitchHermesEvent(params.response.payloadData);if(event)onMessage({...event,observedAt:now(),capturedAt:now()});publishPolls(JSON.parse(params.response.payloadData));}
+  if(platform==='kick'&&method==='Network.webSocketFrameReceived'&&sockets.has(params.requestId)&&[1,2].includes(params.response?.opcode)&&params.response.payloadData?.length<1024*1024){const frame=params.response.opcode===2?Buffer.from(params.response.payloadData,'base64').toString('utf8'):params.response.payloadData,event=kickEvent(frame);if(event)onMessage({...event,observedAt:now(),capturedAt:now()});const messages=kickFrame(frame);if(Array.isArray(messages)&&!feed.ready)contents.executeJavaScript('window.__bubblecastKickNetworkReady=true').catch(report);feed.accept(messages);}
   if(method==='Network.webSocketClosed')sockets.delete(params.requestId);
   if(platform==='tiktok'&&method==='Network.webSocketFrameReceived'&&sockets.has(params.requestId)&&params.response?.opcode===2){const data=params.response.payloadData;if(typeof data==='string'&&data.length<12*1024*1024)feed.accept(tiktokPayload(Buffer.from(data,'base64')));}
  }catch(error){report(error);}};

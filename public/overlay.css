@@ -27,3 +27,13 @@ body[data-layout=webcam] .body{padding:12px 15px 11px;border-radius:22px}body[da
 .body .media{width:240px;height:180px;object-fit:contain}.body [data-media-loading]{opacity:0}
 body[data-layout=webcam] .body .media{height:110px}
 .platform.kick{background:transparent;border:0;box-shadow:none}.platform.kick img{filter:brightness(0) invert(1)}
+
+/* Stream events: highlighted bubbles with a label in the pill. */
+.message.event{--event:var(--accent);animation:event-enter .55s cubic-bezier(.2,1.35,.4,1) both}
+.message.event .body{border:2px solid color-mix(in srgb,var(--event),white 35%);box-shadow:inset 0 2px 2px #fff,0 0 0 4px color-mix(in srgb,var(--event) 28%,transparent),0 0 22px color-mix(in srgb,var(--event) 45%,transparent)}
+.event-tag{display:inline-flex;align-items:center;padding:1px 9px;border-radius:999px;background:#fff;color:color-mix(in srgb,var(--event,var(--accent)),black 18%);font-size:.82em;line-height:1.5;text-transform:uppercase;letter-spacing:.02em;text-shadow:none;box-shadow:0 1px 2px #0003}
+.event-title{font-size:calc(var(--size)*.82);line-height:1.4;color:color-mix(in srgb,var(--text),var(--event) 35%)}
+.event-title+*{margin-top:4px}
+.message.event .body:has(.event-title:only-child){padding-block:13px 12px}
+@keyframes event-enter{from{opacity:0;transform:translateX(var(--slide)) scale(.6)}55%{opacity:1;transform:translateX(0) scale(1.06)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.message.event{animation-duration:.12s}}

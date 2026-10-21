@@ -131,6 +131,18 @@
     <label class="row"><span>BetterTTV emotes</span><input type="checkbox" name="bttv" class="switch"></label>
     <label class="row"><span>Links in chat</span><select name="linkMode"><option value="strip">Hide link, keep message</option><option value="drop">Hide whole message</option><option value="show">Show as plain text</option></select></label>
    </fieldset>
+   <fieldset class="group" id="eventGroup"><legend>Stream events</legend>
+    <label class="row"><span>Channel point redemptions <small>Twitch</small></span><input type="checkbox" class="switch" data-events="redemption"></label>
+    <label class="row"><span>New subs and resubs <small>Twitch</small></span><input type="checkbox" class="switch" data-events="sub resub"></label>
+    <label class="row"><span>Gifted subs <small>Twitch</small></span><input type="checkbox" class="switch" data-events="giftsub giftbomb"></label>
+    <label class="row"><span>Raids <small>Twitch</small></span><input type="checkbox" class="switch" data-events="raid"></label>
+    <label class="row"><span>Watch streaks <small>Twitch</small></span><input type="checkbox" class="switch" data-events="watchstreak"></label>
+    <label class="row"><span>Kicks gifts <small>Kick</small></span><input type="checkbox" class="switch" data-events="gift"></label>
+    <label class="row"><span>Super Chats and Stickers <small>YouTube</small></span><input type="checkbox" class="switch" data-events="superchat"></label>
+    <label class="row"><span>Memberships and gifted memberships <small>YouTube</small></span><input type="checkbox" class="switch" data-events="membership giftmembership"></label>
+    <p class="footnote">Events appear as highlighted bubbles on stream. The chat dock always shows every event.</p>
+    <input type="hidden" name="eventsShown" id="eventsShown">
+   </fieldset>
    <fieldset class="group" id="botGroup"><legend>Bots</legend>
     <label class="row"><span>Keep bots off stream <small>Turn off to show every bot on stream.</small></span><input type="checkbox" name="filterBots" class="switch"></label>
     <div class="row stacked"><span>Where each bot appears <small>Bots stay off stream unless checked. The chat dock shows them unless unchecked, here or from the dock's Bots menu.</small></span>

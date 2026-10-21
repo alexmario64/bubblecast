@@ -31,12 +31,17 @@ export function youtubeActions(payload,sourceKey='youtube'){
   const removal=action.markChatItemAsDeletedAction||action.removeChatItemAction;if(removal){results.push({platform:'youtube',sourceKey,action:'delete',id:removal.targetItemId||''});continue;}
   const authorRemoval=action.markChatItemsByAuthorAsDeletedAction;if(authorRemoval){results.push({platform:'youtube',sourceKey,action:'delete',id:'',userId:authorRemoval.externalChannelId});continue;}
   const replacement=action.replaceChatItemAction,wrapper=action.addChatItemAction?.item||replacement?.replacementItem;
-  const renderer=wrapper?.liveChatTextMessageRenderer||wrapper?.liveChatPaidMessageRenderer||wrapper?.liveChatMembershipItemRenderer||wrapper?.liveChatPaidStickerRenderer;if(!renderer)continue;
-  const user=text(renderer.authorName),id=renderer.id||replacement?.targetItemId;if(!id||!user)continue;let parts=runs(renderer.message||renderer.headerSubtext||renderer.primaryText);
+  const gifts=wrapper?.liveChatSponsorshipsGiftPurchaseAnnouncementRenderer,giftHeader=gifts?.header?.liveChatSponsorshipsHeaderRenderer;
+  const renderer=wrapper?.liveChatTextMessageRenderer||wrapper?.liveChatPaidMessageRenderer||wrapper?.liveChatMembershipItemRenderer||wrapper?.liveChatPaidStickerRenderer||(giftHeader&&{...giftHeader,id:gifts.id,authorExternalChannelId:gifts.authorExternalChannelId,timestampUsec:gifts.timestampUsec});if(!renderer)continue;
+  const user=text(renderer.authorName),id=renderer.id||replacement?.targetItemId;if(!id||!user)continue;
+  // Paid messages, memberships and gifted memberships are stream events.
+  const argb=n=>Number.isFinite(n)?'#'+(n&0xffffff).toString(16).padStart(6,'0'):undefined;
+  const event=wrapper.liveChatPaidMessageRenderer||wrapper.liveChatPaidStickerRenderer?{kind:'superchat',title:text(renderer.purchaseAmountText),color:argb(renderer.bodyBackgroundColor??renderer.backgroundColor)}:wrapper.liveChatMembershipItemRenderer?{kind:'membership',title:text(renderer.headerPrimaryText)||text(renderer.headerSubtext)}:giftHeader?{kind:'giftmembership',title:text(renderer.primaryText)}:null;
+  let parts=runs(event?.kind==='membership'?renderer.message:renderer.message||renderer.headerSubtext||renderer.primaryText);if(event?.kind==='giftmembership')parts=[];
   if(renderer.sticker){const src=image(renderer.sticker);if(src)parts.push({type:'image',src,alt:renderer.sticker.accessibility?.accessibilityData?.label||'sticker',large:true});}
-  if(!parts.length)continue;
+  if(!parts.length&&!event)continue;
   const badges=(renderer.authorBadges||[]).map(b=>{const badge=b.liveChatAuthorBadgeRenderer||{};return {src:image(badge.customThumbnail||badge.thumbnail),alt:badge.tooltip||badge.accessibility?.accessibilityData?.label||'Badge'};}).filter(b=>b.src);
-  results.push({id,sourceId:id,platform:'youtube',sourceKey,user,userId:renderer.authorExternalChannelId||'',parts,badges,sourceTime:Number(renderer.timestampUsec)/1000,...(replacement?{action:'update'}:{})});
+  results.push({id,sourceId:id,platform:'youtube',sourceKey,user,userId:renderer.authorExternalChannelId||'',parts,badges,...(event?{event}:{}),sourceTime:Number(renderer.timestampUsec)/1000,...(replacement?{action:'update'}:{})});
  }return results;
 }
 // Small bounded protobuf reader for the incoming TikTok webcast schema. Unknown

@@ -1,4 +1,4 @@
-import {defaults,normalize,isIgnoredUser,fontStack} from '/core.mjs';
+import {defaults,normalize,isIgnoredUser,fontStack,eventLabels} from '/core.mjs';
 import {overlayLayout} from '/layouts.mjs';
 import {patchElement,prepareMedia,revealMediaMessage} from '/render-patch.mjs';
 import {createRenderReporter} from '/render-timing.mjs';
@@ -21,6 +21,8 @@ function add(raw,updating=false){const m=normalize(raw,state);if(!m)return;const
  const platform=platformBadge(m.platform);platform.hidden=!state.platforms;pill.append(platform);
  const badges=document.createElement('span');badges.className='badges';badges.hidden=!state.badges;for(const b of m.badges)badges.append(viewerBadge(b));pill.append(badges);
  const name=document.createElement('span');name.className='username';name.textContent=m.user;name.style.color=usernameColor(m);pill.append(name);const body=document.createElement('div');body.className='body';
+ // Stream events: a label in the pill, the event text first, then any message the viewer added.
+ if(m.event){el.classList.add('event');el.dataset.event=m.event.kind;if(m.event.color)el.style.setProperty('--event',m.event.color);const tag=document.createElement('span');tag.className='event-tag';tag.textContent=eventLabels[m.event.kind];pill.append(tag);const title=document.createElement('div');title.className='event-title';title.textContent=m.event.kind==='redemption'?m.event.title+(m.event.amount?' · '+m.event.amount.toLocaleString():''):m.event.title||eventLabels[m.event.kind];body.append(title);}
 
  for(const p of m.parts){if(p.type==='text')textParts(body,p.text);else body.append(image(p.src,p.alt,p.large,p.type==='video'));}sizeEmote(body);group.append(pill,body);el.append(group);
  if(previous){patchElement(previous.el.firstElementChild,group);previous.user=m.user;previous.userId=m.userId;trim();return;}
