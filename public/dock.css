@@ -59,7 +59,7 @@ nav{margin-top:10px}
 #autoscroll[aria-pressed=false]{background:#ffb34026;color:#a96a00}
 
 /* Layout toolbar finishes the header card. */
-.layout-tools{display:flex;align-items:center;gap:8px;flex-shrink:0;padding:0 12px 10px;background:var(--surface);border:1px solid var(--border);border-top:0;border-radius:0 0 18px 18px;box-shadow:var(--shadow);margin-bottom:8px;font-size:12px;color:var(--text-2);position:relative;z-index:1}
+.layout-tools{display:flex;align-items:center;gap:8px;flex-shrink:0;padding:0 12px 10px;background:var(--surface);border:1px solid var(--border);border-top:0;border-radius:0 0 18px 18px;box-shadow:0 22px 30px -20px color-mix(in srgb,var(--text) 30%,transparent);margin-bottom:8px;font-size:12px;color:var(--text-2);position:relative;z-index:2}
 header:has(+.layout-tools){box-shadow:none}
 header:not(:has(+.layout-tools)){border-bottom:1px solid var(--border);border-radius:18px;margin-bottom:8px}
 .layout-tools label{display:flex;align-items:center;gap:7px}
