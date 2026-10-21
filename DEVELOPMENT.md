@@ -16,9 +16,21 @@ Canonical repository: https://github.com/alexmario64/bubblecast. All ongoing dev
 
 Browser accounts, machine-bound credentials, recent chat history, helper runtime, and personal settings are intentionally not synchronized through Git. Do not copy .local/ sessions between machines. Re-enter connections and sign in on each PC. The helper on this PC continues running independently.
 
+## Development on macOS
+
+The Mac is a development machine; streaming and OBS stay on Windows.
+
+1. Install Node.js 22 or newer and run `npm install --global pnpm@11.25.0`, then `pnpm install --frozen-lockfile --ignore-scripts`.
+2. `pnpm test`, then `pnpm start` for the server at http://127.0.0.1:3927.
+3. `pnpm install:background` downloads the macOS Electron build (checksum verified). `pnpm start:background` launches the helper; quit it from its menu bar icon.
+4. Local credentials (YouTube OAuth) are encrypted with a key stored in the login Keychain instead of Windows DPAPI. Credentials saved on one OS cannot be read on the other; reconnect on each machine.
+5. Komika Axis is read from `~/Library/Fonts` or `/Library/Fonts` when installed.
+
+The `.cmd`, `.vbs` and OBS Lua launchers remain Windows-only. GitHub Actions runs `pnpm test` on Windows for every push and pull request, so check that it passes before merging.
+
 ## Daily workflow
 
-Before working: `git pull --ff-only`. Make changes and run `pnpm test`. Commit the source changes and `git push`. On the other PC, pull before continuing. Avoid editing the same branch on both PCs at once without pushing first.
+Before working: `git checkout main && git pull --ff-only`. Create a branch (`git checkout -b feature/<short-name>`), make changes, and run `pnpm test`. Push the branch and open a pull request into `main`; nothing is committed or pushed directly to `main`. Merge after the Windows test check passes. On the streaming PC, `git pull --ff-only` on `main`, then restart the background helper and refresh affected OBS sources.
 
 Open this repository folder in a new Codex task on the other PC. Ask it to read AGENTS.md and DEVELOPMENT.md and continue from the current commit. Git transfers the code and development notes; this conversation itself is not copied by Git.
 
