@@ -25,7 +25,7 @@ The background app captures Twitch, two separate YouTube broadcasts, and TikTok 
 
 All four inputs share one chronological dock. Each row identifies its platform and whether it belongs to YouTube Live or Shorts. The dock retains up to 300 recent messages in memory after overlay bubbles disappear; reopening the dock restores those recent messages. Restarting the background app clears that memory. No chat history is injected into the stream overlay. Auto-scroll can be paused without stopping capture, and **Clear view** affects only that dock.
 
-The helper uses its own persistent browser sessions under `.local/desktop-data`. If a platform requires sign-in, use **Connections → Show source / sign in**, complete it yourself, and close the source window to hide it again. No source window opens automatically. Public LIVE availability and platform login restrictions still apply. Chrome extensions are not loaded in this app; native artwork comes from the platform, while the built-in BetterTTV resolver loads global and configured channel/shared sets. This computer's Twitch numeric ID is configured for TrueAlexLIVE.
+The helper uses its own persistent browser sessions under `.local/desktop-data`. If a platform requires sign-in, use **Connections → Show source / sign in**, complete it yourself, and close the source window to hide it again. No source window opens automatically. Public LIVE availability and platform login restrictions still apply. Chrome extensions are not loaded in this app; native artwork comes from the platform, while the built-in BetterTTV resolver loads global and configured channel/shared sets.
 
 **Start Bubblecast Background.vbs** can start the app manually without a terminal. Its tray menu opens setup or source windows and can quit capture. The helper remains running when OBS closes; opening OBS again reuses it. When background capture is active, the server ignores the Chrome capture bridge to prevent duplicate messages. To use the legacy bridge instead, quit the background app and use the Start instructions below with bridge 1.6.0.
 
@@ -166,7 +166,7 @@ The capture observer now watches native/enhancer message-ID attributes, records 
 
 ## Bot messages
 
-Known bot sender names are hidden across all layouts: StreamElements, Nightbot, Streamlabs, Moobot, Fossabot, WizeBot, Botrix, Sery_Bot, SoundAlerts, PretzelRocks, Botisimo, MixItUpBot, Firebot, and TrueBot64. Sender matching ignores capitalization and an optional leading @. Messages from real viewers mentioning these bots still display; similar names are not blocked.
+Known bot sender names are hidden across all layouts: StreamElements, Nightbot, Streamlabs, Moobot, Fossabot, WizeBot, Botrix, Sery_Bot, SoundAlerts, PretzelRocks, Botisimo, MixItUpBot, and Firebot. Sender matching ignores capitalization and an optional leading @. Messages from real viewers mentioning these bots still display; similar names are not blocked.
 
 
 ## Pairing after extension reload (1.4.3)
