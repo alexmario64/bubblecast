@@ -28,6 +28,10 @@ The Mac is a development machine; streaming and OBS stay on Windows.
 
 The `.cmd`, `.vbs` and OBS Lua launchers remain Windows-only. GitHub Actions runs `pnpm test` on Windows for every push and pull request, so check that it passes before merging.
 
+## Visual checks
+
+`pnpm exec playwright install chromium` once per machine, then `pnpm screenshots` captures every Studio page (both color schemes and phone width), the dock and each overlay state into `.local/screenshots/` (ignored by Git). Pass name filters to capture a subset, e.g. `pnpm screenshots polls dock`. The run fails if a page throws or a request errors. It reuses the server on port 3927 or starts one, and theme variants are applied in the page only, so no settings are written. Review screenshots after any UI change.
+
 ## Daily workflow
 
 Before working: `git checkout main && git pull --ff-only`. Create a branch (`git checkout -b feature/<short-name>`), make changes, and run `pnpm test`. Push the branch and open a pull request into `main`; nothing is committed or pushed directly to `main`. Merge after the Windows test check passes. On the streaming PC, `git pull --ff-only` on `main`, then restart the background helper and refresh affected OBS sources.
@@ -51,3 +55,10 @@ Polls open beside existing chat/split views; selecting Twitch, YouTube, TikTok o
 Combined totals sum known answer counts. Percentage-only sources are labeled separately rather than being presented as exact combined counts. Both YouTube streams are independent poll destinations. Final dock results remain available for five minutes; stream-overlay final results remain for 15 seconds.
 
 YouTube ending is confirmed from an explicit native ended state or stable disappearance from the still-loaded chat, then synchronized into the local poll store. The general capture observer retains a separate disappearance grace period. Fixtures cover this timing mismatch; a live check remains valuable after platform markup changes.
+
+Studio (`/`) is organized as sidebar pages: Overview (setup checklist, channel status, quick actions), Connections, Chat overlay, Poll overlay, Chat dock and OBS setup, addressed by URL hash (`/#polls`). Appearance changes preview instantly in the embedded overlay and save automatically after a short pause; connections still save explicitly because they reload sources. Confirmations appear as brief toasts; failures stay on screen until dismissed, and a banner appears only while the background app is offline.
+
+The poll overlay has its own settings (`poll*` keys in `core.mjs`): position (corners or center), entrance animation, width, text size, bar thickness, final-results duration, colors that follow the chat overlay or are custom, which details are shown, leader highlight, floating motion and the live/final labels.
+
+Bots: common bots are built in, and each user keeps their own ignored-bot list. `filterBots` hides them on stream overlays (default on); `dockFilterBots` hides them in the dock (default off). The relay always keeps bot messages, so toggling the dock filter reveals or hides them immediately.
+

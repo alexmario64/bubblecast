@@ -1,2 +1,31 @@
-#pollOverlay{position:absolute;left:28px;bottom:28px;width:min(var(--width,420px),calc(100% - 56px));display:flex;flex-direction:column;gap:18px;--slide:-125%;--size:22px;--accent:#21b8df;--bubble:#f3f7f8;--text:#33464e;--float:9px}#pollOverlay.right{left:auto;right:28px;--slide:125%}.poll-overlay-card{width:100%}.poll-overlay-card .body{border-radius:25px;padding:19px 20px 15px;white-space:normal}.poll-overlay-card .body:before{display:none}.poll-overlay-card .pill{gap:7px}.poll-platform{display:inline-block;width:20px;height:20px;background:#fff;mask:var(--logo) center/contain no-repeat;-webkit-mask:var(--logo) center/contain no-repeat}.poll-platform.twitch{--logo:url('/logos/twitch.png')}.poll-platform.youtube{--logo:url('/logos/youtube.svg')}.poll-platform.kick{--logo:url('/logos/kick.svg')}.poll-overlay-question{font:inherit;font-size:calc(var(--size)*.95);line-height:1.5;margin:0 0 14px;position:relative;z-index:1}.poll-overlay-line{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:calc(var(--size)*.7);line-height:1.5}.poll-overlay-line>span:first-child{overflow-wrap:anywhere}.poll-overlay-value{white-space:nowrap;font-variant-numeric:tabular-nums}.poll-overlay-choice{margin-top:9px}.poll-overlay-meter{height:8px;margin-top:5px;background:#4d68701c;border-radius:999px;overflow:hidden;box-shadow:inset 0 1px 1px #263e4814}.poll-overlay-meter>span{height:100%;display:block;border-radius:inherit;background:linear-gradient(90deg,color-mix(in srgb,var(--accent),white 28%),var(--accent));transition:width .4s ease}.poll-overlay-source{margin-top:13px;padding-top:10px;border-top:1px solid #68818b26}.poll-overlay-source h3{font:inherit;font-size:calc(var(--size)*.55);margin:0 0 4px;opacity:.8}.poll-overlay-source .poll-overlay-line{font-size:calc(var(--size)*.6)}.poll-overlay-note{font:500 11px/1.5 -apple-system,'Segoe UI',sans-serif;margin:13px 0 0;opacity:.7}.poll-overlay-label{line-height:1.5}.poll-overlay-card .bubble-group{filter:drop-shadow(0 4px 6px #17354530)}
-@media(prefers-reduced-motion:reduce){.poll-overlay-meter>span{transition:none}}
+#pollOverlay{position:absolute;left:var(--edge,28px);bottom:var(--edge,28px);width:min(var(--width,420px),calc(100% - 2 * var(--edge,28px)));display:flex;flex-direction:column;gap:18px;--slide-x:-125%;--slide-y:0px;--size:22px;--accent:#21b8df;--bubble:#f3f7f8;--text:#33464e;--bar-color:var(--accent);--bar:8px;--float:9px}
+#pollOverlay[data-position=bottom-right]{left:auto;right:var(--edge,28px);--slide-x:125%}
+#pollOverlay[data-position=top-left]{bottom:auto;top:var(--edge,28px)}
+#pollOverlay[data-position=top-right]{bottom:auto;top:var(--edge,28px);left:auto;right:var(--edge,28px);--slide-x:125%}
+#pollOverlay[data-position=center]{bottom:auto;top:50%;left:50%;transform:translate(-50%,-50%);--slide-x:0px;--slide-y:60px}
+#pollOverlay[data-position$=right] .pill{margin-left:auto;margin-right:3px}
+#pollOverlay[data-position=center] .pill{margin-inline:auto}
+.poll-overlay-card{width:100%;animation:poll-slide .42s cubic-bezier(.18,1,.3,1) both}
+#pollOverlay[data-animation=pop] .poll-overlay-card{animation-name:poll-pop}
+#pollOverlay[data-animation=fade] .poll-overlay-card{animation-name:poll-fade;animation-duration:.5s}
+.poll-overlay-card.leaving{animation:poll-leave .5s cubic-bezier(.55,0,.75,.25) both}
+.poll-overlay-card .body{border-radius:25px;padding:19px 20px 15px;white-space:normal}.poll-overlay-card .body:before{display:none}.poll-overlay-card .pill{gap:7px}
+.poll-platform{display:inline-block;width:20px;height:20px;background:#fff;mask:var(--logo) center/contain no-repeat;-webkit-mask:var(--logo) center/contain no-repeat}.poll-platform.twitch{--logo:url('/logos/twitch.png')}.poll-platform.youtube{--logo:url('/logos/youtube.svg')}.poll-platform.kick{--logo:url('/logos/kick.svg')}
+.poll-overlay-question{font:inherit;font-size:calc(var(--size)*.95);line-height:1.5;margin:0 0 14px;position:relative;z-index:1}
+.poll-overlay-line{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:calc(var(--size)*.7);line-height:1.5}.poll-overlay-line>span:first-child{overflow-wrap:anywhere}.poll-overlay-value{white-space:nowrap;font-variant-numeric:tabular-nums}
+.poll-overlay-choices,.poll-overlay-source,.poll-overlay-note{position:relative;z-index:1}
+.poll-overlay-choice{margin-top:9px;transition:opacity .3s}
+.poll-overlay-meter{height:var(--bar);margin-top:5px;background:#4d68701c;border-radius:999px;overflow:hidden;box-shadow:inset 0 1px 1px #263e4814}
+.poll-overlay-meter>span{height:100%;display:block;border-radius:inherit;background:linear-gradient(90deg,color-mix(in srgb,var(--bar-color),white 28%),var(--bar-color));transition:width .6s cubic-bezier(.22,1,.36,1),filter .3s}
+.poll-overlay-choices:has(.leading) .poll-overlay-choice:not(.leading){opacity:.72}
+.poll-overlay-choice.leading .poll-overlay-meter>span{filter:saturate(1.25) brightness(1.04)}
+.final .poll-overlay-choice.leading{animation:poll-winner .7s cubic-bezier(.18,1,.3,1) .15s both}
+.final .poll-overlay-choice.leading .poll-overlay-line>span:first-child:after{content:' ✓'}
+.poll-overlay-source{margin-top:13px;padding-top:10px;border-top:1px solid #68818b26}.poll-overlay-source h3{font:inherit;font-size:calc(var(--size)*.55);margin:0 0 4px;opacity:.8}.poll-overlay-source .poll-overlay-line{font-size:calc(var(--size)*.6)}
+.poll-overlay-note{font:500 calc(var(--size)*.46)/1.5 -apple-system,'Segoe UI',sans-serif;margin:13px 0 0;opacity:.7}.poll-overlay-label{line-height:1.5}.poll-overlay-card .bubble-group{filter:drop-shadow(0 4px 6px #17354530)}
+@keyframes poll-slide{from{opacity:0;transform:translate(var(--slide-x),var(--slide-y)) scale(.82)}60%{opacity:1}to{opacity:1;transform:none}}
+@keyframes poll-pop{from{opacity:0;transform:scale(.6)}55%{opacity:1;transform:scale(1.04)}to{opacity:1;transform:none}}
+@keyframes poll-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes poll-leave{to{opacity:0;transform:translate(var(--slide-x),var(--slide-y)) scale(.85)}}
+@keyframes poll-winner{50%{transform:scale(1.04)}}
+@media(prefers-reduced-motion:reduce){.poll-overlay-meter>span{transition:none}.poll-overlay-card,.poll-overlay-card.leaving,.final .poll-overlay-choice.leading{animation-duration:.12s}}

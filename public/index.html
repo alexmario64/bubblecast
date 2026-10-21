@@ -1,11 +1,219 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bubblecast Studio</title><link rel="stylesheet" href="/style.css"></head><body>
-<header class="studio-header"><a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 2v-6.5A7.5 7.5 0 0 1 11.5 7H13"/><path d="M8 9V5a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v7l-3-2h-2"/></svg><strong>Bubblecast</strong><span>Studio</span></a><div class="local"><i></i><span id="studioStatus">Connecting</span></div><a class="header-link" href="/dock">Open chat dock <span>↗</span></a></header>
-<nav class="studio-nav" aria-label="Studio navigation"><span class="nav-label">WORKSPACE</span><a class="current" href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 2v-6.5A7.5 7.5 0 0 1 11.5 7H13"/><path d="M8 9V5a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v7l-3-2h-2"/></svg>Stream studio</a><a href="/dock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5h16v12H9l-5 4z"/><path d="M8 9h8M8 13h5"/></svg>Chat dock</a><div class="nav-bottom"><span class="nav-label">YOUR CONNECTIONS</span><div class="nav-platform"><i class="platform-dot twitch"></i>Twitch</div><div class="nav-platform"><i class="platform-dot youtube"></i>YouTube</div><div class="nav-platform"><i class="platform-dot tiktok"></i>TikTok</div><div class="nav-platform"><i class="platform-dot kick"></i>Kick</div><p>Everything stays on this computer.</p><span class="version">Bubblecast 1.11</span></div></nav>
-<main class="studio-main"><section class="intro"><div><span class="eyebrow">WORKSPACE</span><h1>Stream studio</h1><p>Fine-tune your overlay. Bring every conversation together.</p></div><a href="/dock" class="primary-link">Open combined chat <span>↗</span></a></section>
-<div class="workspace"><section class="preview-panel"><div class="panel-heading"><span><i class="preview-dot"></i>Overlay preview</span><span class="muted">Transparent browser source</span></div><div class="stage" id="stage"><div class="preview-grid"></div><iframe id="preview" title="Live chat overlay preview" src="/overlay?preview=1"></iframe><span class="canvas-size">4K · 50% PREVIEW</span></div><div class="preview-footer"><button id="test">Send test message</button><button id="demo">Play demo</button><button id="clear" class="icon" title="Clear messages" aria-label="Clear preview">Clear</button><span id="feedback" role="status"></span></div><div class="obs-bar"><div><strong>Desktop overlay</strong><p>3840 × 2160 · transparent background</p></div><button id="copy" class="dark">Copy source URL</button></div><div class="layout-links"><article><div><strong>Vertical live</strong><span>1080 × 1920</span></div><button type="button" data-copy-layout="vertical">Copy URL</button><a href="/overlay?layout=vertical&amp;showcase=1" target="_blank" rel="noopener">Preview ↗</a></article><article><div><strong>Below webcam</strong><span>800 × 480</span></div><button type="button" data-copy-layout="webcam">Copy URL</button><a href="/overlay?layout=webcam&amp;showcase=1" target="_blank" rel="noopener">Preview ↗</a></article><article><div><strong>Combined poll overlay</strong><span>Same bubble style · shared results</span></div><button type="button" id="copyPollOverlay">Copy URL</button><a href="/poll-overlay?preview=1" target="_blank" rel="noopener">Preview ↗</a></article><article><div><strong>Combined chat dock</strong><span>One feed for every platform</span></div><button type="button" id="copyDock">Copy URL</button><a href="/dock">Open ↗</a></article></div></section>
-<aside><div class="tabs" role="tablist"><button class="active" data-tab="style" role="tab" aria-selected="true">Appearance</button><button data-tab="connect" role="tab" aria-selected="false">Connections</button></div><form id="settings"><div id="style" class="tab-content"><div class="section-label">Interface</div><label>Color scheme<select name="uiTheme"><option value="rose">1 · Rose &amp; peach</option><option value="red">2 · Red &amp; white</option></select></label><p class="small">Applies to Studio and the chat dock.</p><div class="section-label divider">Display &amp; motion</div><label>Canvas resolution<select name="resolution"><option value="2160">4K · 3840 × 2160 · 2× detail</option><option value="1440">1440p · 2560 × 1440</option><option value="1080">1080p · 1920 × 1080</option></select></label><p class="small" id="obsSizeHint">OBS Browser source: 3840 × 2160. Preview shown at half scale.</p><label>Overlay font<input value="Komika Axis · installed on this PC" readonly aria-label="Overlay font"></label><label class="toggle">Gentle floating motion<input name="floatMotion" type="checkbox" checked><span></span></label><label class="range-label">Float amount <output id="floatAmountValue">4 px</output></label><input name="floatAmount" type="range" min="0" max="12" value="4"><label>Slide direction <span class="hint">Enter + disappear to the same side</span></label><div class="segmented"><button type="button" data-direction="left" class="selected">← Left</button><button type="button" data-direction="right">Right →</button></div><div class="colors"><label>Name pill<input name="accent" type="color" value="#ff293c"></label><label>Bubble<input name="bubble" type="color" value="#eeeeef"></label><label>Text<input name="text" type="color" value="#202125"></label></div><label class="range-label">Text size · before 4K scaling <output id="fontSizeValue">22 px</output></label><input name="fontSize" type="range" min="14" max="40" value="22"><label class="range-label">Visible for <output id="durationValue">18 sec</output></label><input name="duration" type="range" min="3" max="180" value="18"><div class="two"><label>Max bubbles<input type="number" name="maxMessages" min="1" max="20" value="7"></label><label>Overlay width<input type="number" name="width" min="240" max="800" value="420"></label></div><div class="section-label divider">Badges & emotes</div><label class="range-label">Badge size <output id="badgeSizeValue">24 px</output></label><input name="badgeSize" type="range" min="16" max="36" value="24"><label class="toggle">Show viewer badges<input name="badges" type="checkbox" checked><span></span></label><label class="toggle">Show platform logo<input name="platforms" type="checkbox" checked><span></span></label><label class="toggle">BetterTTV text emotes<input name="bttv" type="checkbox" checked><span></span></label><label>Links in chat<select name="linkMode"><option value="strip">Hide the link, keep the message</option><option value="drop">Hide the entire message</option><option value="show">Show links as plain text</option></select></label><p class="small">Animated emotes and GIFs play automatically when chat supplies their media. Link-only messages disappear when filtering is on.</p><div class="section-label divider">Message filters</div><label class="toggle">Filter bots on overlay<input name="filterBots" type="checkbox" checked><span></span></label><label>Additional ignored bots<textarea name="ignoredBots" id="ignoredBots" class="bot-list" rows="4" maxlength="12000" placeholder="AnotherBot&#10;MyAlertsBot" aria-describedby="ignoredBotsHelp"></textarea></label><p class="small" id="ignoredBotsHelp">One username per line, or separate names with commas. Capitalization and a leading @ do not matter. StreamElements, Nightbot, and other common bots are hidden on the overlay when Filter bots is enabled. The dock always shows bot messages.</p><button class="save" type="submit">Save changes</button></div>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bubblecast Studio</title><link rel="stylesheet" href="/style.css"></head>
+<body data-theme="rose">
+<div class="app">
+<aside class="sidebar">
+ <a class="brand" href="#overview"><span class="brand-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 2v-6.5A7.5 7.5 0 0 1 11.5 7H13"/><path d="M8 9V5a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v7l-3-2h-2"/></svg></span><strong>Bubblecast</strong><span>Studio</span></a>
+ <div class="helper-chip" id="helperChip" data-state="checking"><i></i><span id="studioStatus">Connecting</span></div>
+ <nav aria-label="Studio sections">
+  <a href="#overview" data-page-link="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg>Overview</a>
+  <a href="#connections" data-page-link="connections"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M9 7H7a5 5 0 0 0 0 10h2m6-10h2a5 5 0 0 1 0 10h-2M8 12h8"/></svg>Connections<span class="nav-count" id="connectionCount"></span></a>
+  <span class="nav-label">Overlays</span>
+  <a href="#chat" data-page-link="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12.5h5"/></svg>Chat overlay</a>
+  <a href="#polls" data-page-link="polls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Poll overlay</a>
+  <span class="nav-label">Workspace</span>
+  <a href="#dock" data-page-link="dock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M14 4v16"/></svg>Chat dock</a>
+  <a href="#obs" data-page-link="obs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3v5.5M4.2 16.5l4.8-2.8M19.8 16.5 15 13.7"/></svg>OBS setup</a>
+ </nav>
+ <div class="sidebar-platforms" aria-label="Platform status">
+  <span class="nav-label">Channels</span>
+  <a href="#connections" class="nav-platform" id="nav-twitch"><img src="/logos/twitch.png" alt=""><span>Twitch</span><i></i></a>
+  <a href="#connections" class="nav-platform" id="nav-youtube"><img src="/logos/youtube.png" alt=""><span>YouTube</span><i></i></a>
+  <a href="#connections" class="nav-platform" id="nav-tiktok"><img src="/logos/tiktok.svg" alt=""><span>TikTok</span><i></i></a>
+  <a href="#connections" class="nav-platform" id="nav-kick"><img src="/logos/kick.svg" alt=""><span>Kick</span><i></i></a>
+ </div>
+ <a class="open-dock" href="/dock" target="_blank" rel="noopener">Open chat dock<span aria-hidden="true">↗</span></a>
+</aside>
 
-<div id="connect" class="tab-content" hidden><div class="section-label">Your channels</div><p class="small">Add your stream links to start reading chat. Signing in is optional unless you want to send messages.</p><div class="platform-title"><i class="platform-dot twitch"></i><strong>Twitch</strong><span id="twitchStatus" class="status">Not connected</span></div><label>Twitch channel<input id="twitchChannel" placeholder="Channel name or link" autocomplete="off"></label><div class="session-line"><span id="account-twitch">Read-only chat</span><button type="button" data-setup-signin="twitch">Sign in</button></div><p class="small" id="captureTiming" role="status"></p>
-<div class="platform-title divider"><i class="platform-dot youtube"></i><strong>YouTube</strong><span id="youtubeStatus" class="status">Not connected</span></div><label>Live stream<input id="youtubeVideo" placeholder="Video link or ID" autocomplete="off"></label><label>Shorts live stream <span class="hint">Optional second stream</span><input id="youtubeShortsVideo" placeholder="Second video link or ID" autocomplete="off"></label><div class="session-line"><span id="account-youtube">Read-only chat</span><button type="button" data-setup-signin="youtube">Sign in</button></div>
-<div class="platform-title divider"><i class="platform-dot tiktok"></i><strong>TikTok LIVE</strong><span id="tiktokStatus" class="status">Not connected</span></div><label>Creator<input id="tiktokChannel" placeholder="@handle or LIVE link" autocomplete="off"></label><div class="session-line"><span id="account-tiktok">Read-only chat</span><button type="button" data-setup-signin="tiktok">Sign in</button></div><div class="platform-title divider"><i class="platform-dot kick"></i><strong>Kick</strong><span id="kickStatus" class="status">Not connected</span></div><label>Channel<input id="kickChannel" placeholder="Channel name or kick.com link" autocomplete="off"></label><div class="session-line"><span id="account-kick">Read-only chat</span><button type="button" data-setup-signin="kick">Sign in</button></div><p id="accountMessage" class="small" role="status"></p><p class="notice" id="sourceFeedback" role="status">Save your channels to connect.</p><button id="saveConnections" class="save" type="submit">Save connections</button><button id="stopSources" type="button">Disconnect sources</button><p id="pairStatus" class="small">Checking background app…</p>
-<details class="advanced"><summary>Advanced settings</summary><label>Twitch numeric user ID<input name="twitchId" inputmode="numeric" placeholder="For channel BetterTTV emotes"></label><p class="small">Used to load your channel and shared BetterTTV emotes.</p><button id="installObs" type="button">Add overlay to OBS scene</button><p id="obsMessage" class="small" role="status">Requires OBS WebSocket. You can always add the copied URL manually.</p></details></div></form></aside></div><footer><span>Bubblecast Studio</span><span>Local workspace · no cloud required</span></footer></main><script type="module" src="/app.js"></script></body></html>
+<main>
+<div class="banner" id="helperBanner" role="alert" hidden><strong>Background app is offline.</strong> Chat capture, sending and polls are paused. Start Bubblecast Background (or reopen OBS) to resume.</div>
+<form id="settings" autocomplete="off">
+
+<section class="page" data-page="overview" id="page-overview">
+ <header class="page-header"><div><h1>Overview</h1><p>Your stream at a glance.</p></div><div class="page-actions"><a class="button primary" href="/dock" target="_blank" rel="noopener">Open chat dock</a></div></header>
+ <div class="card setup-guide" id="setupGuide" hidden>
+  <h2>Get set up in three steps</h2>
+  <ol class="steps">
+   <li id="step-connect"><span class="step-mark"></span><div><strong>Connect your channels</strong><p>Add your Twitch, YouTube, TikTok or Kick stream.</p></div><a class="button" href="#connections">Connect</a></li>
+   <li id="step-obs"><span class="step-mark"></span><div><strong>Add Bubblecast to OBS</strong><p>Copy the overlay and dock URLs into OBS.</p></div><a class="button" href="#obs">Open OBS setup</a></li>
+   <li id="step-style"><span class="step-mark"></span><div><strong>Make it yours</strong><p>Tune colors, motion and the poll card.</p></div><a class="button" href="#chat">Customize</a></li>
+  </ol>
+ </div>
+ <div class="overview-grid">
+  <div class="card status-card"><div class="card-title"><h2>Channels</h2><a href="#connections" class="text-link">Manage</a></div><ul class="platform-list" id="platformList"></ul></div>
+  <div class="card"><div class="card-title"><h2>Quick actions</h2></div>
+   <div class="quick-actions">
+    <button type="button" class="quick" data-copy="/overlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span>Copy chat overlay URL</span></button>
+    <button type="button" class="quick" data-copy="/poll-overlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7"/></svg><span>Copy poll overlay URL</span></button>
+    <button type="button" class="quick" data-copy="/dock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M14 4v16"/></svg><span>Copy dock URL</span></button>
+    <button type="button" class="quick" data-test-message><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 12 16-8-6 16-2-6z"/></svg><span>Send a test bubble</span></button>
+   </div>
+   <p class="footnote">Test bubbles appear only on your overlays, never in your real chats.</p>
+  </div>
+ </div>
+</section>
+
+<section class="page" data-page="connections" id="page-connections" hidden>
+ <header class="page-header"><div><h1>Connections</h1><p>Add your stream links to read chat. Signing in is only needed to send messages and run polls.</p></div></header>
+ <div class="connection-grid">
+  <article class="card platform-card" data-platform="twitch"><div class="platform-head"><img src="/logos/twitch.png" alt=""><h2>Twitch</h2><span class="pill" id="twitchStatus">Not connected</span></div>
+   <label class="field">Channel<input id="twitchChannel" placeholder="Channel name or link" spellcheck="false"></label>
+   <div class="account-line"><span id="account-twitch">Read-only chat</span><button type="button" class="button" data-setup-signin="twitch">Sign in</button></div>
+   <details class="inline-advanced"><summary>Channel emotes</summary><label class="field">Twitch numeric user ID<input name="twitchId" inputmode="numeric" placeholder="Optional · loads your BetterTTV emotes"></label></details>
+  </article>
+  <article class="card platform-card" data-platform="youtube"><div class="platform-head"><img src="/logos/youtube.png" alt=""><h2>YouTube</h2><span class="pill" id="youtubeStatus">Not connected</span></div>
+   <label class="field">Live stream<input id="youtubeVideo" placeholder="Video link or ID" spellcheck="false"></label>
+   <label class="field">Shorts live stream <span class="optional">Optional · separate chat</span><input id="youtubeShortsVideo" placeholder="Second video link or ID" spellcheck="false"></label>
+   <div class="account-line"><span id="account-youtube">Read-only chat</span><button type="button" class="button" data-setup-signin="youtube">Sign in</button></div>
+  </article>
+  <article class="card platform-card" data-platform="tiktok"><div class="platform-head"><img src="/logos/tiktok.svg" alt=""><h2>TikTok LIVE</h2><span class="pill" id="tiktokStatus">Not connected</span></div>
+   <label class="field">Creator<input id="tiktokChannel" placeholder="@handle or LIVE link" spellcheck="false"></label>
+   <div class="account-line"><span id="account-tiktok">Read-only chat</span><button type="button" class="button" data-setup-signin="tiktok">Sign in</button></div>
+  </article>
+  <article class="card platform-card" data-platform="kick"><div class="platform-head"><img src="/logos/kick.svg" alt=""><h2>Kick</h2><span class="pill" id="kickStatus">Not connected</span></div>
+   <label class="field">Channel<input id="kickChannel" placeholder="Channel name or kick.com link" spellcheck="false"></label>
+   <div class="account-line"><span id="account-kick">Read-only chat</span><button type="button" class="button" data-setup-signin="kick">Sign in</button></div>
+  </article>
+ </div>
+ <div class="action-bar"><p id="sourceFeedback" class="action-note"></p><button type="button" id="stopSources" class="button subtle">Disconnect all</button><button type="button" id="saveConnections" class="button primary">Save connections</button></div>
+</section>
+
+<section class="page" data-page="chat" id="page-chat" hidden>
+ <header class="page-header"><div><h1>Chat overlay</h1><p>How chat bubbles look and move on stream.</p></div><span class="save-state" aria-live="polite"></span></header>
+ <div class="editor">
+  <div class="preview card"><div class="preview-bar"><span class="preview-title"><i></i>Live preview</span><span class="canvas-size" id="canvasSize">4K · 50%</span></div>
+   <div class="stage"><iframe id="preview" title="Chat overlay preview" src="/overlay?preview=1"></iframe></div>
+   <div class="preview-tools"><button type="button" class="button" id="test">Send test bubble</button><button type="button" class="button" id="demo">Play demo</button><button type="button" class="button subtle" id="clear">Clear</button></div>
+  </div>
+  <div class="groups">
+   <fieldset class="group"><legend>Font</legend>
+    <label class="row"><span>Overlay font <small>Used by chat and poll overlays.</small></span><input name="fontFamily" list="fontOptions" maxlength="60" spellcheck="false" placeholder="Komika Axis"></label>
+    <datalist id="fontOptions"><option value="Komika Axis"><option value="Arial Rounded MT Bold"><option value="Comic Sans MS"><option value="Impact"><option value="Trebuchet MS"><option value="Verdana"><option value="Segoe UI"><option value="Bahnschrift"><option value="Georgia"><option value="Arial"></datalist>
+    <div class="row stacked font-preview"><span class="font-sample" id="fontSample">Hello chat! 123</span><span class="font-status" id="fontStatus"></span><button type="button" class="button" id="browseFonts" hidden>Browse installed fonts…</button></div>
+   </fieldset>
+   <fieldset class="group"><legend>Motion &amp; size</legend>
+    <div class="row"><span>Slide direction</span><div class="segmented"><label><input type="radio" name="direction" value="left">← Left</label><label><input type="radio" name="direction" value="right">Right →</label></div></div>
+    <label class="row"><span>Floating motion</span><input type="checkbox" name="floatMotion" class="switch"></label>
+    <label class="row slider"><span>Float amount</span><input type="range" name="floatAmount" min="0" max="12"><output data-for="floatAmount" data-unit=" px"></output></label>
+    <label class="row slider"><span>Text size</span><input type="range" name="fontSize" min="14" max="40"><output data-for="fontSize" data-unit=" px"></output></label>
+    <label class="row slider"><span>Bubble width</span><input type="range" name="width" min="240" max="800" step="10"><output data-for="width" data-unit=" px"></output></label>
+    <label class="row slider"><span>Visible for</span><input type="range" name="duration" min="3" max="180"><output data-for="duration" data-unit=" s"></output></label>
+    <label class="row slider"><span>Max bubbles</span><input type="range" name="maxMessages" min="1" max="20"><output data-for="maxMessages"></output></label>
+   </fieldset>
+   <fieldset class="group"><legend>Colors</legend>
+    <label class="row"><span>Name pill</span><input type="color" name="accent"></label>
+    <label class="row"><span>Bubble</span><input type="color" name="bubble"></label>
+    <label class="row"><span>Text</span><input type="color" name="text"></label>
+   </fieldset>
+   <fieldset class="group"><legend>Badges, emotes &amp; links</legend>
+    <label class="row"><span>Viewer badges</span><input type="checkbox" name="badges" class="switch"></label>
+    <label class="row slider"><span>Badge size</span><input type="range" name="badgeSize" min="16" max="36"><output data-for="badgeSize" data-unit=" px"></output></label>
+    <label class="row"><span>Platform logo</span><input type="checkbox" name="platforms" class="switch"></label>
+    <label class="row"><span>BetterTTV emotes</span><input type="checkbox" name="bttv" class="switch"></label>
+    <label class="row"><span>Links in chat</span><select name="linkMode"><option value="strip">Hide link, keep message</option><option value="drop">Hide whole message</option><option value="show">Show as plain text</option></select></label>
+   </fieldset>
+   <fieldset class="group" id="botGroup"><legend>Bots</legend>
+    <label class="row"><span>Hide bots on stream overlay</span><input type="checkbox" name="filterBots" class="switch"></label>
+    <label class="row"><span>Hide bots in chat dock</span><input type="checkbox" name="dockFilterBots" class="switch"></label>
+    <div class="row stacked"><span>Your ignored bots <small>Nightbot, StreamElements, Streamlabs and other common bots are always included.</small></span>
+     <div class="chips" id="botChips" aria-label="Ignored bots"></div>
+     <div class="chip-input"><input id="botName" placeholder="Add a bot username" maxlength="60" spellcheck="false" aria-label="Bot username"><button type="button" class="button" id="addBot">Add</button></div>
+     <textarea name="ignoredBots" id="ignoredBots" hidden></textarea>
+    </div>
+   </fieldset>
+  </div>
+ </div>
+</section>
+
+<section class="page" data-page="polls" id="page-polls" hidden>
+ <header class="page-header"><div><h1>Poll overlay</h1><p>The card your viewers see while a poll runs.</p></div><span class="save-state" aria-live="polite"></span></header>
+ <div class="editor">
+  <div class="preview card"><div class="preview-bar"><span class="preview-title"><i></i>Live preview</span><div class="segmented compact" role="group" aria-label="Preview state"><label><input type="radio" name="pollPreviewState" value="live" form="previewOnly" checked>Live</label><label><input type="radio" name="pollPreviewState" value="final" form="previewOnly">Final</label></div></div>
+   <div class="stage"><iframe id="pollPreview" title="Poll overlay preview" src="/poll-overlay?preview=1&amp;fit=1"></iframe></div>
+   <div class="preview-tools"><button type="button" class="button" data-copy="/poll-overlay">Copy poll overlay URL</button></div>
+  </div>
+  <div class="groups">
+   <fieldset class="group"><legend>Placement &amp; motion</legend>
+    <div class="row stacked"><span>Position on screen</span>
+     <div class="position-picker" role="radiogroup" aria-label="Poll position">
+      <label title="Top left"><input type="radio" name="pollPosition" value="top-left" aria-label="Top left"><i></i></label><label title="Top right"><input type="radio" name="pollPosition" value="top-right" aria-label="Top right"><i></i></label><label title="Center"><input type="radio" name="pollPosition" value="center" aria-label="Center"><i></i></label><label title="Bottom left"><input type="radio" name="pollPosition" value="bottom-left" aria-label="Bottom left"><i></i></label><label title="Bottom right"><input type="radio" name="pollPosition" value="bottom-right" aria-label="Bottom right"><i></i></label>
+     </div></div>
+    <div class="row"><span>Entrance</span><div class="segmented"><label><input type="radio" name="pollAnimation" value="slide">Slide</label><label><input type="radio" name="pollAnimation" value="pop">Pop</label><label><input type="radio" name="pollAnimation" value="fade">Fade</label></div></div>
+    <label class="row"><span>Floating motion</span><input type="checkbox" name="pollFloatMotion" class="switch"></label>
+    <label class="row slider"><span>Card width</span><input type="range" name="pollWidth" min="280" max="900" step="10"><output data-for="pollWidth" data-unit=" px"></output></label>
+    <label class="row slider"><span>Text size</span><input type="range" name="pollFontSize" min="14" max="40"><output data-for="pollFontSize" data-unit=" px"></output></label>
+    <label class="row slider"><span>Bar thickness</span><input type="range" name="pollBarHeight" min="4" max="20"><output data-for="pollBarHeight" data-unit=" px"></output></label>
+    <label class="row slider"><span>Show results for</span><input type="range" name="pollResultSeconds" min="3" max="120"><output data-for="pollResultSeconds" data-unit=" s"></output></label>
+   </fieldset>
+   <fieldset class="group"><legend>Colors</legend>
+    <div class="row"><span>Color source</span><div class="segmented"><label><input type="radio" name="pollColors" value="chat">Match chat</label><label><input type="radio" name="pollColors" value="custom">Custom</label></div></div>
+    <div class="custom-colors" id="pollCustomColors">
+     <label class="row"><span>Label pill</span><input type="color" name="pollAccent"></label>
+     <label class="row"><span>Card</span><input type="color" name="pollBubble"></label>
+     <label class="row"><span>Text</span><input type="color" name="pollText"></label>
+     <label class="row"><span>Result bars</span><input type="color" name="pollBar"></label>
+    </div>
+   </fieldset>
+   <fieldset class="group"><legend>What's shown</legend>
+    <label class="row"><span>Percentages</span><input type="checkbox" name="pollShowPercent" class="switch"></label>
+    <label class="row"><span>Vote counts</span><input type="checkbox" name="pollShowVotes" class="switch"></label>
+    <label class="row"><span>Platform logos</span><input type="checkbox" name="pollShowPlatforms" class="switch"></label>
+    <label class="row"><span>Vote total footer</span><input type="checkbox" name="pollShowFooter" class="switch"></label>
+    <label class="row"><span>Highlight the leader</span><input type="checkbox" name="pollHighlightLeader" class="switch"></label>
+   </fieldset>
+   <fieldset class="group"><legend>Labels</legend>
+    <label class="row"><span>While voting</span><input name="pollLiveLabel" maxlength="24" placeholder="Live poll"></label>
+    <label class="row"><span>After it ends</span><input name="pollFinalLabel" maxlength="24" placeholder="Final results"></label>
+   </fieldset>
+  </div>
+ </div>
+</section>
+
+<section class="page" data-page="dock" id="page-dock" hidden>
+ <header class="page-header"><div><h1>Chat dock</h1><p>One feed for every platform, inside OBS.</p></div><span class="save-state" aria-live="polite"></span></header>
+ <div class="editor">
+  <div class="preview card dock-preview"><div class="preview-bar"><span class="preview-title"><i></i>Dock preview</span><a class="text-link" href="/dock" target="_blank" rel="noopener">Open ↗</a></div><div class="stage"><iframe title="Chat dock preview" data-src="/dock?preview=1"></iframe></div></div>
+  <div class="groups">
+   <fieldset class="group"><legend>Color scheme</legend>
+    <div class="theme-picker">
+     <label class="theme-option"><input type="radio" name="uiTheme" value="rose"><span class="swatch rose"></span><span>Rose &amp; peach</span></label>
+     <label class="theme-option"><input type="radio" name="uiTheme" value="red"><span class="swatch red"></span><span>Red &amp; white</span></label>
+    </div>
+    <p class="footnote">Applies to Studio and the chat dock.</p>
+   </fieldset>
+   <fieldset class="group"><legend>Add the dock to OBS</legend>
+    <div class="row url-row"><code>/dock</code><button type="button" class="button" data-copy="/dock">Copy URL</button></div>
+    <p class="footnote">In OBS choose <b>Docks → Custom Browser Docks</b>, name it Bubblecast and paste the URL.</p>
+   </fieldset>
+  </div>
+ </div>
+</section>
+
+<section class="page" data-page="obs" id="page-obs" hidden>
+ <header class="page-header"><div><h1>OBS setup</h1><p>Add each overlay as a Browser source. Backgrounds are transparent.</p></div><span class="save-state" aria-live="polite"></span></header>
+ <fieldset class="group wide"><legend>Canvas resolution</legend>
+  <div class="resolution-picker">
+   <label><input type="radio" name="resolution" value="2160"><strong>4K</strong><span>3840 × 2160</span></label>
+   <label><input type="radio" name="resolution" value="1440"><strong>1440p</strong><span>2560 × 1440</span></label>
+   <label><input type="radio" name="resolution" value="1080"><strong>1080p</strong><span>1920 × 1080</span></label>
+  </div>
+  <p class="footnote">Match your OBS canvas. Text and badges scale with it.</p>
+ </fieldset>
+ <fieldset class="group wide"><legend>Browser sources</legend>
+  <div class="source-row"><div><strong>Chat overlay</strong><span id="obsSizeHint">3840 × 2160</span></div><button type="button" class="button primary" id="copy" data-copy="/overlay">Copy URL</button><a class="text-link" href="/overlay?showcase=1" target="_blank" rel="noopener">Preview ↗</a></div>
+  <div class="source-row"><div><strong>Poll overlay</strong><span>Same size as your canvas</span></div><button type="button" class="button" data-copy="/poll-overlay">Copy URL</button><a class="text-link" href="/poll-overlay?preview=1" target="_blank" rel="noopener">Preview ↗</a></div>
+  <div class="source-row"><div><strong>Vertical chat</strong><span>1080 × 1920</span></div><button type="button" class="button" data-copy="/overlay?layout=vertical">Copy URL</button><a class="text-link" href="/overlay?layout=vertical&amp;showcase=1" target="_blank" rel="noopener">Preview ↗</a></div>
+  <div class="source-row"><div><strong>Chat below webcam</strong><span>800 × 480</span></div><button type="button" class="button" data-copy="/overlay?layout=webcam">Copy URL</button><a class="text-link" href="/overlay?layout=webcam&amp;showcase=1" target="_blank" rel="noopener">Preview ↗</a></div>
+  <div class="source-row"><div><strong>Chat dock</strong><span>Docks → Custom Browser Docks</span></div><button type="button" class="button" data-copy="/dock">Copy URL</button><a class="text-link" href="/dock" target="_blank" rel="noopener">Open ↗</a></div>
+ </fieldset>
+ <fieldset class="group wide"><legend>Automatic setup</legend>
+  <div class="source-row"><div><strong>Add the chat overlay to your current scene</strong><span id="obsMessage">Needs OBS WebSocket enabled with a password (Tools → WebSocket Server Settings).</span></div><button type="button" class="button" id="installObs">Add to OBS</button></div>
+ </fieldset>
+</section>
+
+</form>
+</main>
+</div>
+<form id="previewOnly" hidden></form>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script type="module" src="/app.js"></script>
+</body></html>
