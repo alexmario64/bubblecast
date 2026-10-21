@@ -52,3 +52,7 @@ test('4K scaling settings preserve direction and validate badge and float size b
 });
 test('overlay bot switch defaults on and disabling it admits common and custom bots',()=>{assert.equal(settings({}).filterBots,true);const s=settings({filterBots:false,ignoredBots:['CustomBot']});assert.equal(settings(s).filterBots,false);for(const user of ['Nightbot','Fossabot','CustomBot'])assert.ok(normalize({...msg('hello'),user},s));});
 test('interface schemes retain the original default and validate the red alternative',()=>{assert.equal(settings({}).uiTheme,'rose');assert.equal(settings({uiTheme:'red'}).uiTheme,'red');assert.equal(settings({uiTheme:'unknown'}).uiTheme,'rose');});
+test('poll overlay settings are bounded and fall back to safe defaults',()=>{
+ const s=settings({pollWidth:'5000',pollFontSize:2,pollResultSeconds:'',pollPosition:'nowhere',pollAnimation:'pop',pollColors:'custom',pollAccent:'#ABCDEF',pollBar:'red',pollShowVotes:false,pollLiveLabel:'  Vote   now, chat! This label is far too long ',pollFinalLabel:'   '});
+ assert.equal(s.pollWidth,900);assert.equal(s.pollFontSize,14);assert.equal(s.pollResultSeconds,15);assert.equal(s.pollPosition,'bottom-left');assert.equal(s.pollAnimation,'pop');assert.equal(s.pollColors,'custom');assert.equal(s.pollAccent,'#ABCDEF');assert.equal(s.pollBar,'#21b8df');assert.equal(s.pollShowVotes,false);assert.equal(s.pollLiveLabel,'Vote now, chat! This lab');assert.equal(s.pollFinalLabel,'Final results');
+});
