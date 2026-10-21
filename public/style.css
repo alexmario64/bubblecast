@@ -25,7 +25,7 @@ svg{width:18px;height:18px;flex-shrink:0}
 .sidebar{z-index:1;isolation:isolate}
 .brand{display:flex;align-items:center;gap:9px;padding:20px 20px 6px;color:var(--text);font-size:15px;letter-spacing:-.3px}
 .brand strong{font-weight:680}.brand>span:last-child{color:var(--text-3);font-weight:450}
-.brand-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--logo-tile);box-shadow:0 2px 8px color-mix(in srgb,var(--text) 25%,transparent),inset 0 1px 1px #ffffff40}.brand-icon img{width:26px;height:26px;display:block}
+.brand-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;flex-shrink:0;background:var(--logo-tile);box-shadow:0 2px 8px color-mix(in srgb,var(--text) 25%,transparent),inset 0 1px 1px #ffffff40}.brand-icon img{width:30px;height:30px;display:block}
 .helper-chip{display:flex;align-items:center;gap:7px;margin:6px 20px 14px;font-size:11.5px;color:var(--text-2)}
 .helper-chip i{width:7px;height:7px;border-radius:50%;background:#a7a0a8;flex-shrink:0;transition:background .3s}
 .helper-chip[data-state=online] i{background:#34c759;box-shadow:0 0 0 0 #34c75966;animation:pulse 2.4s ease-out infinite}
@@ -225,3 +225,7 @@ body[data-theme=red] .page-actions .button.primary{background:#fff;color:var(--a
 .viewer-split li.empty{display:block;color:var(--text-3);font-size:12.5px}
 @media(max-width:860px){.viewers-body{grid-template-columns:1fr}}
 .swatch.midnight{background:radial-gradient(ellipse at 0 0,#3a3550,transparent 65%),linear-gradient(145deg,#1d1b26,#0f0e14)}.swatch.white{background:radial-gradient(ellipse at 0 0,#e9e6ff,transparent 60%),linear-gradient(180deg,#fff,#eef0f5);box-shadow:inset 0 0 0 1px #1d1d2614}
+.hero-title{display:flex;align-items:center;gap:16px}
+.brand-icon.large{width:58px;height:58px;border-radius:16px;box-shadow:0 8px 22px color-mix(in srgb,var(--text) 28%,transparent),inset 0 1px 1px #ffffff40}.brand-icon.large img{width:48px;height:48px}
+.theme-picker.wide{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));padding:6px 16px 0}
+.swatch.match{background:linear-gradient(135deg,#a173b1 0 25%,#d9404d 25% 50%,#1d1b26 50% 75%,#f4f5f8 75%);box-shadow:inset 0 0 0 1px #1d1d2614}

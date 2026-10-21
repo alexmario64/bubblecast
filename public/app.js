@@ -12,7 +12,7 @@ function toast(text,type='info'){const host=$('#toasts');if(!host)return;const e
 function feedback(text){toast(text);}
 
 // Pages
-const pages=['overview','connections','chat','polls','dock','obs'];
+const pages=['overview','connections','appearance','chat','polls','dock','obs'];
 function route(){const page=pages.includes(location.hash.slice(1))?location.hash.slice(1):'overview';for(const section of $$('[data-page]'))section.hidden=section.dataset.page!==page;for(const link of $$('[data-page-link]')){const current=link.dataset.pageLink===page;link.classList.toggle('current',current);if(current)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');}const lazy=$('#page-'+page+' iframe[data-src]');if(lazy){lazy.src=lazy.dataset.src;lazy.removeAttribute('data-src');}document.title=(page==='overview'?'':$('#page-'+page+' h1').textContent+' · ')+'Bubblecast Studio';$('main')?.scrollTo?.(0,0);}
 window.addEventListener('hashchange',route);
 
