@@ -1,4 +1,5 @@
 import {initConnections} from '/connections.js';
+import {knownBots} from '/core.mjs';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],form=$('#settings');
 const platforms=['twitch','youtube','tiktok','kick'],names={twitch:'Twitch',youtube:'YouTube',tiktok:'TikTok LIVE',kick:'Kick'},logos={twitch:'/logos/twitch.png',youtube:'/logos/youtube.png',tiktok:'/logos/tiktok.svg',kick:'/logos/kick.svg'};
 const sourceIds=['twitchChannel','youtubeVideo','youtubeShortsVideo','tiktokChannel','kickChannel'];
@@ -25,16 +26,23 @@ function preview(data){for(const frame of [$('#preview'),$('#pollPreview')])try{
 function saveState(text,type=''){for(const el of $$('.save-state')){el.textContent=text;el.dataset.state=type;}}
 function changed(){if(!loaded)return;const draft=collect();applyTheme(draft.uiTheme);outputs();syncPollColors();preview(draft);saveState('Editing…');clearTimeout(saveTimer);saveTimer=setTimeout(save,450);}
 async function save(){clearTimeout(saveTimer);try{saveState('Saving…');state=await api('settings',collect());saveState('Saved','ok');store.set('bubblecast-styled','1');steps();}catch(e){saveState('Not saved','error');toast('Settings were not saved: '+e.message,'error');}}
-form.addEventListener('input',e=>{if(e.target.name)changed();});form.addEventListener('change',e=>{if(e.target.name&&e.target.type!=='text')changed();});
+form.addEventListener('input',e=>{if(e.target.name)changed();});form.addEventListener('change',e=>{if(e.target.name==='filterBots')renderBots();if(e.target.name&&e.target.type!=='text')changed();});
 form.onsubmit=e=>{e.preventDefault();if(location.hash==='#connections')saveSources().catch(sourceError);};
 for(const frame of [$('#preview'),$('#pollPreview')])frame.addEventListener('load',()=>{if(loaded)preview(collect());});
 for(const radio of $$('[name=pollPreviewState]'))radio.onchange=()=>{$('#pollPreview').src='/poll-overlay?preview=1&fit=1'+(radio.value==='final'?'&state=final':'');};
 
-// Ignored bots: chips over the saved newline list.
-function botList(){return [...new Set($('#ignoredBots').value.split(/[,;\r\n]+/).map(n=>n.trim().replace(/^@/,'')).filter(Boolean))];}
-function setBots(list){$('#ignoredBots').value=list.join('\n');renderBots();changed();}
-function renderBots(){const host=$('#botChips');host.replaceChildren();const list=botList();if(!list.length){const empty=document.createElement('span');empty.className='chips-empty';empty.textContent='No extra bots yet.';host.append(empty);}for(const name of list){const chip=document.createElement('span');chip.className='chip';chip.textContent=name;const remove=document.createElement('button');remove.type='button';remove.setAttribute('aria-label','Remove '+name);remove.textContent='×';remove.onclick=()=>setBots(botList().filter(n=>n!==name));chip.append(remove);host.append(chip);}}
-function addBot(){const input=$('#botName'),name=input.value.trim().replace(/^@/,'');if(!name)return;const list=botList();if(!list.some(n=>n.toLowerCase()===name.toLowerCase()))setBots([...list,name]);input.value='';input.focus();}
+// Bots: one list, two visibility rules. Off stream unless checked; in the dock unless unchecked.
+const listed=id=>[...new Set($(id).value.split(/[,;\r\n]+/).map(n=>n.trim().replace(/^@/,'')).filter(Boolean))];
+function setNames(id,list){$(id).value=list.join('\n');}
+function toggleName(id,name,on){const key=name.toLowerCase(),list=listed(id).filter(n=>n.toLowerCase()!==key);setNames(id,on?[...list,name]:list);}
+function botRows(){const custom=listed('#ignoredBots');return [...knownBots.map(name=>({name,builtIn:true})),...custom.filter(n=>!knownBots.some(k=>k.toLowerCase()===n.toLowerCase())).map(name=>({name,builtIn:false}))];}
+function renderBots(){const table=$('#botTable');table.replaceChildren();const streamOn=new Set(listed('#overlayShownBots').map(n=>n.toLowerCase())),dockOff=new Set(listed('#dockHiddenBots').map(n=>n.toLowerCase())),filtering=form.elements.filterBots.checked;
+ const head=document.createElement('div');head.className='bot-row head';head.setAttribute('role','row');for(const text of ['Bot','On stream','In dock']){const cell=document.createElement('span');cell.setAttribute('role','columnheader');cell.textContent=text;head.append(cell);}table.append(head);
+ for(const {name,builtIn} of botRows()){const key=name.toLowerCase(),row=document.createElement('div');row.className='bot-row';row.setAttribute('role','row');const label=document.createElement('span');label.className='bot-name';label.setAttribute('role','cell');label.textContent=name;if(builtIn){const tag=document.createElement('small');tag.textContent='Built-in';label.append(tag);}else{const remove=document.createElement('button');remove.type='button';remove.className='bot-remove';remove.setAttribute('aria-label','Remove '+name);remove.textContent='×';remove.onclick=()=>{setNames('#ignoredBots',listed('#ignoredBots').filter(n=>n.toLowerCase()!==key));toggleName('#overlayShownBots',name,false);toggleName('#dockHiddenBots',name,false);renderBots();changed();};label.append(remove);}
+  const stream=document.createElement('input');stream.type='checkbox';stream.checked=!filtering||streamOn.has(key);stream.disabled=!filtering;stream.setAttribute('aria-label',name+' on stream');stream.onchange=()=>{toggleName('#overlayShownBots',name,stream.checked);changed();};
+  const dock=document.createElement('input');dock.type='checkbox';dock.checked=!dockOff.has(key);dock.setAttribute('aria-label',name+' in dock');dock.onchange=()=>{toggleName('#dockHiddenBots',name,!dock.checked);changed();};
+  const c1=document.createElement('span'),c2=document.createElement('span');c1.setAttribute('role','cell');c2.setAttribute('role','cell');c1.append(stream);c2.append(dock);row.append(label,c1,c2);table.append(row);}}
+function addBot(){const input=$('#botName'),name=input.value.trim().replace(/^@/,'');if(!name)return;if(!botRows().some(r=>r.name.toLowerCase()===name.toLowerCase())){setNames('#ignoredBots',[...listed('#ignoredBots'),name]);renderBots();changed();}input.value='';input.focus();}
 $('#addBot').onclick=addBot;$('#botName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addBot();}});
 
 // Connections

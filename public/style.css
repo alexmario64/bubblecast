@@ -1,7 +1,5 @@
 /* Bubblecast Studio. Each theme defines tokens; components only use tokens. */
-:root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-synthesis:none;-webkit-font-smoothing:antialiased;--spring:cubic-bezier(.2,.9,.25,1.15);--ease:cubic-bezier(.22,1,.36,1);--radius:18px;--sidebar-w:236px}
-body[data-theme=rose]{--bg:radial-gradient(ellipse at 95% 85%,#f3c58299 0,transparent 55%),radial-gradient(ellipse at 0 0,#e2adbdaa 0,transparent 55%),linear-gradient(135deg,#a173b1,#d39a9e 62%,#bc91a8);--bg-solid:#b88caa;--surface:#fff8eee0;--surface-solid:#fff9f2;--surface-2:#f6e9e3;--sidebar:#fff1e48f;--border:#ffffffa6;--line:#8c6b8420;--text:#493a50;--text-2:#8a6b8b;--text-3:#ae90a8;--title:#fff8f1;--title-2:#fff1e8d9;--accent:#35aaa8;--accent-2:#28a8b0;--accent-grad:linear-gradient(145deg,#54cfc8,#28a8b0);--accent-soft:#35aaa81a;--on-accent:#fff;--field:#ffffffa8;--field-border:#dcc8d1;--shadow:0 10px 35px #7951691a;--shadow-sm:0 1px 3px #7951691a;--focus:#49bfb766}
-body[data-theme=red]{--bg:radial-gradient(ellipse at 96% 92%,#ffb8a3a6 0,transparent 55%),radial-gradient(ellipse at 0 0,#ff8f8f80 0,transparent 55%),linear-gradient(135deg,#b3263a,#d9404d 52%,#e86a6f);--bg-solid:#d13f4b;--surface:#fffbfaf2;--surface-solid:#fffdfc;--surface-2:#fbefef;--sidebar:#fff8f7cc;--border:#ffffffa6;--line:#8c3a4220;--text:#4b2429;--text-2:#8e5960;--text-3:#b68b90;--title:#fff;--title-2:#ffe8e6db;--accent:#df3545;--accent-2:#cf2a3b;--accent-grad:linear-gradient(145deg,#ff6a6a,#d82c3e);--accent-soft:#df354514;--on-accent:#fff;--field:#ffffffb3;--field-border:#ecd3d5;--shadow:0 10px 35px #6a141e26;--shadow-sm:0 1px 3px #6a141e1f;--focus:#df354540}
+
 *{box-sizing:border-box}
 html{background:var(--bg-solid,#b88caa)}
 body{margin:0;min-height:100vh;color:var(--text);background:var(--bg);background-attachment:fixed;font-size:13px;line-height:1.45;transition:color .3s}
@@ -147,6 +145,14 @@ input.switch:checked{background:var(--accent)}input.switch:checked::after{transf
 .position-picker label:has(:checked) i{border:0;background:var(--accent-grad);box-shadow:0 3px 8px color-mix(in srgb,var(--accent) 35%,transparent);transform:scale(1.08)}
 .position-picker label:has(:focus-visible){outline:3px solid var(--focus)}
 .position-picker label:nth-child(1){top:6%;left:4%}.position-picker label:nth-child(2){top:6%;right:4%}.position-picker label:nth-child(3){top:36%;left:35%}.position-picker label:nth-child(4){bottom:6%;left:4%}.position-picker label:nth-child(5){bottom:6%;right:4%}
+/* Bot visibility table */
+.bot-table{display:flex;flex-direction:column;margin:10px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;max-height:340px;overflow-y:auto}
+.bot-row{display:grid;grid-template-columns:1fr 74px 64px;align-items:center;gap:6px;padding:7px 12px;border-top:1px solid var(--line);font-size:12.5px}
+.bot-row:first-child{border-top:0}.bot-row:not(.head):hover{background:var(--accent-soft)}
+.bot-row.head{position:sticky;top:0;z-index:1;background:var(--surface-2);font-size:10.5px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--text-3)}
+.bot-row>span:not(.bot-name){text-align:center}.bot-row input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;margin:0}.bot-row input:disabled{cursor:default}
+.bot-name{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis}.bot-name small{font-size:10.5px;color:var(--text-3)}
+.bot-remove{border:0;background:transparent;color:var(--text-3);cursor:pointer;font-size:15px;line-height:1;padding:0 4px;border-radius:50%}.bot-remove:hover{color:var(--text);background:var(--surface-2)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
 .chip{display:inline-flex;align-items:center;gap:4px;padding:4px 4px 4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--text);font-size:12px;font-weight:550;animation:pop-in .3s var(--spring)}
 .chip button{display:grid;place-items:center;width:18px;height:18px;border:0;border-radius:50%;background:transparent;color:var(--text-2);cursor:pointer;font-size:14px;line-height:1}.chip button:hover{background:color-mix(in srgb,var(--text) 12%,transparent)}

@@ -14,6 +14,11 @@ const shots=[
  ...['rose','red'].flatMap(theme=>[{name:`dock-${theme}`,path:'/dock?preview=1',viewport:dockNarrow,theme},{name:`dock-wide-${theme}`,path:'/dock?preview=1',viewport:dockWide,theme}]),
  {name:'dock-connections',path:'/dock?preview=1',viewport:dockNarrow,click:'#connections'},
  {name:'dock-new-poll',path:'/dock?preview=1',viewport:dockNarrow,click:'#newPoll'},
+ {name:'dock-bots',path:'/dock?preview=1',viewport:dockNarrow,click:'#botMenuButton'},
+ {name:'studio-bots',path:'/#chat',viewport:desktop,scroll:'#botGroup'},
+ {name:'dock-focus-view',path:'/dock?preview=1',viewport:dockNarrow,focus:'#dockLayout'},
+ {name:'dock-poll-pane',path:'/dock?preview=1',viewport:dockWide,click:'#togglePollPane'},
+ {name:'dock-columns',path:'/dock?preview=1',viewport:dockWide,select:['#dockLayout','columns'],wait:2000},
  {name:'overlay-chat',path:'/overlay?showcase=1',viewport:canvas,transparent:true,wait:2500},
  {name:'overlay-poll-live',path:'/poll-overlay?preview=1',viewport:canvas,transparent:true},
  {name:'overlay-poll-final',path:'/poll-overlay?preview=1&state=final',viewport:canvas,transparent:true}
@@ -34,7 +39,10 @@ try{
   await page.waitForTimeout(shot.wait||1200);
   // Theme is a saved setting; override it in the page only so nothing is written.
   if(shot.theme)await page.evaluate(theme=>{document.body.dataset.theme=theme;},shot.theme);
+  if(shot.scroll){await page.locator(shot.scroll).scrollIntoViewIfNeeded().catch(()=>{});await page.waitForTimeout(400);}
+  if(shot.focus){await page.keyboard.press('Tab');await page.focus(shot.focus).catch(()=>{});await page.waitForTimeout(300);}
   if(shot.click){await page.click(shot.click).catch(()=>{});await page.waitForTimeout(500);}
+  if(shot.select){await page.selectOption(...shot.select).catch(()=>{});await page.waitForTimeout(1500);}
   await page.screenshot({path:out+shot.name+'.png',omitBackground:!!shot.transparent});
   await page.close();console.log(errors.length?'⚠':'✓',shot.name);for(const e of errors)console.log('   ',e);problems+=errors.length;
  }

@@ -1,12 +1,18 @@
-export const defaults={direction:'left',accent:'#21b8df',bubble:'#f3f7f8',text:'#33464e',fontSize:24,duration:18,maxMessages:7,width:420,badgeSize:24,floatAmount:9,resolution:'2160',floatMotion:true,badges:true,platforms:true,linkMode:'strip',fontFamily:'Komika Axis',bttv:true,twitchId:'',filterBots:true,dockFilterBots:false,ignoredBots:[],uiTheme:'rose',pollColors:'chat',pollAccent:'#21b8df',pollBubble:'#f3f7f8',pollText:'#33464e',pollBar:'#21b8df',pollPosition:'bottom-left',pollAnimation:'slide',pollWidth:420,pollFontSize:24,pollBarHeight:8,pollResultSeconds:15,pollShowVotes:true,pollShowPercent:true,pollShowPlatforms:true,pollShowFooter:true,pollHighlightLeader:true,pollFloatMotion:true,pollLiveLabel:'Live poll',pollFinalLabel:'Final results'};
+export const defaults={direction:'left',accent:'#21b8df',bubble:'#f3f7f8',text:'#33464e',fontSize:24,duration:18,maxMessages:7,width:420,badgeSize:24,floatAmount:9,resolution:'2160',floatMotion:true,badges:true,platforms:true,linkMode:'strip',fontFamily:'Komika Axis',bttv:true,twitchId:'',filterBots:true,ignoredBots:[],overlayShownBots:[],dockHiddenBots:[],uiTheme:'rose',pollColors:'chat',pollAccent:'#21b8df',pollBubble:'#f3f7f8',pollText:'#33464e',pollBar:'#21b8df',pollPosition:'bottom-left',pollAnimation:'slide',pollWidth:420,pollFontSize:24,pollBarHeight:8,pollResultSeconds:15,pollShowVotes:true,pollShowPercent:true,pollShowPlatforms:true,pollShowFooter:true,pollHighlightLeader:true,pollFloatMotion:true,pollLiveLabel:'Live poll',pollFinalLabel:'Final results'};
 // CSS family names only: no quotes, commas or markup.
 export function fontFamily(value){const name=typeof value==='string'?value.replace(/["'`]/g,'').replace(/\s+/g,' ').trim():'';return /^[\p{L}\p{N} ._&+-]{1,60}$/u.test(name)?name:'';}
 export const fontStack=name=>'"'+(fontFamily(name)||'Komika Axis')+'"';
 export const pollPositions=['bottom-left','bottom-right','top-left','top-right','center'];
+// Built-in bots, as shown in settings. Matching ignores case and a leading @.
+export const knownBots=['StreamElements','Nightbot','Streamlabs','Moobot','Fossabot','WizeBot','Botrix','Sery_Bot','SoundAlerts','PretzelRocks','Botisimo','MixItUpBot','Firebot'];
 const hiddenBotNames=new Set(['streamelements','stream elements','nightbot','night bot','streamlabs','moobot','fossabot','wizebot','botrix','sery_bot','soundalerts','pretzelrocks','botisimo','mixitupbot','firebot']);
 const senderName=user=>user.trim().replace(/^@/,'').trim().toLowerCase();
 function ignoredNames(value){const names=typeof value==='string'?value.slice(0,60000).split(/[,;\r\n]+/):Array.isArray(value)?value:[];return [...new Set(names.filter(n=>typeof n==='string').map(n=>senderName(n).slice(0,256)).filter(Boolean))].slice(0,200);}
-export function isIgnoredUser(user,s=defaults){if(s.filterBots===false)return false;const name=senderName(user);return hiddenBotNames.has(name)||ignoredNames(s.ignoredBots).includes(name);}
+export function isBot(user,s=defaults){const name=senderName(user);return hiddenBotNames.has(name)||ignoredNames(s.ignoredBots).includes(name);}
+// Stream overlays hide bots unless a bot is switched on for the stream.
+export function isIgnoredUser(user,s=defaults){if(s.filterBots===false)return false;return isBot(user,s)&&!ignoredNames(s.overlayShownBots).includes(senderName(user));}
+// The dock shows bots unless a bot is switched off for the dock.
+export function hiddenInDock(user,s=defaults){return isBot(user,s)&&ignoredNames(s.dockHiddenBots).includes(senderName(user));}
 export function settings(input={}) {
  const s={...defaults};
  if(['rose','red'].includes(input.uiTheme))s.uiTheme=input.uiTheme;
@@ -14,7 +20,7 @@ export function settings(input={}) {
  if(['1080','1440','2160'].includes(String(input.resolution)))s.resolution=String(input.resolution);
  for(const k of ['accent','bubble','text']) if(/^#[a-f0-9]{6}$/i.test(input[k])) s[k]=input[k];
  for(const [k,min,max] of [['fontSize',14,40],['duration',3,180],['maxMessages',1,20],['width',240,800],['badgeSize',16,36],['floatAmount',0,12]]) if(Number.isFinite(+input[k]))s[k]=Math.max(min,Math.min(max,+input[k]));
- for(const k of ['badges','platforms','bttv','floatMotion','filterBots','dockFilterBots']) if(typeof input[k]==='boolean')s[k]=input[k];
+ for(const k of ['badges','platforms','bttv','floatMotion','filterBots']) if(typeof input[k]==='boolean')s[k]=input[k];
  if(['chat','custom'].includes(input.pollColors))s.pollColors=input.pollColors;
  if(pollPositions.includes(input.pollPosition))s.pollPosition=input.pollPosition;
  if(['slide','pop','fade'].includes(input.pollAnimation))s.pollAnimation=input.pollAnimation;
@@ -23,7 +29,7 @@ export function settings(input={}) {
  for(const k of ['pollShowVotes','pollShowPercent','pollShowPlatforms','pollShowFooter','pollHighlightLeader','pollFloatMotion']) if(typeof input[k]==='boolean')s[k]=input[k];
  for(const k of ['pollLiveLabel','pollFinalLabel']) if(typeof input[k]==='string'&&input[k].trim())s[k]=input[k].replace(/\s+/g,' ').trim().slice(0,24);
  s.fontFamily=fontFamily(input.fontFamily)||defaults.fontFamily;
- s.twitchId=/^\d{1,20}$/.test(input.twitchId)?input.twitchId:'';s.ignoredBots=ignoredNames(input.ignoredBots);return s;
+ s.twitchId=/^\d{1,20}$/.test(input.twitchId)?input.twitchId:'';s.ignoredBots=ignoredNames(input.ignoredBots);s.overlayShownBots=ignoredNames(input.overlayShownBots);s.dockHiddenBots=ignoredNames(input.dockHiddenBots);return s;
 }
 // Match ordinary URLs, bare domains, email addresses, and common obfuscated links.
 export const links=/(?:https?:\/\/|www\.)[^\s<>]+|[\w.+-]+@[\w.-]+\.[a-z]{2,}|(?:[\p{L}\d-]+\s*(?:\.|\[\.\]|\(dot\))\s*)+(?:com|net|org|gg|tv|io|co|dev|app|xyz|live|me|be|edu|gov|uk|de|fr|jp|ru|info|link|ly|ai|us|ca|au|it|es|br|in|to|cc|biz|online|site|store|tech|social)(?:\/[^\s<>]*)?/giu;
