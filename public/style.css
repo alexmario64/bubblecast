@@ -206,3 +206,21 @@ img[src$="tiktok.svg"]{background:#161823!important;border-radius:7px;padding:3p
 .font-status{font-size:11.5px;color:#1f8f3d}.font-status[data-state=missing]{color:#a96a00}.font-status:empty{display:none}#browseFonts{align-self:flex-start}
 /* On the red backdrop, header actions read better as white buttons. */
 body[data-theme=red] .page-actions .button.primary{background:#fff;color:var(--accent);box-shadow:0 3px 12px #6a141e33}
+/* Live viewers */
+.viewers-card{margin-bottom:18px}
+.viewers-card .updated{font-size:11.5px;color:var(--text-3)}
+.viewers-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:18px;padding:4px 18px 16px;align-items:center}
+.viewers-total{display:flex;flex-direction:column;gap:4px;min-width:0}
+.viewers-total strong{font-size:40px;font-weight:720;letter-spacing:-1.2px;line-height:1.05;font-variant-numeric:tabular-nums}
+.viewers-card[data-live=true] .viewers-total strong{color:var(--text)}.viewers-card[data-live=false] .viewers-total strong{color:var(--text-3)}
+.viewers-total>span{font-size:12.5px;color:var(--text-2);max-width:34ch}
+#viewersSpark{width:100%;height:48px;margin-top:6px;overflow:visible}
+#viewersSpark .area{fill:color-mix(in srgb,var(--accent) 14%,transparent)}#viewersSpark .line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;vector-effect:non-scaling-stroke}#viewersSpark .end{fill:var(--accent);stroke:var(--surface-solid);stroke-width:2}
+.viewer-split{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.viewer-split li{position:relative;display:grid;grid-template-columns:22px 1fr auto;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;font-size:13px;overflow:hidden}
+.viewer-split li i{position:absolute;left:0;top:0;bottom:0;background:var(--accent-soft);border-radius:10px;transition:width .6s var(--ease);z-index:-1}
+.viewer-split li{isolation:isolate}
+.viewer-split img{width:20px;height:20px;object-fit:contain}
+.viewer-split strong{font-variant-numeric:tabular-nums;font-weight:650}.viewer-split li[data-live=false] strong{color:var(--text-3);font-weight:500}
+.viewer-split li.empty{display:block;color:var(--text-3);font-size:12.5px}
+@media(max-width:860px){.viewers-body{grid-template-columns:1fr}}
