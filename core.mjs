@@ -15,7 +15,7 @@ export function isIgnoredUser(user,s=defaults){if(s.filterBots===false)return fa
 export function hiddenInDock(user,s=defaults){return isBot(user,s)&&ignoredNames(s.dockHiddenBots).includes(senderName(user));}
 export function settings(input={}) {
  const s={...defaults};
- if(['rose','red'].includes(input.uiTheme))s.uiTheme=input.uiTheme;
+ if(['rose','red','midnight','white'].includes(input.uiTheme))s.uiTheme=input.uiTheme;
  for(const k of ['direction','linkMode']) if((k==='direction'?['left','right']:['strip','drop','show']).includes(input[k])) s[k]=input[k];
  if(['1080','1440','2160'].includes(String(input.resolution)))s.resolution=String(input.resolution);
  for(const k of ['accent','bubble','text']) if(/^#[a-f0-9]{6}$/i.test(input[k])) s[k]=input[k];

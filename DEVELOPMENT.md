@@ -48,7 +48,7 @@ Open this repository folder in a new Codex task on the other PC. Ask it to read 
 - poll-jobs.mjs and polls.mjs: idempotent jobs and normalized poll state.
 - test/: unit tests; test/browser/: DOM fixture coverage with happy-dom. `pnpm test:relay` is a separate live local integration check and may display synthetic overlay messages.
 
-## Current behavior (1.17.0)
+## Current behavior (1.18.0)
 
 Polls open beside existing chat/split views; selecting Twitch, YouTube, TikTok or Kick does not filter out other platforms' polls. Wide docks place polls alongside chat; narrow docks stack the pane below chat. Resize with the divider or close it with ×. The Polls button reopens it. Successful poll creation opens the pane without replacing chat iframe sessions.
 
@@ -65,4 +65,6 @@ Bots: common bots are built in (`knownBots` in `core.mjs`), and each user adds t
 Theme colors live in `public/theme.css` and are shared by Studio and the dock, so each color scheme looks the same in both. Component styles (`style.css`, `dock.css`) use only those tokens. The dock reports problems and keeps them visible (capture errors, unconfirmed sends), while successful sends confirm briefly and clear.
 
 Live viewers (1.17.0): every 30 seconds the helper runs `desktop/viewer-probe.mjs` inside each platform page it already has open, one page at a time with a 10-second limit, and reports `{live, viewers}` in its collector status. Twitch uses its web GraphQL `viewersCount`, YouTube the player's `updated_metadata` view-count entity (live streams send "N watching now"; ended videos send lifetime views, treated as offline), Kick its channel API `livestream.viewer_count`, and TikTok its room API `liveRoomStats.userCount`. These are read-only, undocumented web endpoints and can change: Twitch, YouTube and Kick were verified against real live streams on 2026-10-21; TikTok was verified only for offline rooms. Studio's Overview shows the total, a per-platform split and a trend since the page opened; the dock shows the total and a count on each platform chip.
+
+Brand and themes (1.18.0): the logo is the bubble trio in `public/logo-glyph.svg`, drawn on a theme tile (`--logo-tile`: the accent gradient on rose and red, midnight on Midnight and White). `public/favicon.svg` is the full icon on the midnight tile; `logos/tray.png`, `logos/tray@2x.png` and `logos/icon-256.png` are rendered from it for the helper's tray and windows. Interface themes are rose, red, midnight (dark) and white; all colors, including status colors (`--good`, `--warn`, `--bad`, `--live`), come from `public/theme.css`.
 
