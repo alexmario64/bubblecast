@@ -1,0 +1,6 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {signalTikTokBaseline} from '../desktop/tiktok-startup.mjs';
+const fixture=()=>{const scripts=[];return {scripts,source:{platform:'tiktok',url:'https://www.tiktok.com/@example/live',capture:{feed:{ready:false}},win:{isDestroyed:()=>false,webContents:{getURL:()=> 'https://www.tiktok.com/@example/live',executeJavaScript:async script=>scripts.push(script)}}}};};
+test('TikTok page reader is signaled once per native baseline and again after navigation reset',async()=>{const {source,scripts}=fixture();await signalTikTokBaseline(source);assert.equal(scripts.length,0);source.capture.feed.ready=true;await signalTikTokBaseline(source);await signalTikTokBaseline(source);assert.equal(scripts.length,1);source.pageBaselineNotified=false;await signalTikTokBaseline(source);assert.equal(scripts.length,2);});
+test('TikTok signal cannot run on another platform or a redirected sign-in page',async()=>{const {source,scripts}=fixture();source.capture.feed.ready=true;source.win.webContents.getURL=()=> 'https://www.tiktok.com/login';await signalTikTokBaseline(source);source.platform='youtube';source.win.webContents.getURL=()=>source.url;await signalTikTokBaseline(source);assert.equal(scripts.length,0);});

@@ -1,0 +1,9 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {Outbox} from '../outbox.mjs';
+const urls={twitch:'https://www.twitch.tv/popout/test/chat',youtube:'https://www.youtube.com/live_chat?v=normal',youtubeShorts:'https://www.youtube.com/live_chat?v=shorts',tiktok:'https://www.tiktok.com/@test/live'};
+const draft={requestId:'request-12345',text:'Hello everyone',targets:Object.keys(urls)};
+test('one explicit send queues every destination once and repeated request IDs never resend',()=>{const outbox=new Outbox();const first=outbox.enqueue(draft,urls);assert.equal(first.fresh,true);assert.equal(outbox.enqueue(draft,urls).fresh,false);assert.equal(Object.keys(first.job.results).length,4);assert.equal(outbox.claim(first.job.id).results.youtube.status,'sending');assert.equal(outbox.public(first.job).text,undefined);});
+test('partial outcomes remain independent and completed destinations cannot change',()=>{const o=new Outbox();o.enqueue(draft,urls);o.claim(draft.requestId);o.result(draft.requestId,'twitch',{status:'submitted'});o.result(draft.requestId,'youtube',{status:'failed',detail:'Sign in'});o.result(draft.requestId,'twitch',{status:'failed'});assert.equal(o.get(draft.requestId).results.twitch.status,'submitted');assert.equal(o.get(draft.requestId).results.youtube.status,'failed');});
+test('commands, newlines, empty messages, unconfigured feeds and oversized YouTube messages are rejected',()=>{for(const data of [{...draft,text:''},{...draft,text:'/ban someone'},{...draft,text:'a\nb'},{...draft,targets:['other']},{...draft,text:'a'.repeat(201),targets:['youtube']}])assert.throws(()=>new Outbox().enqueue(data,urls));});
+test('timed-out sends become uncertain, never automatically retried',()=>{let clock=0;const o=new Outbox({now:()=>clock});o.enqueue(draft,urls);o.claim(draft.requestId);clock=31000;assert.equal(o.get(draft.requestId).results.twitch.status,'unknown');assert.equal(o.enqueue(draft,urls).fresh,false);});

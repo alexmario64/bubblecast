@@ -1,0 +1,84 @@
+const feedKeys=['twitch','youtube','youtubeShorts','tiktok','kick'];
+export function dockSourceFeeds(value){const presets={all:feedKeys,other:feedKeys.filter(k=>k!=='tiktok'),twitch:['twitch'],youtube:['youtube','youtubeShorts'],youtubeLive:['youtube'],youtubeShorts:['youtubeShorts'],tiktok:['tiktok'],kick:['kick']};if(Object.hasOwn(presets,value))return [...presets[value]];return typeof value==='string'&&value.startsWith('mix:')?[...new Set(value.slice(4).split(',').filter(k=>feedKeys.includes(k)))]:[];}
+const validSource=value=>typeof value==='string'&&(value.startsWith('mix:')?value.slice(4).split(',').every(k=>!k||feedKeys.includes(k)):['all','other','twitch','youtube','youtubeLive','youtubeShorts','tiktok','kick'].includes(value));
+
+function makeCombinedFilter(document,anchor,getValue,onChange){
+ const popup=document.createElement('div');popup.className='pane-filter-menu combined-filter-menu';popup.setAttribute('popover','auto');popup.hidden=true;popup.setAttribute('aria-label','Chat filters');const title=document.createElement('strong');title.textContent='Show chats from';popup.append(title);const boxes=[];
+ const sync=()=>{const selected=dockSourceFeeds(getValue());for(const {box,keys} of boxes){const count=keys.filter(k=>selected.includes(k)).length;box.checked=count===keys.length;box.indeterminate=count>0&&count<keys.length;}};
+ for(const [text,keys,child] of [['All platforms',feedKeys],['Twitch',['twitch']],['YouTube',['youtube','youtubeShorts']],['YouTube Live',['youtube'],true],['YouTube Shorts',['youtubeShorts'],true],['TikTok',['tiktok']],['Kick',['kick']]]){const label=document.createElement('label');if(child)label.className='filter-child';const box=document.createElement('input');box.type='checkbox';box.setAttribute('aria-label',text);label.append(box,document.createTextNode(text));popup.append(label);boxes.push({box,keys});box.onchange=()=>{let selected=dockSourceFeeds(getValue());selected=box.checked?[...new Set([...selected,...keys])]:selected.filter(k=>!keys.includes(k));selected=feedKeys.filter(k=>selected.includes(k));onChange(selected.length===feedKeys.length?'all':'mix:'+selected.join(','));sync();};}
+ document.body.append(popup);anchor.setAttribute('aria-haspopup','dialog');popup.setAttribute('role','dialog');anchor.setAttribute('aria-expanded','false');
+ const close=()=>{popup.hidePopover?.();popup.hidden=true;anchor.setAttribute('aria-expanded','false');};const open=()=>{sync();popup.hidden=false;const rect=anchor.getBoundingClientRect(),view=document.defaultView;popup.style.left=Math.max(8,Math.min(rect.left,(view.innerWidth||460)-288))+'px';popup.style.top=Math.max(8,Math.min(rect.bottom+6,(view.innerHeight||900)-350))+'px';popup.showPopover?.();anchor.setAttribute('aria-expanded','true');};
+ popup.addEventListener('toggle',e=>{anchor.setAttribute('aria-expanded',String(e.newState==='open'));if(e.newState==='closed')popup.hidden=true;});popup.addEventListener('keydown',e=>{if(e.key==='Escape'){close();anchor.focus();}});return {open,close,popup,sync};
+}
+
+export function mountDockLayout({document,location,storage}){
+ const choices={all:'All chats',other:'Everything except TikTok',twitch:'Twitch',youtube:'YouTube · both streams',youtubeLive:'YouTube Live only',youtubeShorts:'YouTube Shorts',tiktok:'TikTok',kick:'Kick'};
+ const params=new URLSearchParams(location.search),source=validSource(params.get('source'))?params.get('source'):'all',pane=params.get('pane')==='1';
+ document.body.classList.toggle('dock-pane',pane);
+ if(pane)return {pane,source};
+ const platformNames={twitch:'Twitch',youtube:'YouTube',tiktok:'TikTok',kick:'Kick'};
+ function logoGroup(){const group=document.createElement('span');group.className='panel-platforms';group.setAttribute('role','img');return group;}
+ function paintLogos(group,value){if(group.dataset.source===value)return;group.dataset.source=value;const platforms=[...new Set(dockSourceFeeds(value).map(k=>k==='youtubeShorts'?'youtube':k))];group.setAttribute('aria-label',platforms.map(p=>platformNames[p]).join(', ')||'No platforms selected');group.replaceChildren(...platforms.map(platform=>{const icon=document.createElement('span');icon.className='platform-mark '+platform;icon.setAttribute('aria-hidden','true');return icon;}));}
+ const combinedLogos=logoGroup();document.querySelector('.chat-tools .room-label').prepend(combinedLogos);paintLogos(combinedLogos,source);
+ const toolbar=document.createElement('div');toolbar.className='layout-tools';toolbar.setAttribute('aria-label','Dock layout');
+ const label=document.createElement('label');label.textContent='View ';const picker=document.createElement('select');picker.id='dockLayout';picker.setAttribute('aria-label','Dock layout');
+ for(const [value,text] of Object.entries({combined:'Combined',columns:'Side by side',rows:'Stacked',grid:'Grid'})){const option=document.createElement('option');option.value=value;option.textContent=text;picker.append(option);}label.append(picker);
+ const add=document.createElement('button');add.type='button';add.textContent='+ Pane';add.id='addPane';const hint=document.createElement('span');hint.className='layout-hint';hint.textContent='Drag dividers to resize';toolbar.append(label,hint,add);document.querySelector('header').after(toolbar);
+ const gridLabel=document.createElement('label');gridLabel.textContent='Columns ';const gridPicker=document.createElement('select');gridPicker.id='gridColumns';gridPicker.setAttribute('aria-label','Grid columns');for(let n=1;n<=4;n++){const option=document.createElement('option');option.value=String(n);option.textContent=String(n);gridPicker.append(option);}gridLabel.append(gridPicker);toolbar.insertBefore(gridLabel,hint);
+ const announce=document.createElement('span');announce.className='sr-only';announce.setAttribute('role','status');toolbar.append(announce);
+ const single=document.createElement('div');single.id='singleView';for(const id of ['polls','scroll','jump','composer'])single.append(document.getElementById(id));toolbar.after(single);
+ const workspace=document.createElement('section');workspace.id='chatWorkspace';workspace.setAttribute('aria-label','Split chat panes');single.after(workspace);
+ const storageKey='bubblecast-dock-layout'+(params.has('source')?':'+source:'');
+ let saved;try{saved=JSON.parse(storage.getItem(storageKey));}catch{}
+ let mode=['combined','columns','rows','grid'].includes(saved?.mode)?saved.mode:'combined',sizes=Array.isArray(saved?.sizes)?saved.sizes:[],feeds=Array.isArray(saved?.feeds)?saved.feeds.filter(validSource).slice(0,4):['other','tiktok'];if(!feeds.length)feeds=['other','tiktok'];
+ let gridColumns=[1,2,3,4].includes(saved?.gridColumns)?saved.gridColumns:2;
+ sizes=feeds.map((_,i)=>Number.isFinite(Number(sizes[i]))&&Number(sizes[i])>0?Math.min(100,Number(sizes[i])):1);
+ const labelFor=value=>choices[value]||dockSourceFeeds(value).map(k=>k==='youtubeShorts'?'Shorts':k==='youtube'?'YouTube Live':choices[k]).join(' + ')||'No platforms';
+ const panels=[];let dragging,movingPanel;
+ function save(){try{storage.setItem(storageKey,JSON.stringify({mode,feeds,sizes,gridColumns}));}catch{}}
+ function resize(){
+  const tracks=panels.map((_,i)=>Math.max(.2,Number(sizes[i])||1)+'fr').join(' 7px ');
+  workspace.style.gridTemplateColumns=mode==='columns'?tracks:mode==='grid'?'repeat('+Math.min(gridColumns,panels.length)+',minmax(0,1fr))':'minmax(0,1fr)';
+  workspace.style.gridTemplateRows=mode==='rows'?tracks:mode==='grid'?'repeat('+Math.ceil(panels.length/Math.min(gridColumns,panels.length))+',minmax(0,1fr))':'minmax(0,1fr)';
+ }
+ function move(panel,to){const from=panels.indexOf(panel);if(from<0||to<0||to>=panels.length||from===to)return;const feed=feeds.splice(from,1)[0],size=sizes.splice(from,1)[0]||1;panels.splice(from,1);panels.splice(to,0,panel);feeds.splice(to,0,feed);sizes.splice(to,0,size);arrange();save();announce.textContent=labelFor(feed)+' moved to position '+(to+1);}
+ function makeDivider(i){const bar=document.createElement('div');bar.className='pane-divider';bar.tabIndex=0;bar.setAttribute('role','separator');bar.setAttribute('aria-label','Resize chat panes');
+  const adjust=ratio=>{const total=(Number(sizes[i])||1)+(Number(sizes[i+1])||1);sizes[i]=total*Math.min(.85,Math.max(.15,ratio));sizes[i+1]=total-sizes[i];resize();save();};
+  bar.onpointerdown=e=>{if(mode==='grid')return;const a=panels[i].getBoundingClientRect(),b=panels[i+1].getBoundingClientRect();dragging={bar,id:e.pointerId,start:mode==='columns'?a.left:a.top,length:mode==='columns'?b.right-a.left:b.bottom-a.top,adjust};bar.setPointerCapture?.(e.pointerId);workspace.classList.add('resizing');e.preventDefault();};
+  bar.onpointermove=e=>{if(dragging?.bar===bar)dragging.adjust(((mode==='columns'?e.clientX:e.clientY)-dragging.start)/dragging.length);};
+  const end=()=>{dragging=null;workspace.classList.remove('resizing');};bar.onpointerup=end;bar.onpointercancel=end;bar.onlostpointercapture=end;
+  bar.onkeydown=e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const total=(Number(sizes[i])||1)+(Number(sizes[i+1])||1);adjust((Number(sizes[i])||1)/total+(['ArrowLeft','ArrowUp'].includes(e.key)?-.05:.05));}};return bar;
+ }
+ function arrange(){
+  picker.value=mode;single.hidden=mode!=='combined';workspace.hidden=mode==='combined';document.body.classList.toggle('split-layout',mode!=='combined');workspace.dataset.layout=mode;add.hidden=mode==='combined';add.disabled=feeds.length>=4;hint.hidden=mode==='combined';hint.textContent=mode==='grid'?'Drag grips to arrange':'Drag grips to arrange · dividers to resize';gridLabel.hidden=mode!=='grid';gridPicker.value=String(gridColumns);
+  if(mode==='combined')return;
+  while(panels.length>feeds.length)panels.pop().remove();
+  for(let i=0;i<feeds.length;i++)if(!panels[i]){
+   const panel=document.createElement('article');panel.className='chat-pane';const head=document.createElement('div');head.className='pane-heading';const select=document.createElement('select');select.setAttribute('aria-label','Chat source for pane '+(i+1));
+   for(const [value,text] of Object.entries(choices)){const option=document.createElement('option');option.value=value;option.textContent=text;select.append(option);}if(!Object.hasOwn(choices,feeds[i])){const option=document.createElement('option');option.value=feeds[i];option.textContent=labelFor(feeds[i]);select.append(option);}select.value=feeds[i];select.hidden=true;
+   const link=document.createElement('a');link.textContent='↗';link.title='Open this platform as a separate OBS dock';link.target='_blank';link.rel='noopener';
+   const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.setAttribute('aria-label','Remove pane '+(i+1));
+   const grip=document.createElement('button');grip.type='button';grip.className='pane-grip';grip.textContent='⠿';grip.draggable=true;grip.title='Drag to move · arrow keys to reorder';
+   grip.ondragstart=e=>{movingPanel=panel;workspace.classList.add('reordering');e.dataTransfer?.setData('text/plain','Bubblecast pane');if(e.dataTransfer)e.dataTransfer.effectAllowed='move';};
+   const endMove=()=>{movingPanel=null;workspace.classList.remove('reordering');for(const p of panels)p.classList.remove('drop-target');};grip.ondragend=endMove;
+   panel.ondragover=e=>{if(movingPanel&&movingPanel!==panel){e.preventDefault();panel.classList.add('drop-target');if(e.dataTransfer)e.dataTransfer.dropEffect='move';}};panel.ondragleave=e=>{if(!panel.contains(e.relatedTarget))panel.classList.remove('drop-target');};
+   panel.ondrop=e=>{if(movingPanel){e.preventDefault();move(movingPanel,panels.indexOf(panel));endMove();}};
+   grip.onkeydown=e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();move(panel,panels.indexOf(panel)+(['ArrowLeft','ArrowUp'].includes(e.key)?-1:1));}};
+   const frame=document.createElement('iframe');frame.setAttribute('loading','eager');const logos=logoGroup();
+   let refreshFilter=()=>{};
+   const update=value=>{refreshFilter(value);paintLogos(logos,value);frame.src='/dock?pane=1&source='+encodeURIComponent(value)+(params.has('preview')?'&preview=1':'');frame.title=labelFor(value)+' chat pane';link.href='/dock?source='+encodeURIComponent(value);};
+   select.onchange=()=>{feeds[panels.indexOf(panel)]=select.value;update(select.value);save();};remove.onclick=()=>{const index=panels.indexOf(panel);feeds.splice(index,1);sizes.splice(index,1);panels.splice(index,1);panel.remove();if(!feeds.length){feeds=['other','tiktok'];mode='combined';}arrange();save();};const filter=document.createElement('button');filter.type='button';filter.className='pane-filter';filter.setAttribute('aria-expanded','false');
+   const popup=document.createElement('div');popup.className='pane-filter-menu';popup.setAttribute('popover','auto');popup.hidden=true;const title=document.createElement('strong');title.textContent='Show chats from';popup.append(title);
+   const boxes=[];const addCheck=(text,keys,child=false)=>{const label=document.createElement('label');if(child)label.className='filter-child';const box=document.createElement('input');box.type='checkbox';box.setAttribute('aria-label',text);label.append(box,document.createTextNode(text));popup.append(label);boxes.push({box,keys});box.onchange=()=>{let selected=dockSourceFeeds(feeds[panels.indexOf(panel)]);selected=box.checked?[...new Set([...selected,...keys])]:selected.filter(k=>!keys.includes(k));selected=feedKeys.filter(k=>selected.includes(k));const value=selected.length===feedKeys.length?'all':'mix:'+selected.join(',');let option=[...select.options].find(o=>o.value===value);if(!option){option=document.createElement('option');option.value=value;option.textContent=labelFor(value);select.append(option);}select.value=value;select.onchange();};};
+   addCheck('All platforms',feedKeys);addCheck('Twitch',['twitch']);addCheck('YouTube',['youtube','youtubeShorts']);addCheck('YouTube Live',['youtube'],true);addCheck('YouTube Shorts',['youtubeShorts'],true);addCheck('TikTok',['tiktok']);addCheck('Kick',['kick']);
+   refreshFilter=value=>{filter.textContent=labelFor(value);const selected=dockSourceFeeds(value);for(const {box,keys} of boxes){const count=keys.filter(k=>selected.includes(k)).length;box.checked=count===keys.length;box.indeterminate=count>0&&count<keys.length;}};
+   filter.onclick=()=>{const open=filter.getAttribute('aria-expanded')==='true';if(open){popup.hidePopover?.();popup.hidden=true;}else{popup.hidden=false;const rect=filter.getBoundingClientRect(),view=document.defaultView;popup.style.left=Math.max(8,Math.min(rect.left,(view.innerWidth||460)-288))+'px';popup.style.top=Math.max(8,Math.min(rect.bottom+6,(view.innerHeight||900)-350))+'px';popup.showPopover?.();}filter.setAttribute('aria-expanded',String(!open));};popup.addEventListener('toggle',e=>{filter.setAttribute('aria-expanded',String(e.newState==='open'));if(e.newState==='closed')popup.hidden=true;});popup.addEventListener('keydown',e=>{if(e.key==='Escape'){popup.hidePopover?.();popup.hidden=true;filter.setAttribute('aria-expanded','false');filter.focus();}});
+   update(feeds[i]);head.append(grip,logos,select,filter,popup,link,remove);panel.append(head,frame);panels.push(panel);
+  }
+  for(const bar of workspace.querySelectorAll('.pane-divider'))bar.remove();
+  for(const p of panels)if(p.parentElement!==workspace)workspace.append(p);
+  panels.forEach((p,i)=>{p.dataset.position=String(i+1);p.style.gridColumn=mode==='columns'?String(i*2+1):mode==='grid'?String(i%Math.min(gridColumns,panels.length)+1):'1';p.style.gridRow=mode==='rows'?String(i*2+1):mode==='grid'?String(Math.floor(i/Math.min(gridColumns,panels.length))+1):'1';p.querySelector('select').setAttribute('aria-label','Chat source for pane '+(i+1));p.querySelector('.pane-grip').setAttribute('aria-label','Move pane '+(i+1));p.querySelector('.pane-heading>button:last-child').setAttribute('aria-label','Remove pane '+(i+1));p.querySelector('.pane-filter').setAttribute('aria-label','Filter chats for pane '+(i+1));if(mode!=='grid'&&i<panels.length-1){const bar=makeDivider(i);bar.setAttribute('aria-orientation',mode==='columns'?'vertical':'horizontal');bar.style.gridColumn=mode==='columns'?String(i*2+2):'1';bar.style.gridRow=mode==='rows'?String(i*2+2):'1';workspace.insertBefore(bar,panels[i+1]);}});resize();
+ }
+ gridPicker.onchange=()=>{gridColumns=Number(gridPicker.value);arrange();save();};picker.onchange=()=>{mode=picker.value;arrange();save();};add.onclick=()=>{if(feeds.length>=4)return;feeds.push(Object.keys(choices).find(f=>f!=='all'&&f!=='other'&&!feeds.includes(f))||'all');arrange();save();};arrange();
+ return {pane,source,setSource:value=>paintLogos(combinedLogos,value),filterMenu:(anchor,getValue,onChange)=>makeCombinedFilter(document,anchor,getValue,onChange)};
+}

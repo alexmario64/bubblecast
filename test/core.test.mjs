@@ -1,0 +1,54 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {defaults,settings,normalize,safeMedia,badgeMedia} from '../core.mjs';
+const msg=text=>({id:'one',user:'alice',platform:'twitch',parts:[{type:'text',text}]});
+test('Twitch emote resolution and frame-fragment hydration use one stable high-resolution animated source',()=>{const base='https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_example/default/dark/';for(const src of [base+'1.0#e=0',base+'2.0#e=1',base+'3.0'])assert.equal(normalize({...msg(''),parts:[{type:'image',src,alt:'dance'}]}).parts[0].src,base+'3.0');const custom='https://cdn.betterttv.net/emote/custom/3x.gif#custom';assert.equal(normalize({...msg(''),parts:[{type:'image',src:custom,alt:'custom'}]}).parts[0].src,custom);});
+test('native Twitch username color survives normalization and untrusted CSS is rejected',()=>{assert.equal(normalize({...msg('hello'),userColor:'#A13BFF'}).userColor,'#a13bff');for(const userColor of ['red;display:none','url(https://example.com)','var(--accent)',null,{}])assert.equal(normalize({...msg('hello'),userColor}).userColor,'');for(const platform of ['youtube','tiktok'])assert.equal(normalize({...msg('hello'),platform,userColor:'#123456'}).userColor,'');});
+test('TikTok preserves full names, native media, and displayed badge labels',()=>{const raw={...msg('hello'),platform:'tiktok',user:'My Full TikTok Nickname 💚',parts:[{type:'image',src:'https://p16-webcast.tiktokcdn.com/emotes/dance.gif',alt:'dance'}],badges:[{src:'https://p16-webcast.tiktokcdn.com/webcast-va/grade_badge_icon_lite_lv5_v1.png~tplv-obj.image',alt:'Level 6',label:'6'}]};const m=normalize(raw);assert.equal(m.platform,'tiktok');assert.equal(m.user,raw.user);assert.equal(m.parts[0].src,raw.parts[0].src);assert.equal(m.badges[0].label,'6');assert.equal(safeMedia('https://tiktokcdn.com.evil.test/emote.gif'),null);assert.equal(normalize({...raw,user:'TrueBot64'}),null);});
+test('hides named chat bots on both platforms regardless of capitalization',()=>{for(const platform of ['twitch','youtube'])for(const user of ['StreamElements','Nightbot','TrueBot64',' TRUEBOT64 ','@TrueBot64','Streamlabs','Moobot','Fossabot','WizeBot','Botrix','Sery_Bot','SoundAlerts'])assert.equal(normalize({...msg('bot announcement'),platform,user}),null,user);});
+test('bot-name mentions and similar viewer names still display',()=>{for(const user of ['nightbotFan','TrueBot640','robotlover'])assert.equal(normalize({...msg('hello Nightbot and TrueBot64'),user}).user,user);});
+test('custom ignored bots save as a deduplicated list and filter exact senders on either platform',()=>{const s=settings({ignoredBots:' @MyCustomBot, otherbot\nMYCUSTOMBOT; YouTube Bot'});assert.deepEqual(s.ignoredBots,['mycustombot','otherbot','youtube bot']);assert.deepEqual(settings(s).ignoredBots,s.ignoredBots);for(const platform of ['twitch','youtube'])assert.equal(normalize({...msg('announcement'),platform,user:'MyCustomBot'},s),null);assert.ok(normalize({...msg('mycustombot said hi'),user:'mycustombotFan'},s));assert.ok(normalize({...msg('hello'),user:'MyCustomBot'},settings({ignoredBots:[]})));});
+test('custom bot settings reject malformed values and bound large lists',()=>{assert.deepEqual(settings({ignoredBots:{bad:true}}).ignoredBots,[]);assert.deepEqual(settings({ignoredBots:[null,42,' @Bot ']}).ignoredBots,['bot']);assert.equal(settings({ignoredBots:Array.from({length:250},(_,i)=>'bot'+i)}).ignoredBots.length,200);});
+test('strips URLs, bare domains, emails, and obfuscated common domains',()=>{
+ for(const url of ['https://evil.com/path?q=x','www.example.net','discord.gg/invite','example.com','a@example.org','evil[.]com','evil (dot) com'])assert.equal(normalize(msg('hello '+url),defaults).parts[0].text.trim(),'hello',url);
+});
+test('link-only messages disappear and mixed messages can be dropped',()=>{
+ assert.equal(normalize(msg('https://example.com')),null);
+ assert.equal(normalize(msg('hey example.com'),{...defaults,linkMode:'drop'}),null);
+ assert.equal(normalize(msg('example.com'),{...defaults,linkMode:'show'}).parts[0].text,'example.com');
+});
+test('filters a URL divided across adjacent rendered text fragments',()=>{
+ assert.equal(normalize({...msg(''),parts:[{type:'text',text:'https:'},{type:'text',text:'//example.com'}]}),null);
+});
+test('unicode, emoji, and literal HTML survive as text',()=>{
+ const t='hola 💚 こんにちは <script>alert(1)</script>';assert.equal(normalize(msg(t)).parts[0].text,t);
+});
+test('animated image and video URLs retain their exact media source',()=>{
+ const parts=[{type:'image',src:'https://cdn.betterttv.net/emote/abc/3x',alt:'dance'},{type:'video',src:'https://media.tenor.com/example.mp4',large:true}];
+ assert.deepEqual(normalize({...msg(''),parts}).parts.map(p=>p.src),parts.map(p=>p.src));
+});
+test('rejects script URLs, local files and unrelated media hosts',()=>{
+ for(const s of ['javascript:alert(1)','file:///C:/secret','http://cdn.betterttv.net/x','https://cdn.betterttv.net.evil.com/x','https://example.com/x'])assert.equal(safeMedia(s),null);
+});
+test('retains badge metadata and both platform identities',()=>{
+ const m=normalize({...msg('hi'),platform:'youtube',badges:[{src:'https://yt3.ggpht.com/badge',alt:'Member'}]});assert.equal(m.platform,'youtube');assert.equal(m.badges[0].alt,'Member');
+});
+test('bounds settings and ignores unknown/invalid values',()=>{
+ const s=settings({direction:'up',maxMessages:500,width:1,duration:-1,accent:'red',badges:false,twitchId:'123',unknown:1});assert.equal(s.maxMessages,20);assert.equal(s.width,240);assert.equal(s.duration,3);assert.equal(s.direction,'left');assert.equal(s.badges,false);assert.equal(s.twitchId,'123');assert.equal(s.unknown,undefined);
+});
+test('preserves full long display names and multiple native badges',()=>{
+ const user='This is my complete YouTube display name with spaces and emoji 💚 '.repeat(2);const badges=[{src:'https://static-cdn.jtvnw.net/badges/v1/subscriber/3',alt:'Subscriber'},{src:'https://static-cdn.jtvnw.net/badges/v1/vip/3',alt:'VIP'}];
+ const m=normalize({...msg('hello'),user,badges});assert.equal(m.user,user);assert.equal(m.badges.length,2);
+});
+test('upgrades the actual channel subscriber badge artwork without changing its identity',()=>{
+ const original='https://static-cdn.jtvnw.net/badges/v1/2526bab3-6d02-4a55-85f5-9955187d8fb1/1';
+ const m=normalize({...msg('hi'),badges:[{src:original,alt:'71-Month Subscriber (4-Year Badge)'}]});
+ assert.equal(m.badges[0].src,original.slice(0,-1)+'3');assert.equal(m.badges[0].fallback,original);assert.equal(m.badges[0].alt,'71-Month Subscriber (4-Year Badge)');
+ assert.equal(normalize(m).badges[0].fallback,original);
+});
+test('4K scaling settings preserve direction and validate badge and float size bounds',()=>{
+ const s=settings({resolution:'2160',direction:'right',badgeSize:999,floatAmount:-1,floatMotion:false});assert.equal(s.resolution,'2160');assert.equal(s.direction,'right');assert.equal(s.badgeSize,36);assert.equal(s.floatAmount,0);assert.equal(s.floatMotion,false);assert.equal(settings({resolution:'invalid'}).resolution,'2160');
+ assert.equal(badgeMedia('javascript:alert(1)'),null);
+});
+test('overlay bot switch defaults on and disabling it admits common and custom bots',()=>{assert.equal(settings({}).filterBots,true);const s=settings({filterBots:false,ignoredBots:['CustomBot']});assert.equal(settings(s).filterBots,false);for(const user of ['Nightbot','TrueBot64','CustomBot'])assert.ok(normalize({...msg('hello'),user},s));});
+test('interface schemes retain the original default and validate the red alternative',()=>{assert.equal(settings({}).uiTheme,'rose');assert.equal(settings({uiTheme:'red'}).uiTheme,'red');assert.equal(settings({uiTheme:'unknown'}).uiTheme,'rose');});

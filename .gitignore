@@ -1,0 +1,15 @@
+.local/
+node_modules/
+settings.json
+sources.json
+.env
+.env.*
+!.env.example
+*.dpapi
+*.log
+*.zip
+coverage/
+test-results/
+__pycache__/
+.DS_Store
+Thumbs.db

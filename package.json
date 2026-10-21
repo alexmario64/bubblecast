@@ -1,0 +1,19 @@
+{
+  "name": "bubblecast",
+  "version": "1.16.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node scripts/test.mjs",
+    "test:relay": "node test/relay.integration.mjs",
+    "install:background": "node desktop/install.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "happy-dom": "21.0.3"
+  },
+  "packageManager": "pnpm@11.25.0"
+}

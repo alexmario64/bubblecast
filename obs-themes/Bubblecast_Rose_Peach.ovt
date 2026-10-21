@@ -1,0 +1,171 @@
+@OBSThemeMeta {
+    name: 'Bubblecast 1 - Rose & Peach';
+    id: 'local.bubblecast.rose';
+    extends: 'com.obsproject.Yami.Light';
+    author: 'Bubblecast';
+    dark: 'false';
+}
+
+@OBSThemeVars {
+    --bg_window: var(--window_start);
+    --bg_base: var(--panel);
+    --bg_preview: #e5dee3;
+    --text_disabled: #aa9ba5;
+    --text_inactive: var(--text_light);
+    --input_border: var(--border_color);
+    --input_border_hover: var(--primary_light);
+    --input_border_focus: var(--primary);
+    --button_border_width: 1px;
+    --input_border_width: 1px;
+    --border_radius: 10px;
+    --border_radius_small: 5px;
+    --border_radius_large: 16px;
+    --list_item_bg_selected: var(--selection_bg);
+    --list_item_bg_hover: var(--button_bg_hover);
+    --highlight_color: var(--primary);
+    --tab_bg: var(--button_bg);
+    --tab_bg_hover: var(--button_bg_hover);
+    --tab_bg_down: var(--selection_bg);
+    --tab_border: var(--border_color);
+    --tab_border_selected: var(--primary);
+    --tab_border_focus: var(--primary);
+    --separator_hover: var(--primary);
+    --palette_highlight: var(--selection_bg);
+    --palette_highlightedText: var(--selection_text);
+    --palette_link: var(--primary_dark);
+    --palette_linkVisited: var(--primary_dark);
+    --font_base_value: max(10, var(--obsFontScale));
+    --padding_base_value: max(4, var(--obsPadding));
+    --padding_large: 5px;
+    --spacing_base: 3px;
+    --spacing_large: 6px;
+    --grey1: #ac94a9;
+    --grey2: #ffffff;
+    --grey3: #fffaf6;
+    --grey4: #f3e7ef;
+    --grey5: #e8d6e0;
+    --grey6: #fffaf5;
+    --grey7: #d0a2bb;
+    --grey8: #b794ae;
+    --primary: #42aaa5;
+    --primary_light: #c8e9e3;
+    --primary_lighter: #57bdb4;
+    --primary_dark: #258b86;
+    --primary_darker: #20766f;
+    --text: #46364d;
+    --text_light: #634c6a;
+    --text_muted: #827085;
+    --input_bg: #fffaf6;
+    --input_bg_hover: #ffffff;
+    --input_bg_focus: #ffffff;
+    --border_color: #e5cddc;
+    --button_bg: #ffffff;
+    --button_bg_hover: #ffffff;
+    --button_bg_down: #e8d7e1;
+    --button_bg_disabled: #eee1e7;
+    --button_border: #ead8e1;
+    --button_border_hover: #a5d4cd;
+    --button_border_focus: #48b9af;
+    --window_start: #be8eaf;
+    --window_end: #efcea6;
+    --panel: #fffaf6;
+    --title_start: #f2dfe8;
+    --title_end: #fff5e8;
+    --selection_bg: #d6eee8;
+    --selection_text: #235d58;
+    --scrollbar_handle: #d6bccc;
+    --scrollbar_hover: #bba2b8;
+    --scrollbar_down: #a78aa5;
+    --scrollbar_bg: #f8edea;
+    --scrollbar_border: #f8edea;
+}
+
+/* Inherits native widgets and light icons from the installed OBS Light style.
+   Browser docks have their own appearance. No preview/output widgets are hidden. */
+QMainWindow, OBSBasic {
+    background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1,
+        stop: 0 var(--window_start), stop: 1 var(--window_end));
+}
+QDialog { background: var(--panel); }
+QWidget { font-family: 'Segoe UI', Arial; selection-background-color: var(--selection_bg); selection-color: var(--selection_text); }
+QDockWidget {
+    color: var(--text_light);
+    background: var(--panel);
+    border: 1px solid var(--button_border);
+    border-radius: 16px;
+}
+QDockWidget > QWidget { background: var(--panel); }
+QMainWindow::separator { width: 7px; height: 7px; background: transparent; }
+QMainWindow::separator:hover { background: var(--primary_light); border: none; margin: 0; }
+QDockWidget::title {
+    background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 var(--title_start), stop: 1 var(--title_end));
+    color: var(--text_light);
+    border: none;
+    border-bottom: 1px solid var(--border_color);
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    font-size: var(--font_base);
+    font-weight: bold;
+    padding: 9px 10px;
+}
+QDockWidget::close-button:hover, QDockWidget::float-button:hover {
+    background: var(--primary_light);
+    border-radius: 7px;
+}
+QMenuBar, QStatusBar { background: var(--panel); color: var(--text_muted); }
+QMenuBar { border-bottom: 1px solid var(--border_color); padding: 3px; }
+QMenuBar::item { border-radius: 8px; padding: 6px 10px; color: var(--text_light); }
+QMenuBar::item:selected { background: var(--selection_bg); color: var(--selection_text); }
+QMenu { background: var(--panel); border: 1px solid var(--border_color); border-radius: 10px; padding: 5px; }
+QMenu::item { border-radius: 6px; padding: 6px 24px; }
+QMenu::item:selected { background: var(--selection_bg); color: var(--selection_text); }
+QMenu::item:disabled { color: var(--text_disabled); }
+QToolTip { color: var(--text); background: var(--button_bg); border: 1px solid var(--border_color); border-radius: 6px; padding: 6px 9px; }
+QListView, QListWidget, QTreeView, QTableView, QTextEdit, QPlainTextEdit {
+    background: var(--panel); border-color: var(--border_color); border-radius: 9px;
+}
+QListView::item, QListWidget::item, QTreeView::item, SourceTreeItem {
+    border-radius: 8px; padding: 6px 8px; margin: 1px 2px;
+}
+QListView::item:selected, QListWidget::item:selected, QTreeView::item:selected, QTableView::item:selected,
+QListView::item:selected:focus, QListWidget::item:selected:focus, QTreeView::item:selected:focus,
+QListView::item:selected:hover, QListWidget::item:selected:hover, QTreeView::item:selected:hover {
+    color: var(--selection_text); background: var(--selection_bg); border: 1px solid var(--primary);
+}
+QListView::item:hover, QListWidget::item:hover, QTreeView::item:hover {
+    background: var(--button_bg_hover); border: 1px solid var(--border_color);
+}
+QPushButton, QComboBox, QLineEdit, QSpinBox, QDoubleSpinBox { border-radius: 10px; }
+QComboBox, QLineEdit, QSpinBox, QDoubleSpinBox {
+    background: var(--input_bg); border: 1px solid var(--input_border); padding: 6px 10px;
+}
+QPushButton { padding: 6px 10px; border: 1px solid var(--button_border); color: var(--text_light); }
+QPushButton:hover { border-color: var(--primary_light); background: var(--button_bg_hover); }
+QPushButton:focus, QComboBox:focus, QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {
+    border-color: var(--primary);
+}
+.button-primary { background: var(--primary_dark); border-color: var(--primary_dark); color: white; }
+.button-primary:hover, .button-primary:focus { background: var(--primary_darker); border-color: var(--primary); color: white; }
+.button-primary:disabled { background: var(--button_bg_disabled); border-color: var(--border_color); color: var(--text_disabled); }
+QTabBar::tab { border-radius: 10px; margin: 4px 3px; padding: 7px 12px; color: var(--text_muted); }
+QTabBar::tab:selected { background: var(--button_bg); color: var(--selection_text); border: 2px solid var(--primary); padding: 6px 11px; }
+QTabBar::tab:hover { background: var(--selection_bg); color: var(--selection_text); }
+QGroupBox { border-color: var(--border_color); border-radius: 10px; }
+QToolBar { background: var(--panel); border: none; border-top: 1px solid var(--border_color); border-radius: 9px; padding: 4px; spacing: 5px; }
+QToolButton { border: 1px solid var(--button_border); border-radius: 9px; padding: 5px; background: var(--button_bg); }
+QToolButton:hover { background: var(--selection_bg); border-color: var(--primary_light); border-radius: 7px; }
+QProgressBar { background: var(--button_bg_disabled); color: var(--text); border-color: var(--border_color); border-radius: 5px; }
+QProgressBar::chunk { background: var(--primary); border-radius: 4px; }
+#contextContainer, #controlsFrame { background: var(--panel); border-radius: 12px; padding: 7px; }
+#controlsFrame QPushButton { margin: 3px 1px; padding: 7px 10px; }
+QHeaderView::section { background: var(--button_bg); color: var(--text_muted); border: none; border-bottom: 1px solid var(--border_color); padding: 7px; }
+QScrollBar:vertical { background: transparent; width: 9px; margin: 4px 1px; border: none; }
+QScrollBar::handle:vertical { background: var(--scrollbar_handle); border-radius: 4px; min-height: 24px; border: none; }
+QScrollBar::handle:vertical:hover { background: var(--scrollbar_hover); }
+QSlider::groove:horizontal { background: var(--border_color); height: 4px; border: none; border-radius: 2px; }
+QSlider::sub-page:horizontal { background: var(--primary); border: none; border-radius: 2px; }
+QSlider::handle:horizontal { background: var(--primary); border: 2px solid white; width: 13px; height: 13px; margin: -6px 0; border-radius: 8px; }
+QSlider::handle:horizontal:hover { background: var(--primary_dark); }
+/* Audio meters, active stream/record controls, errors and source visibility
+   retain the semantic behavior supplied by the OBS Light/Yami styles. */

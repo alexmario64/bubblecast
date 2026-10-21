@@ -1,0 +1,22 @@
+import {createWriteStream} from 'node:fs';
+import {mkdir,readFile,access} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {Readable} from 'node:stream';
+import {pipeline} from 'node:stream/promises';
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const version='44.9.0',name=`electron-v${version}-win32-x64.zip`,folder=fileURLToPath(new URL('../.local/electron/',import.meta.url)),zip=fileURLToPath(new URL('../.local/'+name,import.meta.url));
+await mkdir(folder,{recursive:true});
+try{await access(folder+'/electron.exe');console.log('Background runtime is already installed.');process.exit(0);}catch{}
+const base=`https://github.com/electron/electron/releases/download/v${version}/`;
+console.log('Downloading the official Electron background runtime…');
+const [archive,checksums]=await Promise.all([fetch(base+name),fetch(base+'SHASUMS256.txt')]);
+if(!archive.ok||!checksums.ok)throw Error('Could not download the official runtime.');
+await pipeline(Readable.fromWeb(archive.body),createWriteStream(zip));
+const expected=(await checksums.text()).split(/\r?\n/).find(line=>line.trim().split(/\s+/)[1]?.replace(/^\*/,'')===name)?.trim().split(/\s+/)[0];
+const actual=createHash('sha256').update(await readFile(zip)).digest('hex');
+if(!expected||actual!==expected)throw Error('Runtime checksum mismatch. The downloaded runtime will not be used.');
+console.log('Checksum verified. Extracting…');
+const quote=value=>"'"+value.replaceAll("'","''")+"'";
+await new Promise((resolve,reject)=>{const child=spawn('powershell.exe',['-NoProfile','-NonInteractive','-Command',`Expand-Archive -LiteralPath ${quote(zip)} -DestinationPath ${quote(folder)} -Force`],{windowsHide:true,stdio:'inherit'});child.on('error',reject);child.on('exit',code=>code===0?resolve():reject(Error('Runtime extraction failed.')));});
+console.log('Installed. Run Start Bubblecast Background.vbs, or add Bubblecast OBS.lua in OBS Tools → Scripts.');

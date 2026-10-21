@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Bubblecast Chat Bridge",
+  "version": "1.6.0",
+  "description": "Load Twitch, YouTube, and TikTok LIVE chat in background tabs for your local OBS bubble overlay.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:3927/*",
+    "http://localhost:3927/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.twitch.tv/popout/*/chat*",
+        "https://www.youtube.com/live_chat*"
+      ],
+      "js": [
+        "capture.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://127.0.0.1:3927/*",
+        "http://localhost:3927/*"
+      ],
+      "js": [
+        "pair.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://www.tiktok.com/@*/live*"
+      ],
+      "js": [
+        "tiktok.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
