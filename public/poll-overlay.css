@@ -13,6 +13,7 @@
 .poll-platform{display:inline-block;width:20px;height:20px;background:#fff;mask:var(--logo) center/contain no-repeat;-webkit-mask:var(--logo) center/contain no-repeat}.poll-platform.twitch{--logo:url('/logos/twitch.png')}.poll-platform.youtube{--logo:url('/logos/youtube.svg')}.poll-platform.kick{--logo:url('/logos/kick.svg')}
 .poll-overlay-question{font:inherit;font-size:calc(var(--size)*.95);line-height:1.5;margin:0 0 14px;position:relative;z-index:1}
 .poll-overlay-line{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:calc(var(--size)*.7);line-height:1.5}.poll-overlay-line>span:first-child{overflow-wrap:anywhere}.poll-overlay-value{white-space:nowrap;font-variant-numeric:tabular-nums}
+.poll-overlay-choices,.poll-overlay-source,.poll-overlay-note{position:relative;z-index:1}
 .poll-overlay-choice{margin-top:9px;transition:opacity .3s}
 .poll-overlay-meter{height:var(--bar);margin-top:5px;background:#4d68701c;border-radius:999px;overflow:hidden;box-shadow:inset 0 1px 1px #263e4814}
 .poll-overlay-meter>span{height:100%;display:block;border-radius:inherit;background:linear-gradient(90deg,color-mix(in srgb,var(--bar-color),white 28%),var(--bar-color));transition:width .6s cubic-bezier(.22,1,.36,1),filter .3s}
