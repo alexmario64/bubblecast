@@ -20,20 +20,23 @@ const shots=[
 ];
 const filters=process.argv.slice(2),selected=shots.filter(s=>!filters.length||filters.some(f=>s.name.includes(f)));
 async function up(){try{return (await fetch(base+'/api/status',{signal:AbortSignal.timeout(1500)})).ok;}catch{return false;}}
-let server=null;
+let server=null,problems=0;
 if(!await up()){server=spawn(process.execPath,['server.mjs'],{cwd:root,stdio:'ignore'});for(let i=0;i<50&&!await up();i++)await new Promise(r=>setTimeout(r,200));if(!await up())throw Error('Could not start the local server on port 3927.');}
 await mkdir(out,{recursive:true});
 const browser=await chromium.launch();
 try{
  for(const shot of selected){
   const page=await browser.newPage({viewport:shot.viewport,deviceScaleFactor:2,reducedMotion:'reduce'});
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.text().startsWith('Failed to load resource'))errors.push(m.text());});
+  // A missing Komika Axis font is reported in the UI, not a page error.
+  page.on('response',r=>{if(r.status()>=400&&!r.url().includes('/fonts/'))errors.push(r.status()+' '+r.url());});
   await page.goto(base+shot.path,{waitUntil:'domcontentloaded'});
   await page.waitForTimeout(shot.wait||1200);
   // Theme is a saved setting; override it in the page only so nothing is written.
   if(shot.theme)await page.evaluate(theme=>{document.body.dataset.theme=theme;},shot.theme);
   if(shot.click){await page.click(shot.click).catch(()=>{});await page.waitForTimeout(500);}
   await page.screenshot({path:out+shot.name+'.png',omitBackground:!!shot.transparent});
-  await page.close();console.log('✓',shot.name);
+  await page.close();console.log(errors.length?'⚠':'✓',shot.name);for(const e of errors)console.log('   ',e);problems+=errors.length;
  }
 }finally{await browser.close();server?.kill();}
-console.log(`${selected.length} screenshots in ${out}`);
+console.log(`${selected.length} screenshots in ${out}`);if(problems){console.log(problems+' page errors');process.exitCode=1;}
