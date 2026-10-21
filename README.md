@@ -2,6 +2,8 @@
 
 For another PC or continued development, start with [DEVELOPMENT.md](DEVELOPMENT.md). Account sessions and personal settings stay local and are excluded from Git.
 
+Current version: **1.16.0**. Polls use an independent resizable split pane, available beside any chat view. Successful creation opens that pane without replacing your chat layout. The mixed poll Browser source is `/poll-overlay`; copy its URL from the poll pane or Studio. YouTube end confirmation checks the native ended state/stable disappearance and synchronizes it into the dock. Earlier version notes below describe historical behavior; DEVELOPMENT.md describes current setup and operation.
+
 A local Twitch + YouTube + TikTok LIVE + Kick OBS overlay inspired by the supplied reference: Wii U-inspired pearl bubbles, cyan name pills, Komika Axis lettering, gentle floating, and springy side entrances and exits.
 
 ## Media playback and timing (1.6.1)
