@@ -103,7 +103,7 @@ def render(name):
         cl.addWidget(b)
     dw4=dock('Controls',controls,Qt.BottomDockWidgetArea);win.splitDockWidget(dw3,dw4,Qt.Horizontal)
     side,sl=panel();sl.addWidget(QLabel('Connection settings'));pick=QComboBox();pick.addItems(['Twitch','YouTube Live','YouTube Shorts Live']);sl.addWidget(pick)
-    sl.addWidget(QLabel('Channel'));field=QLineEdit('TrueAlexLIVE');sl.addWidget(field)
+    sl.addWidget(QLabel('Channel'));field=QLineEdit('DemoStreamer');sl.addWidget(field)
     sl.addWidget(QPushButton('Save connection'));sl.addSpacing(15)
     sl.addWidget(QLabel('Panels, controls and selection states'))
     for text in ['Ready to connect','Disabled action']:

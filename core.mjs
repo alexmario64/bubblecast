@@ -1,5 +1,5 @@
 export const defaults={direction:'left',accent:'#21b8df',bubble:'#f3f7f8',text:'#33464e',fontSize:24,duration:18,maxMessages:7,width:420,badgeSize:24,floatAmount:9,resolution:'2160',floatMotion:true,badges:true,platforms:true,linkMode:'strip',bttv:true,twitchId:'',filterBots:true,ignoredBots:[],uiTheme:'rose'};
-const hiddenBotNames=new Set(['streamelements','stream elements','nightbot','night bot','streamlabs','moobot','fossabot','wizebot','botrix','sery_bot','soundalerts','pretzelrocks','botisimo','mixitupbot','firebot','truebot64']);
+const hiddenBotNames=new Set(['streamelements','stream elements','nightbot','night bot','streamlabs','moobot','fossabot','wizebot','botrix','sery_bot','soundalerts','pretzelrocks','botisimo','mixitupbot','firebot']);
 const senderName=user=>user.trim().replace(/^@/,'').trim().toLowerCase();
 function ignoredNames(value){const names=typeof value==='string'?value.slice(0,60000).split(/[,;\r\n]+/):Array.isArray(value)?value:[];return [...new Set(names.filter(n=>typeof n==='string').map(n=>senderName(n).slice(0,256)).filter(Boolean))].slice(0,200);}
 export function isIgnoredUser(user,s=defaults){if(s.filterBots===false)return false;const name=senderName(user);return hiddenBotNames.has(name)||ignoredNames(s.ignoredBots).includes(name);}
