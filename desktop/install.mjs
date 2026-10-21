@@ -5,9 +5,10 @@ import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-const version='44.9.0',name=`electron-v${version}-win32-x64.zip`,folder=fileURLToPath(new URL('../.local/electron/',import.meta.url)),zip=fileURLToPath(new URL('../.local/'+name,import.meta.url));
+import {electronVersion as version,runtimeFolder as folder,runtimeTarget} from './runtime.mjs';
+const target=runtimeTarget(),name=target.archive,zip=fileURLToPath(new URL('../.local/'+name,import.meta.url));
 await mkdir(folder,{recursive:true});
-try{await access(folder+'/electron.exe');console.log('Background runtime is already installed.');process.exit(0);}catch{}
+try{await access(target.binary);console.log('Background runtime is already installed.');process.exit(0);}catch{}
 const base=`https://github.com/electron/electron/releases/download/v${version}/`;
 console.log('Downloading the official Electron background runtime…');
 const [archive,checksums]=await Promise.all([fetch(base+name),fetch(base+'SHASUMS256.txt')]);
@@ -18,5 +19,7 @@ const actual=createHash('sha256').update(await readFile(zip)).digest('hex');
 if(!expected||actual!==expected)throw Error('Runtime checksum mismatch. The downloaded runtime will not be used.');
 console.log('Checksum verified. Extracting…');
 const quote=value=>"'"+value.replaceAll("'","''")+"'";
-await new Promise((resolve,reject)=>{const child=spawn('powershell.exe',['-NoProfile','-NonInteractive','-Command',`Expand-Archive -LiteralPath ${quote(zip)} -DestinationPath ${quote(folder)} -Force`],{windowsHide:true,stdio:'inherit'});child.on('error',reject);child.on('exit',code=>code===0?resolve():reject(Error('Runtime extraction failed.')));});
-console.log('Installed. Run Start Bubblecast Background.vbs, or add Bubblecast OBS.lua in OBS Tools → Scripts.');
+// ditto keeps the macOS app bundle's symlinks and code signature intact.
+const [command,args]=target.platform==='win32'?['powershell.exe',['-NoProfile','-NonInteractive','-Command',`Expand-Archive -LiteralPath ${quote(zip)} -DestinationPath ${quote(folder)} -Force`]]:['ditto',['-x','-k',zip,folder]];
+await new Promise((resolve,reject)=>{const child=spawn(command,args,{windowsHide:true,stdio:'inherit'});child.on('error',reject);child.on('exit',code=>code===0?resolve():reject(Error('Runtime extraction failed.')));});
+console.log(target.platform==='win32'?'Installed. Run Start Bubblecast Background.vbs, or add Bubblecast OBS.lua in OBS Tools → Scripts.':'Installed. Run pnpm start:background.');

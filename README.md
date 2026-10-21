@@ -56,7 +56,7 @@ One-time Google setup:
 5. Click **Connect YouTube account** and complete Google's account selection and consent yourself. Choose the Google account/channel that owns your broadcasts. You can use a different Google account to own the Cloud project; add the YouTube login as a test user.
 6. After the callback returns, click **Find my broadcasts**. No active or upcoming broadcast is a normal connected state when nothing is scheduled. You can still use the manual live-video URL field.
 
-Client details and tokens are stored under `.local/youtube.dpapi`, encrypted with Windows DPAPI for the current Windows user. The application never returns the tokens to the browser. The downloaded client JSON remains wherever you downloaded it; treat it as private. Do not include `.local/` or downloaded credentials when sharing or archiving the source. The provided ZIP excludes local credentials. This secure persistence currently requires Windows.
+Client details and tokens are stored under `.local/youtube.dpapi`, encrypted with Windows DPAPI for the current Windows user (on macOS development machines, with a key held in the login Keychain). The application never returns the tokens to the browser. The downloaded client JSON remains wherever you downloaded it; treat it as private. Do not include `.local/` or downloaded credentials when sharing or archiving the source. The provided ZIP excludes local credentials.
 
 **Disconnect account** requests Google token revocation and clears the local account tokens while retaining the client setup. API access, OAuth client setup, and actual sign-in must be validated with your Google project; mock tests do not establish a live connection.
 
