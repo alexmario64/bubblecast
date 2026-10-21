@@ -12,6 +12,15 @@ export function twitchParts(text,tags){
  for(const gif of (tags.gifs||'').split(',')){const [position,,url]=gif.split('|'),src=safeMedia(url);if(!src)continue;const [start,end]=position.split('-').map(Number);ranges.push({start,end,type:'image',src,large:true});}
  let cursor=0;const parts=[];for(const range of ranges.sort((a,b)=>a.start-b.start)){if(!Number.isInteger(range.start)||!Number.isInteger(range.end)||range.start<cursor||range.end<range.start||range.end>=chars.length)continue;if(range.start>cursor)parts.push({type:'text',text:chars.slice(cursor,range.start).join('')});parts.push({type:range.type,src:range.src,large:range.large,alt:chars.slice(range.start,range.end+1).join('')});cursor=range.end+1;}if(cursor<chars.length)parts.push({type:'text',text:chars.slice(cursor).join('')});return parts;
 }
+// USERNOTICE lines carry subs, gifts and raids, with Twitch's own readable system-msg.
+// Single gifts that belong to a gift bomb are dropped; the bomb itself is shown once.
+const noticeKinds={sub:'sub',resub:'resub',subgift:'giftsub',submysterygift:'giftbomb',giftpaidupgrade:'sub',primepaidupgrade:'sub',anongiftpaidupgrade:'sub',raid:'raid',viewermilestone:'watchstreak'};
+export function twitchNotice(p){
+ const kind=noticeKinds[p.tags['msg-id']];if(!kind||!p.tags.id)return null;
+ if(kind==='giftsub'&&p.tags['msg-param-community-gift-id'])return null;
+ const amount=kind==='giftbomb'?Number(p.tags['msg-param-mass-gift-count']):kind==='raid'?Number(p.tags['msg-param-viewerCount']):kind==='resub'?Number(p.tags['msg-param-cumulative-months']):0;
+ return {id:p.tags.id,sourceId:p.tags.id,user:p.tags['display-name']||p.tags.login||'Someone',userId:p.tags['user-id']||'',userColor:p.tags.color||'',parts:p.text?twitchParts(p.text,p.tags):[],event:{kind,title:p.tags['system-msg']||'',amount}};
+}
 const bodyKey=m=>m.user.toLowerCase()+':'+m.parts.map(p=>p.type==='text'?p.text:p.alt||'').join('').replace(/\s+/g,' ').trim();
 const bounded=(map,key,value)=>{map.set(key,value);while(map.size>5000)map.delete(map.keys().next().value);};
 // The page remains an artwork source. Match its delayed rows in FIFO order,
@@ -36,8 +45,10 @@ export class TwitchMerge{
  }
 }
 export class TwitchLive{
- constructor({onMessage,onState=()=>{},Socket=WebSocket,merge=new TwitchMerge(),schedule=setTimeout,cancel=clearTimeout,now=Date.now}){Object.assign(this,{onMessage,onState,Socket,merge,schedule,cancel,now});this.channel='';this.socket=null;this.timer=null;this.ready=false;this.attempt=0;}
- configure(channel){channel=String(channel||'').toLowerCase();if(!/^[a-z0-9_]{1,25}$/.test(channel))channel='';if(channel===this.channel)return;this.stop();this.channel=channel;if(channel)this.connect();}
+ constructor({onMessage,onState=()=>{},Socket=WebSocket,merge=new TwitchMerge(),schedule=setTimeout,cancel=clearTimeout,now=Date.now,lookupRewards=null}){Object.assign(this,{onMessage,onState,Socket,merge,schedule,cancel,now,lookupRewards});this.rewards=new Map();this.channel='';this.socket=null;this.timer=null;this.ready=false;this.attempt=0;}
+ configure(channel){channel=String(channel||'').toLowerCase();if(!/^[a-z0-9_]{1,25}$/.test(channel))channel='';if(channel===this.channel)return;this.stop();this.channel=channel;if(channel){this.connect();this.loadRewards();}}
+ // Reward titles come from the channel's public reward list; redemption chat lines only carry an id.
+ async loadRewards(){if(!this.lookupRewards||!this.channel)return;const channel=this.channel;try{const rewards=await this.lookupRewards(channel);if(this.channel===channel&&rewards instanceof Map){this.rewards=rewards;this.rewardsAt=this.now();}}catch{}}
  stop(){this.channel='';this.cancel(this.timer);this.timer=null;const socket=this.socket;this.socket=null;this.ready=false;socket?.close();this.onState(false);}
  connect(){
   if(!this.channel)return;const channel=this.channel;let socket;try{socket=new this.Socket('wss://irc-ws.chat.twitch.tv:443');}catch{this.retry();return;}this.socket=socket;
@@ -45,7 +56,8 @@ export class TwitchLive{
   socket.addEventListener('message',event=>{if(this.socket!==socket)return;for(const line of String(event.data).split('\r\n')){const p=parseIRC(line);if(!p)continue;if(p.command==='PING'){socket.send('PONG :'+p.text);continue;}if(p.command==='RECONNECT'){socket.close();continue;}if(!p.params.includes('#'+channel))continue;
    if(p.command==='ROOMSTATE'||p.command==='JOIN'){this.ready=true;this.attempt=0;this.onState(true);}
    const observedAt=this.now(),base={platform:'twitch',sourceKey:'twitch',captureState:'listening',observedAt,capturedAt:observedAt};
-   if(p.command==='PRIVMSG'&&p.tags.id&&!p.text.startsWith('\x01ACTION ')){const m=this.merge.fromIRC({...base,id:p.tags.id,sourceId:p.tags.id,user:p.tags['display-name']||p.prefix.split('!')[0],userId:p.tags['user-id']||'',userColor:p.tags.color||'',parts:twitchParts(p.text,p.tags)},p.tags.badges||'');if(m)this.onMessage(m);}
+   if(p.command==='PRIVMSG'&&p.tags.id&&!p.text.startsWith('\x01ACTION ')){const rewardId=p.tags['custom-reward-id'];if(rewardId&&!this.rewards.has(rewardId)&&this.now()-(this.rewardsAt||0)>60000)this.loadRewards();const m=this.merge.fromIRC({...base,id:p.tags.id,sourceId:p.tags.id,user:p.tags['display-name']||p.prefix.split('!')[0],userId:p.tags['user-id']||'',userColor:p.tags.color||'',parts:twitchParts(p.text,p.tags),...(rewardId?{event:{kind:'redemption',title:this.rewards.get(rewardId)?.title||'Channel points',amount:this.rewards.get(rewardId)?.cost,color:this.rewards.get(rewardId)?.color}}:{})},p.tags.badges||'');if(m)this.onMessage(m);}
+   if(p.command==='USERNOTICE'){const notice=twitchNotice(p);if(notice)this.onMessage({...base,...notice});}
    if(p.command==='CLEARMSG')this.onMessage({...base,action:'delete',id:p.tags['target-msg-id']||''});
    if(p.command==='CLEARCHAT')this.onMessage({...base,...(p.tags['target-user-id']?{action:'delete',id:'',userId:p.tags['target-user-id']}:{action:'clear'})});
   }});

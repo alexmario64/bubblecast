@@ -1,7 +1,12 @@
-export const defaults={direction:'left',accent:'#21b8df',bubble:'#f3f7f8',text:'#33464e',fontSize:24,duration:18,maxMessages:7,width:420,badgeSize:24,floatAmount:9,resolution:'2160',floatMotion:true,badges:true,platforms:true,linkMode:'strip',fontFamily:'Komika Axis',bttv:true,twitchId:'',filterBots:true,ignoredBots:[],overlayShownBots:[],dockHiddenBots:[],uiTheme:'rose',dockTheme:'app',pollColors:'chat',pollAccent:'#21b8df',pollBubble:'#f3f7f8',pollText:'#33464e',pollBar:'#21b8df',pollPosition:'bottom-left',pollAnimation:'slide',pollWidth:420,pollFontSize:24,pollBarHeight:8,pollResultSeconds:15,pollShowVotes:true,pollShowPercent:true,pollShowPlatforms:true,pollShowFooter:true,pollHighlightLeader:true,pollFloatMotion:true,pollLiveLabel:'Live poll',pollFinalLabel:'Final results'};
+export const defaults={direction:'left',accent:'#21b8df',bubble:'#f3f7f8',text:'#33464e',fontSize:24,duration:18,maxMessages:7,width:420,badgeSize:24,floatAmount:9,resolution:'2160',floatMotion:true,badges:true,platforms:true,linkMode:'strip',fontFamily:'Komika Axis',bttv:true,twitchId:'',filterBots:true,ignoredBots:[],overlayShownBots:[],dockHiddenBots:[],uiTheme:'rose',dockTheme:'app',eventsShown:['redemption','sub','resub','giftsub','giftbomb','raid','gift','watchstreak','superchat','membership','giftmembership'],pollColors:'chat',pollAccent:'#21b8df',pollBubble:'#f3f7f8',pollText:'#33464e',pollBar:'#21b8df',pollPosition:'bottom-left',pollAnimation:'slide',pollWidth:420,pollFontSize:24,pollBarHeight:8,pollResultSeconds:15,pollShowVotes:true,pollShowPercent:true,pollShowPlatforms:true,pollShowFooter:true,pollHighlightLeader:true,pollFloatMotion:true,pollLiveLabel:'Live poll',pollFinalLabel:'Final results'};
 // CSS family names only: no quotes, commas or markup.
 export function fontFamily(value){const name=typeof value==='string'?value.replace(/["'`]/g,'').replace(/\s+/g,' ').trim():'';return /^[\p{L}\p{N} ._&+-]{1,60}$/u.test(name)?name:'';}
 export const fontStack=name=>'"'+(fontFamily(name)||'Komika Axis')+'"';
+// Stream events (subs, gifts, redemptions…) travel as chat messages with an event field.
+export const eventKinds=['redemption','sub','resub','giftsub','giftbomb','raid','follow','gift','watchstreak','superchat','membership','giftmembership'];
+export const eventLabels={redemption:'Redeemed',sub:'New sub',resub:'Resub',giftsub:'Gifted sub',giftbomb:'Gifted subs',raid:'Raid',follow:'New follower',gift:'Gift',watchstreak:'Watch streak',superchat:'Super Chat',membership:'Member',giftmembership:'Gifted members'};
+function eventList(value){const items=typeof value==='string'?value.split(/[,;\s]+/):Array.isArray(value)?value:null;return items&&[...new Set(items.filter(k=>eventKinds.includes(k)))];}
+function streamEvent(e){if(!e||typeof e!=='object'||!eventKinds.includes(e.kind))return null;const out={kind:e.kind,title:String(e.title||'').replace(/\s+/g,' ').trim().slice(0,160)};if(Number.isFinite(+e.amount)&&+e.amount>0)out.amount=Math.round(+e.amount);if(/^#[a-f0-9]{6}$/i.test(e.color||''))out.color=e.color.toLowerCase();const image=safeMedia(e.image);if(image)out.image=image;return out;}
 // The dock follows the app theme unless it has its own.
 export const dockThemeOf=s=>s.dockTheme&&s.dockTheme!=='app'?s.dockTheme:s.uiTheme||'rose';
 export const pollPositions=['bottom-left','bottom-right','top-left','top-right','center'];
@@ -19,6 +24,7 @@ export function settings(input={}) {
  const s={...defaults};
  if(['rose','red','midnight','white'].includes(input.uiTheme))s.uiTheme=input.uiTheme;
  if(['app','rose','red','midnight','white'].includes(input.dockTheme))s.dockTheme=input.dockTheme;
+ {const shown=eventList(input.eventsShown);if(shown)s.eventsShown=shown;}
  for(const k of ['direction','linkMode']) if((k==='direction'?['left','right']:['strip','drop','show']).includes(input[k])) s[k]=input[k];
  if(['1080','1440','2160'].includes(String(input.resolution)))s.resolution=String(input.resolution);
  for(const k of ['accent','bubble','text']) if(/^#[a-f0-9]{6}$/i.test(input[k])) s[k]=input[k];
@@ -48,12 +54,13 @@ export function badgeMedia(value){const safe=safeMedia(value);if(!safe)return nu
 export function normalize(raw,s=defaults){
  if(!['twitch','youtube','tiktok','kick'].includes(raw?.platform)||typeof raw.user!=='string'||!Array.isArray(raw.parts))return null;
  if(isIgnoredUser(raw.user,s))return null;
+ const event=streamEvent(raw.event);if(event&&Array.isArray(s.eventsShown)&&!s.eventsShown.includes(event.kind))return null;
  const parts=[];let hasLink=false;
  const merged=[];for(const p of raw.parts.slice(0,150)){if(!p||typeof p!=='object')continue;const last=merged.at(-1);if(p.type==='text'&&last?.type==='text')last.text+=String(p.text||'');else merged.push({...p,text:p.type==='text'?String(p.text||''):undefined});}
  for(const p of merged){
   if(p.type==='text') {let t=String(p.text||'').slice(0,3000);links.lastIndex=0;if(links.test(t))hasLink=true;links.lastIndex=0;if(s.linkMode!=='show')t=t.replace(links,'');if(t)parts.push({type:'text',text:t});}
   else if(['image','video'].includes(p.type)){let src=safeMedia(p.src);if(src&&p.type==='image'&&!p.large){const url=new URL(src);if(url.hostname==='static-cdn.jtvnw.net'&&/^\/emoticons\/v2\/[^/]+\/(?:default|static|animated)\/(?:dark|light)\/[123]\.0$/.test(url.pathname)){url.pathname=url.pathname.replace(/\/[123]\.0$/,'/3.0');url.hash='';src=url.href;}}if(src)parts.push({type:p.type,src,alt:String(p.alt||'').slice(0,100),large:!!p.large});}
  }
- if(s.linkMode==='drop'&&hasLink||!parts.some(p=>p.type!=='text'||p.text.trim()))return null;
- return {id:String(raw.id||crypto.randomUUID()).slice(0,200),platform:raw.platform,sourceKey:raw.platform==='youtube'&&raw.sourceKey==='youtubeShorts'?'youtubeShorts':raw.platform,user:raw.user.slice(0,256),userColor:raw.platform==='twitch'&&/^#[a-f0-9]{6}$/i.test(raw.userColor)?raw.userColor.toLowerCase():'',userId:String(raw.userId||'').slice(0,100),parts,badges:(Array.isArray(raw.badges)?raw.badges:[]).slice(0,20).map(b=>({src:badgeMedia(b.src),fallback:safeMedia(b.fallback||b.src),alt:String(b.alt||'badge').slice(0,80),...(b.label?{label:String(b.label).slice(0,16)}:{})})).filter(b=>b.src),time:Date.now()};
+ if(s.linkMode==='drop'&&hasLink||!event&&!parts.some(p=>p.type!=='text'||p.text.trim()))return null;
+ return {id:String(raw.id||crypto.randomUUID()).slice(0,200),platform:raw.platform,sourceKey:raw.platform==='youtube'&&raw.sourceKey==='youtubeShorts'?'youtubeShorts':raw.platform,user:raw.user.slice(0,256),userColor:raw.platform==='twitch'&&/^#[a-f0-9]{6}$/i.test(raw.userColor)?raw.userColor.toLowerCase():'',userId:String(raw.userId||'').slice(0,100),parts,badges:(Array.isArray(raw.badges)?raw.badges:[]).slice(0,20).map(b=>({src:badgeMedia(b.src),fallback:safeMedia(b.fallback||b.src),alt:String(b.alt||'badge').slice(0,80),...(b.label?{label:String(b.label).slice(0,16)}:{})})).filter(b=>b.src),...(event?{event}:{}),time:Date.now()};
 }

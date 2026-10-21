@@ -48,7 +48,7 @@ Open this repository folder in a new Codex task on the other PC. Ask it to read 
 - poll-jobs.mjs and polls.mjs: idempotent jobs and normalized poll state.
 - test/: unit tests; test/browser/: DOM fixture coverage with happy-dom. `pnpm test:relay` is a separate live local integration check and may display synthetic overlay messages.
 
-## Current behavior (1.18.0)
+## Current behavior (1.19.0)
 
 Polls open beside existing chat/split views; selecting Twitch, YouTube, TikTok or Kick does not filter out other platforms' polls. Wide docks place polls alongside chat; narrow docks stack the pane below chat. Resize with the divider or close it with ×. The Polls button reopens it. Successful poll creation opens the pane without replacing chat iframe sessions.
 
@@ -69,4 +69,11 @@ Live viewers (1.17.0): every 30 seconds the helper runs `desktop/viewer-probe.mj
 Brand and themes (1.18.0): the logo is the bubble trio in `public/logo-glyph.svg`, drawn on a theme tile (`--logo-tile`: the accent gradient on rose and red, midnight on Midnight and White). `public/favicon.svg` is the full icon on the midnight tile; `logos/tray.png`, `logos/tray@2x.png` and `logos/icon-256.png` are rendered from it for the helper's tray and windows. Interface themes are rose, red, midnight (dark) and white; all colors, including status colors (`--good`, `--warn`, `--bad`, `--live`), come from `public/theme.css`.
 
 Studio → Appearance holds the app theme (`uiTheme`) and the chat dock theme (`dockTheme`: `app` to match, or its own theme). The dock's Connections sheet edits `dockTheme`.
+
+Stream events (1.19.0): events travel as chat messages with an `event` field (`eventKinds` in `core.mjs`). Overlays show the kinds listed in `eventsShown` (all except follows by default, toggled in Studio → Chat overlay → Stream events); the relay and dock keep every event. Sources, verified against real traffic on 2026-10-21:
+- Twitch subs, resubs, gifted subs, gift bombs (individual gifts inside a bomb are collapsed), raids and watch streaks: IRC `USERNOTICE`, using Twitch's `system-msg` text.
+- Twitch channel-point redemptions: text redemptions arrive as IRC `PRIVMSG` with `custom-reward-id` (titles from the channel's public reward list); text-free redemptions arrive as `reward-redeemed` on the signed-in popout's hermes socket (`desktop/stream-events.mjs`).
+- Kick: `KicksGifted` on the page's realtime socket. Kick subs and reward redemptions are not captured yet.
+- YouTube: Super Chats, Super Stickers, memberships and gift-membership announcements are tagged in `network-chat.mjs`.
+Twitch follows and TikTok events are not captured yet.
 
