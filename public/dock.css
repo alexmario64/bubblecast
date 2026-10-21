@@ -39,3 +39,5 @@ body.dock-pane{padding:0;background:transparent}.dock-pane header{border-radius:
 @media(max-width:620px){.dock-chat-and-polls{flex-direction:column}.poll-results-pane{flex-basis:var(--poll-pane-share,44%);border-radius:12px}.poll-pane-divider{cursor:row-resize}.poll-pane-divider:after{inset:2px 35%}.poll-results-heading{padding:8px 11px 4px}.poll-results-pane .poll-toolbar{padding-bottom:6px}.poll-results-pane .poll-card h3{font-size:12px}}
 
 .poll-pane-footer{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:7px 11px;border-top:1px solid var(--line);font-size:9px;flex-shrink:0}.poll-pane-footer button{border-radius:999px;background:#fff8;padding:5px 8px}.poll-pane-footer a{color:var(--muted)}
+
+.hide-bots .chat-row[data-bot]{display:none}
