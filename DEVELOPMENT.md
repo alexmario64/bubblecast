@@ -1,5 +1,7 @@
 # Continue on another PC
 
+Canonical repository: https://github.com/alexmario64/bubblecast. All ongoing development uses a Git-connected clone of this repository; exported ZIPs and older workspace copies are not development sources.
+
 ## First setup (Windows)
 
 1. Install Git and Node.js 22 or newer. Sign in to GitHub with the account that owns this private repository.

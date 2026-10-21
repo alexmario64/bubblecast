@@ -2,6 +2,10 @@
 
 Read DEVELOPMENT.md for setup and current architecture. This folder is the repository root.
 
+## Authoritative repository
+
+The user has directed that all work from now on happens in https://github.com/alexmario64/bubblecast and its Git-connected checkout. Use this repository as the only development source. Do not maintain a separate app copy, ZIP-based development fork, or files in a parent workspace as the source of truth. Pull with `git pull --ff-only` before starting work when the working tree is clean. Preserve any existing uncommitted changes. Commit and push completed, verified updates to the authorized repository. If the remote has diverged, resolve it without overwriting others' work. Tests and fixtures belong inside this repository. Account sessions and user configuration remain local and ignored.
+
 - Preserve low-latency capture, native animated media, stable message IDs, and startup-history suppression.
 - Account sessions and stream settings stay local. Never commit .local/, sources.json, settings.json, cookies, tokens, or captured personal chat logs.
 - Use the shared poll helpers for native actions. Never automatically retry a publish/end/send action whose result is unknown. Do not publish invented test messages or polls on real platforms.
