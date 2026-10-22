@@ -367,3 +367,5 @@ body[data-theme=midnight] #autoscroll[aria-pressed=false],body[data-theme=midnig
 #sourceReloads{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}#sourceReloads button{padding:7px 11px;border-radius:999px;background:var(--surface-2);font-size:12px;color:var(--text-2)}#sourceReloads button:hover{background:var(--accent-soft);color:var(--accent)}
 
 .account-row>a,.account-row>button{display:inline-flex;align-items:center;justify-content:center;min-height:30px;line-height:1.4;text-align:center;box-sizing:border-box}
+
+.account-row>.account-identity{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;align-items:baseline}.account-platform{white-space:nowrap}.account-state{min-width:0;overflow-wrap:anywhere}

@@ -81,3 +81,5 @@ Lessons from this session:
 - Kick dock account row now uses the same inline status and right-aligned Connect / Manage styling as Twitch and YouTube. Manage opens Studio; Connect keeps the unified helper flow.
 
 - Account rows share a fixed 100px action column and matching control heights, so Twitch, YouTube, Kick and configured TikTok labels and actions align consistently.
+
+- Platform names and account statuses also occupy separate columns inside each dock row, so status text starts at the same position despite different platform-name lengths.
