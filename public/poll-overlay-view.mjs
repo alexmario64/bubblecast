@@ -1,6 +1,6 @@
 import {groupPollResults} from './poll-board.mjs';
 const labels={twitch:'Twitch',kick:'Kick',youtube:'YouTube Live',youtubeShorts:'YouTube Shorts'};
-export const cardDefaults={showVotes:true,showPercent:true,showPlatforms:true,showFooter:true,highlightLeader:true,liveLabel:'Live poll',finalLabel:'Final results'};
+const cardDefaults={showVotes:true,showPercent:true,showPlatforms:true,showFooter:true,highlightLeader:true,liveLabel:'Live poll',finalLabel:'Final results'};
 export function pollOverlayCard(document,group,options={}){
  const o={...cardDefaults,...options};
  const el=(tag,cls,text)=>{const n=document.createElement(tag);n.className=cls;if(text!==undefined)n.textContent=text;return n;};

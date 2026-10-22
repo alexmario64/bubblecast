@@ -5,7 +5,6 @@ sources.json
 .env
 .env.*
 !.env.example
-*.dpapi
 *.log
 *.zip
 coverage/

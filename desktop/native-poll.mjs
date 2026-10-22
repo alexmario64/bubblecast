@@ -1,5 +1,5 @@
 // Native creator UI only. Opening these controls never publishes a poll.
-export function pollFormAction(platform,action='inspect',opened=[]){
+function pollFormAction(platform,action='inspect',opened=[]){
  const visible=e=>!!e&&!!e.getClientRects().length&&!e.closest('[hidden],[aria-hidden="true"]')&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden';
  const buttons=[...document.querySelectorAll('button,[role="button"],[role="menuitem"],tp-yt-paper-item,yt-list-item-view-model,yt-live-chat-menu-service-item-renderer')].filter(visible);
  const fields=[...document.querySelectorAll('input:not([type="hidden"]),textarea,[contenteditable]')].filter(visible);

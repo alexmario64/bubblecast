@@ -14,7 +14,7 @@ svg{width:18px;height:18px;flex-shrink:0}
 [hidden]{display:none!important}
 .chat-row[data-bot-hidden]{display:none}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.glass,header,.layout-tools,#scroll,#composer,.poll-results-pane,.chat-pane{backdrop-filter:blur(24px) saturate(1.2);-webkit-backdrop-filter:blur(24px) saturate(1.2)}
+header,.layout-tools,#scroll,#composer,.poll-results-pane,.chat-pane{backdrop-filter:blur(24px) saturate(1.2);-webkit-backdrop-filter:blur(24px) saturate(1.2)}
 
 /* Header card */
 header{flex-shrink:0;padding:12px 12px 0;background:var(--surface);border:1px solid var(--border);border-bottom:0;border-radius:18px 18px 0 0;box-shadow:var(--shadow);position:relative;z-index:2}
@@ -296,7 +296,6 @@ html:has(body.dock-pane){background:transparent}
 .poll-percent-breakdown strong{font-size:11px;color:var(--text-3);font-weight:550}
 .poll-dismiss{position:absolute;top:8px;right:8px;color:var(--text-3);font-size:16px;width:24px;height:24px;border-radius:50%;line-height:1}
 .poll-dismiss:hover{background:var(--surface-2);color:var(--text)}
-.poll-card.retiring{animation:retire .25s ease forwards}
 .poll-end-controls{display:flex;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 .poll-end-controls button{border:1px solid #ff3b3055;border-radius:999px;padding:5px 12px;color:var(--bad);font-size:12px;font-weight:600;white-space:nowrap}
 .poll-end-controls button:not(:disabled):hover{background:#ff3b3014}
@@ -315,7 +314,6 @@ html:has(body.dock-pane){background:transparent}
 @keyframes menu-in{from{opacity:0;transform:translateY(-4px) scale(.97)}to{opacity:1;transform:none}}
 @keyframes pane-in{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
 @keyframes jump-in{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translateX(-50%)}}
-@keyframes retire{to{opacity:0;transform:translateY(-4px) scale(.98)}}
 @keyframes pulse{0%{box-shadow:0 0 0 0 #34c75966}70%{box-shadow:0 0 0 5px #34c75900}100%{box-shadow:0 0 0 0 #34c75900}}
 
 @media(max-width:620px){
