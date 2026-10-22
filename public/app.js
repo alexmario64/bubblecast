@@ -49,7 +49,7 @@ function addBot(){const input=$('#botName'),name=input.value.trim().replace(/^@/
 $('#addBot').onclick=addBot;$('#botName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addBot();}});
 
 // Connections
-async function saveSources(enabled=true){const values=Object.fromEntries(sourceIds.map(id=>[id,$('#'+id).value]));const sources=await api('sources',{...values,enabled});for(const id of sourceIds){$('#'+id).value=sources[id]||'';store.set(id,$('#'+id).value);}window.dispatchEvent(new CustomEvent('bubblecast-connect-sources'));toast(enabled?'Connections saved. Loading your chats…':'All sources disconnected.','success');}
+async function saveSources(enabled=true){const values=Object.fromEntries(sourceIds.map(id=>[id,$('#'+id).value]));const sources=await api('sources',{...values,enabled});for(const id of sourceIds){$('#'+id).value=(sources.entered||sources)[id]||'';store.set(id,$('#'+id).value);}window.dispatchEvent(new CustomEvent('bubblecast-connect-sources'));toast(enabled?'Connections saved. Loading your chats…':'All sources disconnected.','success');}
 function sourceError(e){toast(e.message,'error');}
 $('#saveConnections').onclick=()=>saveSources().catch(sourceError);
 $('#stopSources').onclick=()=>saveSources(false).catch(sourceError);
@@ -112,7 +112,7 @@ async function status(){try{const j=await(await fetch('/api/status')).json();las
  if(!loaded){fill(j.settings);loaded=true;}else if(((j.settings.uiTheme||'rose')!==(state.uiTheme||'rose')||(j.settings.language||'en')!==(state.language||'en'))&&!saveTimer){state.uiTheme=j.settings.uiTheme;state.language=j.settings.language;fill({...collect(),uiTheme:j.settings.uiTheme,language:j.settings.language||'en'});}
  const online=!!j.collector?.active;$('#studioStatus').textContent=online?'Background app connected':'Background app offline';$('#helperChip').dataset.state=online?'online':'offline';$('#helperBanner').hidden=online;
  paintPlatforms(j);
- if(!sourceFieldsLoaded){if(j.sources?.configured)for(const id of sourceIds)$('#'+id).value=j.sources[id]||'';sourceFieldsLoaded=true;}
+ if(!sourceFieldsLoaded){if(j.sources?.configured)for(const id of sourceIds)$('#'+id).value=(j.sources.entered||j.sources)[id]||'';sourceFieldsLoaded=true;}
  $('#sourceFeedback').textContent=j.sources?.enabled===false?'Sources are disconnected. Save connections to reconnect.':'';steps();
 }catch{$('#studioStatus').textContent='Server not responding';$('#helperChip').dataset.state='offline';}}
 // Fonts: any installed family. A family is installed when it changes text metrics versus a generic fallback.

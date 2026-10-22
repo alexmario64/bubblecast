@@ -174,3 +174,9 @@ test('Twitch and YouTube send through their official connections even when the h
  target.value='youtube';target.dispatchEvent(new f.w.Event('change'));assert.equal(f.doc.querySelector('#sendMessage').disabled,false,'YouTube sends through the official API');
  target.value='tiktok';target.dispatchEvent(new f.w.Event('change'));assert.equal(f.doc.querySelector('#sendMessage').disabled,true,'TikTok still needs the helper');
  assert.match(f.doc.querySelector('#accounts').textContent,/Connected as streamer/);});
+
+test('dock offers official account connections without the helper and labels Kick page sign-in for polls',async t=>{
+ const f=await setup(t,[],{status:{sources:{urls:{}},collector:{active:false},kick:{connected:false}}});await new Promise(r=>setTimeout(r,10));
+ assert.equal(f.doc.querySelector('#captureControls').hidden,false);const accounts=f.doc.querySelector('#accounts');assert.ok([...accounts.querySelectorAll('a')].some(a=>a.textContent==='Connect Kick'&&a.getAttribute('href')==='/#connections'));
+ const polls=[...accounts.querySelectorAll('button')].find(b=>b.textContent==='Sign in for polls');assert.ok(polls);assert.equal(polls.disabled,true);
+});

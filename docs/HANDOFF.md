@@ -58,3 +58,9 @@ Lessons from this session:
 
 - Give the old Google client a new secret. The previous one is in git history (commit 18c9bc7). Then paste the client ID and new secret in Studio → Connections → Your Google app, and click Connect YouTube.
 - Create the Kick app (see `docs/own-apps.md`) and click Connect Kick.
+
+## Automatic own-channel connections (pending PR)
+
+- Blank Twitch/Kick channel fields now use the connected account's own channel; explicit saved fields remain overrides. Kick looks up its authenticated user ID through the official channels API and remembers the returned slug locally. YouTube's existing live-stream discovery also works before any source form has been saved.
+- Runtime defaults stay separate from editable/saved fields, and disconnect-all remains respected. Studio/dock help and Spanish entries describe API sign-in, optional overrides and Kick's separate poll page sign-in. Dock account links remain available when the helper is offline.
+- This branch is based on main independently of open documentation PR #23. The additional setup notes in #23 still need the owner's merge. Neither PR proves live Kick compatibility; owner verification is still needed. No helper version bump is needed because desktop files are unchanged.

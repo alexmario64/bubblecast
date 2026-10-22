@@ -14,7 +14,7 @@ function kick({scope=KICK_SCOPES.join(' '),live=true,chat}={}){
   if(u.hostname==='id.kick.com'&&u.pathname==='/oauth/token')return options.body.get('grant_type')==='refresh_token'?reply(200,{access_token:'access-2',refresh_token:'refresh-2',expires_in:3600}):reply(200,{access_token:'access-1',refresh_token:'refresh-1',expires_in:3600,scope});
   if(u.hostname==='id.kick.com'&&u.pathname==='/oauth/revoke')return reply(200,{});
   if(u.pathname==='/public/v1/users')return reply(200,{data:[{user_id:7,name:'TrueAlex'}]});
-  if(u.pathname==='/public/v1/channels')return reply(200,{data:u.searchParams.get('slug')==='truealex'?[{broadcaster_user_id:7,slug:'truealex',stream:{is_live:live,viewer_count:42}}]:[]});
+  if(u.pathname==='/public/v1/channels')return reply(200,{data:(u.searchParams.get('slug')==='truealex'||u.searchParams.get('broadcaster_user_id')==='7')?[{broadcaster_user_id:7,slug:'truealex',stream:{is_live:live,viewer_count:42}}]:[]});
   if(u.pathname==='/public/v1/chat')return chat?chat(options):reply(200,{data:{is_sent:true,message_id:'m1'}});
   return reply(404,{});};
  return {calls,request};
@@ -69,4 +69,23 @@ test('app keys are saved privately, validated, and never returned to the page',a
  await assert.rejects(keys.set('youtube',{clientId:'not-a-google-id'}),/Google client ID/);await assert.rejects(keys.set('twitch',{clientId:'x'}),/Unknown/);
  const again=new AppKeys({file});await again.load();assert.equal(again.get('youtube').clientSecret,'GOCSPX-secret');
  if(process.platform!=='win32')assert.equal((await stat(file)).mode&0o777,0o600);
+});
+
+test('Kick discovers its own channel by authenticated user ID, not display name, and keeps it across restarts',async t=>{
+ const {client,k,timers,dir}=await signedIn(t);await run(timers);
+ assert.equal(client.auth.channel,'truealex');assert.equal(client.status().channel,'truealex');assert.equal(client.status().ready,true);
+ const lookup=k.calls.find(c=>c.url.pathname==='/public/v1/channels');assert.equal(lookup.url.searchParams.get('broadcaster_user_id'),'7');assert.equal(lookup.url.searchParams.has('slug'),false);
+ const saved=JSON.parse(await readFile(join(dir,'kick-auth.json'),'utf8'));assert.equal(saved.channel,'truealex');
+ const next=new KickOfficial({file:join(dir,'kick-auth.json')});next.setApp({clientId:'my-kick-app',clientSecret:'s'});await next.load();assert.equal(next.auth.channel,'truealex');
+});
+test('disabled Kick sources do not discover a channel after sign-in',async t=>{
+ const {client,k,timers}=await signedIn(t);client.configure('',{enabled:false});assert.ok(timers.every(h=>h.cancelled));assert.equal(k.calls.some(c=>c.url.pathname==='/public/v1/channels'),false);
+ client.configure('',{enabled:true});await run(timers);assert.equal(client.auth.channel,'truealex');
+});
+test('saved Kick access without a remembered channel can discover it at startup',async t=>{
+ const {dir,k}=await signedIn(t);const timers=[];const next=new KickOfficial({file:join(dir,'kick-auth.json'),request:k.request,schedule:(fn,ms)=>{const h={fn,ms};timers.push(h);return h;},cancel:h=>{if(h)h.cancelled=true;}});next.setApp({clientId:'my-kick-app',clientSecret:'s'});await next.load();next.configure('');await run(timers);assert.equal(next.auth.channel,'truealex');assert.equal(next.status().ready,true);
+});
+test('a late own-channel lookup cannot re-enable disconnected Kick sources',async t=>{
+ const {client,k,timers}=await signedIn(t);let release,started;const waiting=new Promise(resolve=>{started=resolve;});client.request=async(url,options)=>{if(new URL(url).pathname==='/public/v1/channels'){started();return new Promise(resolve=>{release=()=>resolve({ok:true,json:async()=>({data:[{broadcaster_user_id:7,slug:'truealex'}]})});});}return k.request(url,options);};
+ const lookup=run(timers);await waiting;client.configure('',{enabled:false});release();await lookup;assert.equal(client.auth.channel,undefined);assert.equal(client.status().ready,false);assert.equal(client.channel,'');
 });

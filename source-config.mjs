@@ -14,4 +14,11 @@ export function sourceConfig(input={}){
 
 // With no YouTube links entered, the streams found on the connected channel fill the YouTube slots.
 export function withFoundVideos(saved,found){if(!saved.enabled||saved.youtubeVideo||saved.youtubeShortsVideo||!found?.length)return {...saved,youtubeFound:[]};const [first,second]=found;
- return {...saved,youtubeFound:found,urls:{...saved.urls,youtube:'https://www.youtube.com/live_chat?v='+first.video+'&is_popout=1',youtubeShorts:second?'https://www.youtube.com/live_chat?v='+second.video+'&is_popout=1':''}};}
+ return {...saved,configured:true,youtubeFound:found,urls:{...saved.urls,youtube:'https://www.youtube.com/live_chat?v='+first.video+'&is_popout=1',youtubeShorts:second?'https://www.youtube.com/live_chat?v='+second.video+'&is_popout=1':''}};}
+
+// Account channels are runtime defaults. Never save them as manual overrides.
+export function withAccountChannels(saved,{twitch='',kick=''}={}){
+ const entered=Object.fromEntries(['twitchChannel','youtubeVideo','youtubeShortsVideo','tiktokChannel','kickChannel'].map(key=>[key,saved[key]||'']));
+ const next=sourceConfig({...saved,twitchChannel:saved.twitchChannel||twitch,kickChannel:saved.kickChannel||kick});
+ return {...next,configured:!!(saved.configured||twitch||kick),entered};
+}

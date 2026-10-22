@@ -59,3 +59,10 @@ test('your own app keys are saved per platform and the secret is never shown bac
  assert.equal(box.querySelector('[name=clientSecret]').value,'','the secret field is cleared after saving');
  assert.equal(doc.querySelector('#kickConnect').disabled,true,'Connect Kick waits for a Kick app');assert.match(doc.querySelector('#account-kick-api').textContent,/Add your Kick app/);
 });
+
+test('Studio keeps automatic channels out of manual fields and saves blank overrides',async t=>{
+ const prior=status.sources;status.sources={configured:true,enabled:true,twitchChannel:'owner',kickChannel:'kick-owner',entered:{twitchChannel:'',kickChannel:''},urls:{twitch:'t',kick:'k'}};
+ t.after(()=>{status.sources=prior;});const {doc,w,calls}=await studio(t,'#connections');await wait(20);
+ assert.equal(doc.querySelector('#twitchChannel').value,'');assert.equal(doc.querySelector('#kickChannel').value,'');
+ doc.querySelector('#saveConnections').click();await wait(20);const call=calls.find(([url,o])=>url==='/api/sources'&&o?.method==='POST');assert.ok(call);const body=JSON.parse(call[1].body);assert.equal(body.twitchChannel,'');assert.equal(body.kickChannel,'');
+});
