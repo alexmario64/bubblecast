@@ -29,3 +29,12 @@ export class YouTubeMerge{
   this.pending.push({key,message,at:this.now()});return [];
  }
 }
+// Reads every custom emoji (shortcode and image) from a live_chat page the streamer saved from their own browser.
+export function pageEmojis(html){
+ const start=html.indexOf('window["ytInitialData"] = ');if(start<0)return [];
+ const from=start+26,end=html.indexOf(';</script>',from);let data;try{data=JSON.parse(html.slice(from,end));}catch{return [];}
+ const found=new Map(),walk=node=>{if(!node||typeof node!=='object')return;if(Array.isArray(node)){node.forEach(walk);return;}
+  if(node.isCustomEmoji&&Array.isArray(node.shortcuts)){const src=node.image?.thumbnails?.at(-1)?.url;if(/^https:\/\//.test(src||''))for(const name of node.shortcuts)if(shortcut.test(name))found.set(name,src);}
+  for(const value of Object.values(node))walk(value);};
+ walk(data);return [...found];
+}

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,rm,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {YouTubeMerge} from '../youtube-merge.mjs';
+import {YouTubeMerge,pageEmojis} from '../youtube-merge.mjs';
 const emoji='https://yt3.ggpht.com/happy=w48-h48-c-k-nd';
 const api=(id,text,userId='UCa')=>({id,sourceId:id,platform:'youtube',sourceKey:'youtube',user:'Viewer',userId,parts:[{type:'text',text}],badges:[]});
 const page=(id,parts,userId='UCa')=>({id,sourceId:id,platform:'youtube',sourceKey:'youtube',user:'Viewer',userId,parts,badges:[{src:'https://yt3.ggpht.com/member',alt:'Member'}]});
@@ -27,4 +27,10 @@ test('learned emojis are saved locally and loaded on start',async t=>{
  const merge=new YouTubeMerge({file,schedule:fn=>{save=fn;return 1;}});merge.page(page('Ch4',[{type:'image',src:emoji,alt:':yt-happy:'}]));await save();
  assert.deepEqual(JSON.parse(await readFile(file,'utf8')),{':yt-happy:':emoji});
  const next=new YouTubeMerge({file});await next.load();assert.equal(next.withEmojis([{type:'text',text:':yt-happy:'}])[0].src,emoji);
+});
+test('a saved live_chat page yields every custom emoji shortcode with its largest image',()=>{
+ const data={contents:{liveChatRenderer:{emojis:[{emojiId:'UC/a',shortcuts:[':yt:'],image:{thumbnails:[{url:'https://yt3.ggpht.com/a=w24'},{url:'https://yt3.ggpht.com/a=w48'}]},isCustomEmoji:true},{emojiId:'😀',shortcuts:[':grinning:'],image:{thumbnails:[{url:'https://x/g'}]}}],actions:[{emoji:{shortcuts:[':hand-pink-waving:'],image:{thumbnails:[{url:'https://yt3.ggpht.com/h=w48'}]},isCustomEmoji:true}}]}}};
+ const html=`<script>var x=1;</script><script nonce="n">window["ytInitialData"] = ${JSON.stringify(data)};</script>`;
+ assert.deepEqual(pageEmojis(html),[[':yt:','https://yt3.ggpht.com/a=w48'],[':hand-pink-waving:','https://yt3.ggpht.com/h=w48']]);
+ assert.deepEqual(pageEmojis('<html>watch page</html>'),[]);
 });
