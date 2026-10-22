@@ -183,3 +183,9 @@ test('dock offers a single Kick connection flow and keeps it disabled without th
 test('the dock connects Kick through the same helper flow as Studio',async t=>{
  const f=await setup(t,[],{status:{sources:{urls:{}},collector:{active:true,version:'1.24.0',kickConnect:true},kick:{configured:true,connected:false}}});await new Promise(r=>setTimeout(r,10));const button=[...f.doc.querySelectorAll('#accounts button')].find(b=>b.textContent==='Connect Kick');assert.equal(button.disabled,false);await button.onclick();assert.equal(f.requests.filter(([url])=>url==='/api/kick/connect').length,1);assert.equal(f.requests.some(([url,o])=>url==='/api/collector/control'&&JSON.parse(o.body).action==='signin'),false);
 });
+test('chat reloads are optional troubleshooting actions rather than account controls',async t=>{
+ const f=await setup(t,[],{status:{sources:{urls:{kick:'k',tiktok:'t'}},collector:{active:true,version:'1.24.0'},kick:{connected:true,user:{name:'owner'}}}});await new Promise(r=>setTimeout(r,10));
+ const details=f.doc.querySelector('#connectionTroubleshooting');assert.equal(details.hidden,false);assert.equal(details.open,false);assert.ok(!f.doc.querySelector('#accounts').textContent.includes('Refresh'));
+ const buttons=[...details.querySelectorAll('button')];assert.deepEqual(buttons.map(b=>b.textContent),['Reload Kick chat','Reload TikTok chat']);assert.equal(f.requests.some(([url])=>url==='/api/collector/control'),false);
+ await buttons[0].onclick();const calls=f.requests.filter(([url])=>url==='/api/collector/control');assert.equal(calls.length,1);assert.deepEqual(JSON.parse(calls[0][1].body),{action:'refresh',sourceKey:'kick'});
+});

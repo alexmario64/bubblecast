@@ -3,6 +3,9 @@
 // pages add later. Brand names, URLs, chat messages and platform error details stay as they are.
 (()=>{
 const es={
+ 'Troubleshooting':'Solución de problemas',
+ 'Reload Kick chat':'Recargar chat de Kick',
+ 'Reload TikTok chat':'Recargar chat de TikTok',
  'Connect your accounts to bring your chats together.':'Conecta tus cuentas para reunir tus chats.',
  'Only fill these in to watch a different channel.':'Completa estos campos solo para ver otro canal.',
  'Finish connecting Kick in the window that opens.':'Termina de conectar Kick en la ventana que se abre.',

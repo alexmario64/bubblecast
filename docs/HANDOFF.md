@@ -75,3 +75,5 @@ Lessons from this session:
 - Product copy stays focused on connecting accounts and choosing another channel. API, OAuth and session-partition details belong in developer docs rather than the dock connection sheet.
 
 - Kick account status uses Connected as / Not connected plus poll readiness; it never falls back to Read-only chat, including before Studio finishes loading or when the API is disconnected.
+
+- Dock refresh controls are moved out of account rows into a collapsed Troubleshooting section, with explicit Reload Kick chat / Reload TikTok chat actions only for configured sources. No source reload occurs until the user clicks.
