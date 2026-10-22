@@ -79,3 +79,5 @@ Lessons from this session:
 - Dock refresh controls are moved out of account rows into a collapsed Troubleshooting section, with explicit Reload Kick chat / Reload TikTok chat actions only for configured sources. No source reload occurs until the user clicks.
 
 - Kick dock account row now uses the same inline status and right-aligned Connect / Manage styling as Twitch and YouTube. Manage opens Studio; Connect keeps the unified helper flow.
+
+- Account rows share a fixed 100px action column and matching control heights, so Twitch, YouTube, Kick and configured TikTok labels and actions align consistently.
