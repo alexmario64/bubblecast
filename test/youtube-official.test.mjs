@@ -76,3 +76,17 @@ test('stream helpers parse split JSON and map polls and memberships',()=>{
  assert.deepEqual(youtubePoll({id:'q',snippet:{pollDetails:{status:'active',metadata:{questionText:'Next?',options:[{optionText:'A',tally:'3'},{optionText:'B',tally:'1'}]}}}}).choices.map(c=>[c.votes,c.percent]),[[3,75],[1,25]]);
 });
 test('the server keeps serving the overlay font file',async()=>{const server=await readFile(new URL('../server.mjs',import.meta.url),'utf8');assert.match(server,/u\.pathname==='\/fonts\/komika-axis\.ttf'/);});
+test('with no links entered, the channel’s own live streams are found and fill the two YouTube slots oldest first',async t=>{
+ const {yt,g,timers}=await signedIn(t);const found=[];yt.onFound=f=>found.push(f);
+ const original=g.request;yt.request=async(url,options)=>new URL(url).pathname.endsWith('/liveBroadcasts')?{ok:true,status:200,json:async()=>({items:[{id:'bbbbbbbbbbb',snippet:{title:'Vertical',actualStartTime:'2026-10-22T10:05:00Z'}},{id:'aaaaaaaaaaa',snippet:{title:'Main',actualStartTime:'2026-10-22T10:00:00Z'}},{id:'bad'}]})}:original(url,options);
+ yt.autoFind(true);const find=timers.find(h=>!h.cancelled&&h.ms===1000&&!h.ran);find.ran=true;await find.fn();
+ assert.deepEqual(found.at(-1),[{video:'aaaaaaaaaaa',title:'Main'},{video:'bbbbbbbbbbb',title:'Vertical'}]);assert.equal(yt.status().found.length,2);
+ assert.equal(timers.at(-1).ms,90000,'the channel is checked about every 90–110 s');
+ yt.autoFind(false);assert.deepEqual(found.at(-1),[],'turning it off forgets found streams');
+});
+test('found streams fill only empty YouTube links and leave other platforms alone',async()=>{
+ const {sourceConfig,withFoundVideos}=await import('../source-config.mjs');const found=[{video:'aaaaaaaaaaa',title:'Main'},{video:'bbbbbbbbbbb',title:'Vertical'}];
+ const auto=withFoundVideos(sourceConfig({kickChannel:'truealex'}),found);assert.match(auto.urls.youtube,/v=aaaaaaaaaaa/);assert.match(auto.urls.youtubeShorts,/v=bbbbbbbbbbb/);assert.match(auto.urls.kick,/truealex/);assert.equal(auto.youtubeVideo,'','typed fields stay empty');
+ const typed=withFoundVideos(sourceConfig({youtubeVideo:'ccccccccccc'}),found);assert.match(typed.urls.youtube,/v=ccccccccccc/);assert.equal(typed.urls.youtubeShorts,'');
+ assert.equal(withFoundVideos(sourceConfig({enabled:false}),found).urls.youtube,'','disconnected sources stay off');
+});

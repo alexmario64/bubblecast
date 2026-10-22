@@ -70,8 +70,9 @@
    <details class="inline-advanced"><summary>Channel emotes</summary><label class="field">Twitch numeric user ID<input name="twitchId" inputmode="numeric" placeholder="Optional · loads your BetterTTV emotes"></label></details>
   </article>
   <article class="card platform-card" data-platform="youtube"><div class="platform-head"><img src="/logos/youtube.png" alt=""><h2>YouTube</h2><span class="pill" id="youtubeStatus">Not connected</span></div>
-   <label class="field">Live stream<input id="youtubeVideo" placeholder="Video link or ID" spellcheck="false"></label>
-   <label class="field">Shorts live stream <span class="optional">Optional · separate chat</span><input id="youtubeShortsVideo" placeholder="Second video link or ID" spellcheck="false"></label>
+   <p class="hint">Leave both links empty and Bubblecast finds your live streams on its own once YouTube is connected.</p>
+   <label class="field">Live stream <span class="optional">Optional</span><input id="youtubeVideo" placeholder="Found automatically" spellcheck="false"></label>
+   <label class="field">Shorts live stream <span class="optional">Optional · separate chat</span><input id="youtubeShortsVideo" placeholder="Found automatically" spellcheck="false"></label>
    <div class="account-line"><span id="account-youtube">Not connected</span><button type="button" class="button" id="youtubeConnect">Connect YouTube</button></div>
    <details class="inline-advanced app-keys" data-app="youtube"><summary>Your Google app</summary><p class="hint">YouTube uses your own Google app, so the daily quota is yours. <a href="https://github.com/alexmario64/bubblecast/blob/main/docs/own-apps.md#youtube" target="_blank" rel="noopener">Setup guide</a></p><label class="field">Client ID<input name="clientId" placeholder="….apps.googleusercontent.com" spellcheck="false" autocomplete="off"></label><label class="field">Client secret<input name="clientSecret" type="password" placeholder="Paste the client secret" spellcheck="false" autocomplete="off"></label><button type="button" class="button" data-save-app="youtube">Save Google app</button></details>
   </article>
