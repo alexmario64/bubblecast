@@ -2,6 +2,7 @@ import {Outbox,destinations} from './outbox.mjs';
 import {TwitchOfficial} from './twitch-official.mjs';
 import {TwitchLive} from './twitch-live.mjs';
 import {YouTubeOfficial,sourceKeys as youtubeKeys} from './youtube-official.mjs';
+import {YouTubeMerge} from './youtube-merge.mjs';
 import {PollJobs,PollEndJobs,pollDestinations} from './poll-jobs.mjs';
 import {PollStore} from './polls.mjs';
 import http from 'node:http';
@@ -52,7 +53,7 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/status')return json({bridge,traffic,settings:state,sources,sourceStatus,renderTiming,twitch:twitch.status(),youtube:youtube.status(),collector:{...collector,active:collectorActive(),viewers:{...collector.viewers,...youtube.viewers,...(twitch.viewers?{twitch:twitch.viewers}:{})}}});
  if(u.pathname==='/api/collector/commands'&&req.method==='GET'){if(req.headers['x-bubblecast-token']!==token)return json({error:'Pair the capture app.'},401);const deliver=()=>{const commands=collectorCommands.map(c=>c.action==='send'?{action:'send',job:forHelper(outbox.claim(c.id))}:c.action==='create-poll'?{action:'create-poll',job:forHelper(pollJobs.claim(c.id))}:c.action==='end-poll'?{action:'end-poll',job:forHelper(pollEndJobs.claim(c.id))}:c).filter(c=>!['send','create-poll','end-poll'].includes(c.action)||c.job);collectorCommands=[];json({commands});};if(collectorCommands.length||u.searchParams.get('wait')!=='1'){deliver();return;}if(collectorWaiter)return json({error:'Collector already listening'},409);const done=()=>{if(collectorWaiter!==done)return;collectorWaiter=null;clearTimeout(timer);deliver();};const timer=setTimeout(done,25000);collectorWaiter=done;res.on('close',()=>{if(collectorWaiter===done){collectorWaiter=null;clearTimeout(timer);}});return;}
  if(u.pathname==='/api/chat/history'&&req.method==='GET')return json({messages:dockHistory.snapshot(state)});
- if(u.pathname==='/api/sources'&&req.method==='GET')return json({...sources,urls:{...sources.urls,twitch:'',...(youtube.connected?{youtube:'',youtubeShorts:''}:{})},captureMode:collectorActive()?'desktop':'chrome'});
+ if(u.pathname==='/api/sources'&&req.method==='GET')return json({...sources,urls:{...sources.urls,twitch:''},captureMode:collectorActive()?'desktop':'chrome'});
  if(u.pathname==='/api/pair'&&req.method==='GET')return json({token});
  if(u.pathname==='/api/emotes')return json(await emotes());
  if(req.method==='POST'){
@@ -84,6 +85,8 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/bridge'&&collectorActive()&&data.transport!=='desktop')return json({ok:true,ignored:true});
  if(u.pathname==='/api/bridge'&&['twitch','youtube','tiktok','kick'].includes(data.platform))bridge[data.platform]=Date.now();
  if(u.pathname==='/api/bridge'&&traffic[data.platform]){if(['starting','listening'].includes(data.captureState))traffic[data.platform].captureState=data.captureState;if(/^\d+\.\d+\.\d+$/.test(data.bridgeVersion||''))traffic[data.platform].bridgeVersion=data.bridgeVersion;if(data.action!=='update'&&Number.isFinite(data.observedAt)&&data.observedAt<=Date.now()&&Date.now()-data.observedAt<60000)traffic[data.platform].lastRelayMs=Date.now()-data.observedAt;}
+ // While the official stream reads a YouTube chat, the page copy only adds emoji images and badges to its messages.
+ if(data.platform==='youtube'&&data.action!=='heartbeat'&&youtube.reading(data.sourceKey||'youtube')){if(!['poll','delete','clear'].includes(data.action))for(const m of youtubeMerge.page(data)){const event=relay.ingest(m,state);if(event)emit(event.type,event.message);}return json({ok:true});}
  if(data.action==='poll'){const poll=polls.accept(data.poll?{...data.poll,platform:data.platform,sourceKey:data.sourceKey}:data);if(poll){emit('poll',poll);await savePolls();}return json({ok:true,displayed:!!poll});}
  if(data.action==='delete'){emit('delete',{id:String(data.id||'').slice(0,200),userId:String(data.userId||'').slice(0,100),platform:data.platform,...(data.sourceKey?{sourceKey:data.sourceKey}:{})});return json({ok:true});}
  if(data.action==='clear'){emit('clear',{});return json({ok:true});}
@@ -101,7 +104,7 @@ setInterval(()=>{const removed=polls.prune();for(const poll of removed)emit('pol
 setInterval(()=>{for(const r of clients)r.write(': keepalive\n\n');},20000).unref();
 // Twitch runs here. Chat, subs and raids always come from Twitch's official chat connection (the only
 // source with GIFs); signing in adds badges, reward titles, text-free redemptions, polls, sending and viewers.
-function ingestOfficial(data){const platform=data.platform;bridge[platform]=Date.now();if(data.action==='delete'){emit('delete',{platform,sourceKey:data.sourceKey||platform,id:String(data.id||'').slice(0,200),userId:String(data.userId||'').slice(0,100)});return;}if(data.action==='clear'){emit('clear',{});return;}traffic[platform].received++;traffic[platform].lastMessageAt=Date.now();const event=relay.ingest(data,state);if(event){emit(event.type,event.message);if(event.type==='message')traffic[platform].displayed++;}}
+function ingestOfficial(data){const platform=data.platform;bridge[platform]=Date.now();if(data.action==='delete'){emit('delete',{platform,sourceKey:data.sourceKey||platform,id:String(data.id||'').slice(0,200),userId:String(data.userId||'').slice(0,100)});return;}if(data.action==='clear'){emit('clear',{});return;}if(data.action!=='update'){traffic[platform].received++;traffic[platform].lastMessageAt=Date.now();}const event=relay.ingest(data,state);if(event){emit(event.type,event.message);if(event.type==='message')traffic[platform].displayed++;}}
 const twitch=new TwitchOfficial({file:join(root,'.local','twitch-auth.json'),onMessage:ingestOfficial,onAuth:()=>configureTwitch(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
 const twitchChat=new TwitchLive({onMessage:ingestOfficial,reward:id=>twitch.rewards.get(id),badgeImages:(tag,info)=>twitch.badgeList(tag,info)});
 function configureTwitch(){const channel=sources.enabled&&sources.urls.twitch?sources.twitchChannel:'';twitch.configure(twitch.connected?channel:'');twitchChat.configure(channel);}
@@ -111,8 +114,10 @@ const officialTargets=new Set(['twitch',...youtubeKeys]);
 function helperTargets(data){return (Array.isArray(data.targets)?data.targets:[]).some(k=>!officialTargets.has(k));}
 function forHelper(job){return job&&{...job,urls:Object.fromEntries(Object.entries(job.urls).filter(([k])=>!officialTargets.has(k)))};}
 // YouTube: official API for sending, polls and viewers; the helper reads chat from the page signed out.
-const youtube=new YouTubeOfficial({file:join(root,'.local','youtube-auth.json'),onMessage:ingestOfficial,onAuth:()=>configureYouTube(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
+const youtube=new YouTubeOfficial({file:join(root,'.local','youtube-auth.json'),onMessage:ingestYouTube,onAuth:()=>configureYouTube(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
+const youtubeMerge=new YouTubeMerge({file:join(root,'.local','youtube-emojis.json')});
+function ingestYouTube(m){if(m.action){ingestOfficial(m);return;}const {message,updates}=youtubeMerge.api(m);ingestOfficial(message);for(const u of updates)ingestOfficial(u);}
 function configureYouTube(){youtube.configure(sources.enabled?{youtube:sources.urls.youtube?sources.youtubeVideo:'',youtubeShorts:sources.urls.youtubeShorts?sources.youtubeShortsVideo:''}:{});}
-await twitch.load();configureTwitch();await youtube.load();configureYouTube();
+await twitch.load();configureTwitch();await youtube.load();await youtubeMerge.load();configureYouTube();
 server.listen(3927,'127.0.0.1',()=>console.log('Bubblecast ready: http://127.0.0.1:3927 • OBS: http://127.0.0.1:3927/overlay'));
 

@@ -1,6 +1,6 @@
 // Official YouTube connection: Google sign-in for desktop apps (loopback + PKCE) and the YouTube Data API.
 // Reads chat through YouTube's official live chat stream and sends chat, runs polls and reads viewer counts.
-// Channel custom emojis arrive as :name: text. Without a connection, the helper reads the chat page signed out.
+// Custom emojis arrive as :name: text; youtube-merge.mjs adds their images from the signed-out chat page.
 import {randomBytes,createHash} from 'node:crypto';
 import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import {dirname} from 'node:path';
@@ -71,6 +71,7 @@ export class YouTubeOfficial{
   this.timer('chats',()=>this.pollChats(generation),90000+this.random()*20000);
  }
  // ---- Reading chat: YouTube's official server-streaming endpoint (5 units per connection, not per message). ----
+ reading(key){return !!this.streams[key];}
  stopStreams(){for(const key of Object.keys(this.streams))this.stopStream(key);}
  stopStream(key){const stream=this.streams[key];if(!stream)return;stream.stopped=true;stream.abort.abort();this.cancel(this.timers['stream-'+key]);delete this.streams[key];}
  readChat(key){const chat=this.chats[key],current=this.streams[key];if(current?.chat===chat)return;this.stopStream(key);if(!chat||!this.connected)return;this.streams[key]={chat,token:'',since:this.now(),failures:0,abort:new AbortController()};this.openStream(key);}

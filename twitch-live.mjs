@@ -61,7 +61,8 @@ export class TwitchLive{
    if(p.command==='CLEARMSG')this.onMessage({...base,action:'delete',id:p.tags['target-msg-id']||''});
    if(p.command==='CLEARCHAT')this.onMessage({...base,...(p.tags['target-user-id']?{action:'delete',id:'',userId:p.tags['target-user-id']}:{action:'clear'})});
   }});
-  socket.addEventListener('error',()=>{if(this.socket===socket)socket.close();});
+  // Closing a socket that failed to connect fires another error, so close it only once.
+  socket.addEventListener('error',()=>{if(this.socket===socket&&!socket.closing){socket.closing=true;socket.close();}});
   socket.addEventListener('close',()=>{if(this.socket!==socket)return;this.socket=null;this.ready=false;this.onState(false);this.retry();});
  }
  retry(){if(!this.channel)return;this.cancel(this.timer);this.timer=this.schedule(()=>this.connect(),Math.min(30000,1000*2**Math.min(this.attempt++,5)));}

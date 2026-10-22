@@ -41,3 +41,8 @@ test('deletion and clears use native IDs and foreign channel messages are reject
 test('disconnect reconnects with backoff; stopping or changing channel retires the old socket',()=>{
  const f=fixture();f.live.configure('first');const old=f.live.socket;old.close();assert.equal(f.timers[0].ms,1000);f.timers[0].f();assert.notEqual(f.live.socket,old);f.live.configure('second');const active=f.live.socket;old.receive('@id=old :v!v PRIVMSG #first :stale');assert.equal(f.messages.length,0);f.live.stop();assert.equal(active.closed,true);assert.equal(f.live.channel,'');assert.equal(f.live.ready,false);
 });
+test('a connection that fails while closing does not loop error and close forever',()=>{
+ const f=fixture();f.live.configure('demostreamer');const s=f.live.socket;let closes=0;
+ s.close=()=>{closes++;if(closes>5)throw Error('error/close loop');s.dispatchEvent(new Event('error'));};
+ s.dispatchEvent(new Event('error'));assert.equal(closes,1);
+});
