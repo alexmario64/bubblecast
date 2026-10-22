@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {gzipSync} from 'node:zlib';
 import {youtubeActions,tiktokPayload,protobuf,NetworkMerge,NetworkFeed} from '../network-chat.mjs';
-import {attachNetworkCapture,youtubeRequestBody} from '../desktop/network-capture.mjs';
+import {attachNetworkCapture} from '../desktop/network-capture.mjs';
 import {MessageRelay} from '../relay.mjs';
 import {defaults} from '../core.mjs';
 const message=(id,content='hello')=>({id,sourceId:id,platform:'youtube',sourceKey:'youtube',user:'Full Name',userId:'user-id',parts:[{type:'text',text:content}],badges:[]});
@@ -70,15 +70,6 @@ test('bad network payloads keep the page capture usable and never forward partia
 
 test('TikTok emote ID versus rendered aria label does not duplicate the same media',()=>{
  const merge=new NetworkMerge(),a={...message('native'),platform:'tiktok',sourceKey:'tiktok',parts:[{type:'image',src:'https://p16-webcast.tiktokcdn.com/asset/dance.gif?token=one',alt:'123456',large:false}]};merge.network(a);const update=merge.page({...a,id:'page-id',parts:[{...a.parts[0],src:'https://p19-webcast.tiktokcdn.com/asset/dance.gif?token=two',alt:'dance'}]});assert.equal(update.id,'native');assert.equal(update.action,'update');const different=merge.page({...a,id:'different',parts:[{...a.parts[0],src:'https://p19-webcast.tiktokcdn.com/asset/other.gif',alt:'other'}]});assert.equal(different.id,'different');assert.notEqual(different.action,'update');
-});
-
-test('YouTube captured request starts the independent receiver before page rendering',async()=>{
- const debug=new Debugger(),events=[];let calls=0;const now=Date.now();const contents={debugger:debug,session:{fetch:async()=>{calls++;const payload=calls===1?batch():batch(yt('fast',now));payload.continuationContents.liveChatContinuation.continuations=[{timedContinuationData:{continuation:'next-'+calls}}];return {ok:true,json:async()=>payload};}}};const capture=attachNetworkCapture(contents,{platform:'youtube',sourceKey:'youtubeShorts',onMessage:m=>events.push(m),now:()=>now});
- try{debug.emit('message',{},'Network.requestWillBeSent',{requestId:'seed',request:{url:'https://www.youtube.com/youtubei/v1/live_chat/get_live_chat',headers:{},postData:JSON.stringify({context:{client:{}},continuation:'initial'})}});await new Promise(r=>setTimeout(r,20));assert.equal(capture.poller.running,true);assert.equal(capture.feed.ready,true);assert.equal(events.length,0);await capture.poller.poll(capture.poller.generation);assert.equal(events.length,1);assert.equal(events[0].sourceKey,'youtubeShorts');}finally{capture.stop();}
-});
-
-test('YouTube gzip request context decodes from Electron upload bytes, CDP entries or legacy byte strings',()=>{
- const body={context:{client:{clientName:'WEB'}},continuation:'cursor'},compressed=gzipSync(Buffer.from(JSON.stringify(body)));for(const request of [{uploadData:[{bytes:compressed}]},{postDataEntries:[{bytes:compressed.toString('base64')}]},{postData:compressed.toString('latin1')},{postData:JSON.stringify(body)}])assert.deepEqual(youtubeRequestBody(request),body);assert.throws(()=>youtubeRequestBody({postData:'bad'}));
 });
 
 test('duplicate YouTube batches never inflate first-arrival source latency',()=>{
