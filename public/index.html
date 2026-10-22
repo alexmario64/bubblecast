@@ -72,7 +72,8 @@
   <article class="card platform-card" data-platform="youtube"><div class="platform-head"><img src="/logos/youtube.png" alt=""><h2>YouTube</h2><span class="pill" id="youtubeStatus">Not connected</span></div>
    <label class="field">Live stream<input id="youtubeVideo" placeholder="Video link or ID" spellcheck="false"></label>
    <label class="field">Shorts live stream <span class="optional">Optional · separate chat</span><input id="youtubeShortsVideo" placeholder="Second video link or ID" spellcheck="false"></label>
-   <div class="account-line"><span id="account-youtube">Read-only chat</span><button type="button" class="button" id="youtubeConnect">Connect YouTube</button></div>
+   <div class="account-line"><span id="account-youtube">Not connected</span><button type="button" class="button" id="youtubeConnect">Connect YouTube</button></div>
+   <details class="inline-advanced app-keys" data-app="youtube"><summary>Your Google app</summary><p class="hint">YouTube uses your own Google app, so the daily quota is yours. <a href="https://github.com/alexmario64/bubblecast/blob/main/docs/own-apps.md#youtube" target="_blank" rel="noopener">Setup guide</a></p><label class="field">Client ID<input name="clientId" placeholder="….apps.googleusercontent.com" spellcheck="false" autocomplete="off"></label><label class="field">Client secret<input name="clientSecret" type="password" placeholder="Paste the client secret" spellcheck="false" autocomplete="off"></label><button type="button" class="button" data-save-app="youtube">Save Google app</button></details>
   </article>
   <article class="card platform-card" data-platform="tiktok"><div class="platform-head"><img src="/logos/tiktok.svg" alt=""><h2>TikTok LIVE</h2><span class="pill" id="tiktokStatus">Not connected</span></div>
    <label class="field">Creator<input id="tiktokChannel" placeholder="@handle or LIVE link" spellcheck="false"></label>
@@ -80,7 +81,9 @@
   </article>
   <article class="card platform-card" data-platform="kick"><div class="platform-head"><img src="/logos/kick.svg" alt=""><h2>Kick</h2><span class="pill" id="kickStatus">Not connected</span></div>
    <label class="field">Channel<input id="kickChannel" placeholder="Channel name or kick.com link" spellcheck="false"></label>
-   <div class="account-line"><span id="account-kick">Read-only chat</span><button type="button" class="button" data-setup-signin="kick">Sign in</button></div>
+   <div class="account-line"><span id="account-kick-api">Not connected</span><button type="button" class="button" id="kickConnect">Connect Kick</button></div>
+   <div class="account-line"><span id="account-kick">Read-only chat</span><button type="button" class="button" data-setup-signin="kick">Sign in for polls</button></div>
+   <details class="inline-advanced app-keys" data-app="kick"><summary>Your Kick app</summary><p class="hint">Kick uses your own Kick app. Set its redirect URL to <code>http://localhost:3927/oauth/kick/callback</code>. <a href="https://github.com/alexmario64/bubblecast/blob/main/docs/own-apps.md#kick" target="_blank" rel="noopener">Setup guide</a></p><label class="field">Client ID<input name="clientId" placeholder="Client ID" spellcheck="false" autocomplete="off"></label><label class="field">Client secret<input name="clientSecret" type="password" placeholder="Paste the client secret" spellcheck="false" autocomplete="off"></label><button type="button" class="button" data-save-app="kick">Save Kick app</button></details>
   </article>
  </div>
  <div class="action-bar"><p id="sourceFeedback" class="action-note"></p><button type="button" id="stopSources" class="button subtle">Disconnect all</button><button type="button" id="saveConnections" class="button primary">Save connections</button></div>

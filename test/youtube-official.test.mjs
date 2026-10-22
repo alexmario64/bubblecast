@@ -33,7 +33,7 @@ test('Google sign-in uses PKCE, the YouTube scope and the local callback, and st
 });
 test('sign-in rejects a wrong state, a missing scope and access without a refresh token',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'bubblecast-'));t.after(()=>rm(dir,{recursive:true,force:true}));
- for(const [options,pattern] of [[{},/did not match/],[{scope:'other'},/not granted/],[{refresh:''},/lasting access/]]){const g=google(options),yt=new YouTubeOfficial({file:join(dir,'a.json'),clientId:'c',request:g.request,schedule:()=>0,cancel:()=>{}});const {url}=yt.startSignIn();const state=pattern.source.includes('match')?'wrong':new URL(url).searchParams.get('state');await assert.rejects(yt.callback(new URLSearchParams({state,code:'x'})),pattern);assert.equal(yt.connected,false);}
+ for(const [options,pattern] of [[{},/did not match/],[{scope:'other'},/not granted/],[{refresh:''},/lasting access/]]){const g=google(options),yt=new YouTubeOfficial({file:join(dir,'a.json'),clientId:'c',clientSecret:'s',request:g.request,schedule:()=>0,cancel:()=>{}});const {url}=yt.startSignIn();const state=pattern.source.includes('match')?'wrong':new URL(url).searchParams.get('state');await assert.rejects(yt.callback(new URLSearchParams({state,code:'x'})),pattern);assert.equal(yt.connected,false);}
 });
 test('live chats and viewers come from one videos.list call per refresh',async t=>{
  const {yt,g,timers}=await signedIn(t);yt.configure({youtube:'aaaaaaaaaaa',youtubeShorts:'not a video id'});
