@@ -4,7 +4,7 @@ import {Window} from 'happy-dom';
 import {readFile} from 'node:fs/promises';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {defaults,normalize,isIgnoredUser,fontStack,eventLabels} from '../../core.mjs';
+import {defaults,normalize,isIgnoredUser,fontStack,eventLabels,viewerColor} from '../../core.mjs';
 import {overlayLayout} from '../../public/layouts.mjs';
 import {MessageRelay} from '../../relay.mjs';
 const capture=await readFile(new URL('../../extension/capture.js',import.meta.url),'utf8');
@@ -13,7 +13,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const row=(id,body)=>`<div class="chat-line__message" ${id?'enhancer-message-handled="'+id+'"':''}><span data-a-target="chat-message-username">DemoStreamer</span><span data-a-target="chat-line-message-body">${body}</span></div>`;
 test('expired BTTV bubble stays gone when the old row reverts to text and a new message arrives',async t=>{
  const overlay=new Window({url:'http://127.0.0.1:3927/overlay'}),chat=new Window({url:'https://www.twitch.tv/popout/demostreamer/chat'}),relay=new MessageRelay();t.after(()=>{overlay.happyDOM.abort();chat.happyDOM.abort();});
- overlay.document.body.innerHTML='<div id="surface"><div id="chat"></div></div>';Object.defineProperty(overlay.document,'fonts',{value:{ready:Promise.resolve(),load:async()=>[]}});Object.assign(overlay,{defaults,normalize,isIgnoredUser,fontStack,eventLabels,overlayLayout,patchElement,prepareMedia,revealMediaMessage,createRenderReporter});overlay.fetch=async()=>({json:async()=>({emotes:{}})});let events;overlay.EventSource=class{constructor(){events=this;this.listeners={};}addEventListener(type,f){this.listeners[type]=f;}emit(type,data){this.listeners[type]?.({data:JSON.stringify(data)});}};overlay.eval(renderer);events.emit('settings',{...defaults,duration:.06});
+ overlay.document.body.innerHTML='<div id="surface"><div id="chat"></div></div>';Object.defineProperty(overlay.document,'fonts',{value:{ready:Promise.resolve(),load:async()=>[]}});Object.assign(overlay,{defaults,normalize,isIgnoredUser,fontStack,eventLabels,viewerColor,overlayLayout,patchElement,prepareMedia,revealMediaMessage,createRenderReporter});overlay.fetch=async()=>({json:async()=>({emotes:{}})});let events;overlay.EventSource=class{constructor(){events=this;this.listeners={};}addEventListener(type,f){this.listeners[type]=f;}emit(type,data){this.listeners[type]?.({data:JSON.stringify(data)});}};overlay.eval(renderer);events.emit('settings',{...defaults,duration:.06});
  const dispatched=[];chat.chrome={runtime:{sendMessage({data},reply){const event=relay.ingest(data,defaults);if(event){dispatched.push(event);events.emit(event.type,event.message);}reply({ok:true});}}};chat.document.body.innerHTML='<div class="chat-scrollable-area__message-container"><div data-a-target="chat-welcome-message">Welcome</div></div>';chat.eval(capture);const container=chat.document.body.firstElementChild;
  container.innerHTML=row('','POGSLIDE');await wait(15);container.querySelector('[data-a-target="chat-line-message-body"]').innerHTML='<img src="https://cdn.betterttv.net/emote/5aea37908f767c42ce1e0293/3x.webp" alt="POGSLIDE">';await wait(15);assert.ok(overlay.document.querySelector('.single-emote img'));
  await wait(620);assert.equal(overlay.document.querySelectorAll('.message').length,0);

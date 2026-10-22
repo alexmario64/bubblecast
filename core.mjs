@@ -7,9 +7,11 @@ export const eventKinds=['redemption','sub','resub','giftsub','giftbomb','raid',
 export const eventLabels={redemption:'Redeemed',sub:'New sub',resub:'Resub',giftsub:'Gifted sub',giftbomb:'Gifted subs',raid:'Raid',follow:'New follower',gift:'Gift',watchstreak:'Watch streak',superchat:'Super Chat',membership:'Member',giftmembership:'Gifted members'};
 function eventList(value){const items=typeof value==='string'?value.split(/[,;\s]+/):Array.isArray(value)?value:null;return items&&[...new Set(items.filter(k=>eventKinds.includes(k)))];}
 function streamEvent(e){if(!e||typeof e!=='object'||!eventKinds.includes(e.kind))return null;const out={kind:e.kind,title:String(e.title||'').replace(/\s+/g,' ').trim().slice(0,160)};if(Number.isFinite(+e.amount)&&+e.amount>0)out.amount=Math.round(+e.amount);if(/^#[a-f0-9]{6}$/i.test(e.color||''))out.color=e.color.toLowerCase();const image=safeMedia(e.image);if(image)out.image=image;return out;}
+// Twitch names keep their chosen color; other viewers get a stable pastel from their id.
+export function viewerColor(m,twitchFallback){if(m.platform==='twitch')return m.userColor||twitchFallback;const palette=['#ffd580','#a9e8ff','#d9b5ff','#a9f0bc','#ffb5d4','#b9caff','#ffcab0','#c7f18c'];let hash=2166136261;for(const c of m.platform+':'+(m.userId||m.user.trim().toLowerCase()))hash=Math.imul(hash^c.codePointAt(0),16777619);return palette[(hash>>>0)%palette.length];}
 // The dock follows the app theme unless it has its own.
 export const dockThemeOf=s=>s.dockTheme&&s.dockTheme!=='app'?s.dockTheme:s.uiTheme||'rose';
-export const pollPositions=['bottom-left','bottom-right','top-left','top-right','center'];
+const pollPositions=['bottom-left','bottom-right','top-left','top-right','center'];
 // Built-in bots, as shown in settings. Matching ignores case and a leading @.
 export const knownBots=['StreamElements','Nightbot','Streamlabs','Moobot','Fossabot','WizeBot','Botrix','Sery_Bot','SoundAlerts','PretzelRocks','Botisimo','MixItUpBot','Firebot'];
 const hiddenBotNames=new Set(['streamelements','stream elements','nightbot','night bot','streamlabs','moobot','fossabot','wizebot','botrix','sery_bot','soundalerts','pretzelrocks','botisimo','mixitupbot','firebot']);

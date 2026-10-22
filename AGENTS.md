@@ -9,6 +9,7 @@ The user has directed that all work from now on happens in https://github.com/al
 - Never use PHP: no PHP files, servers, dependencies or embedded PHP code, because of its security track record. Build server and tooling features in Node.js/JavaScript. `test/repo-policy.test.mjs` fails if PHP appears.
 - Preserve low-latency capture, native animated media, stable message IDs, and startup-history suppression.
 - Account sessions and stream settings stay local. Never commit .local/, sources.json, settings.json, cookies, tokens, or captured personal chat logs.
+- Never point scripts, curl, headless or automated browsers at live platform sites (Twitch, YouTube, Kick, TikTok, Google). Scripted traffic from the user's IP triggers bot protection and captchas. Study live behavior only through the helper's real signed-in windows at a normal pace, and ask first.
 - Use the shared poll helpers for native actions. Never automatically retry a publish/end/send action whose result is unknown. Do not publish invented test messages or polls on real platforms.
 - Run pnpm test after behavioral changes. Browser DOM fixtures live in test/browser; the fixture suite does not prove live platform compatibility.
 - Bump package.json, desktop/package.json and desktop/main.cjs together when shipping a helper update. Restart the background helper and refresh affected OBS sources.

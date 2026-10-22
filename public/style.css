@@ -153,10 +153,10 @@ input.switch:checked{background:var(--accent)}input.switch:checked::after{transf
 .bot-row>span:not(.bot-name){text-align:center}.bot-row input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;margin:0}.bot-row input:disabled{cursor:default}
 .bot-name{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis}.bot-name small{font-size:10.5px;color:var(--text-3)}
 .bot-remove{border:0;background:transparent;color:var(--text-3);cursor:pointer;font-size:15px;line-height:1;padding:0 4px;border-radius:50%}.bot-remove:hover{color:var(--text);background:var(--surface-2)}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
-.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 4px 4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--text);font-size:12px;font-weight:550;animation:pop-in .3s var(--spring)}
-.chip button{display:grid;place-items:center;width:18px;height:18px;border:0;border-radius:50%;background:transparent;color:var(--text-2);cursor:pointer;font-size:14px;line-height:1}.chip button:hover{background:color-mix(in srgb,var(--text) 12%,transparent)}
-.chips-empty{font-size:12px;color:var(--text-3)}
+
+
+
+
 .chip-input{display:flex;gap:8px}.chip-input input{margin:0}
 .theme-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:6px 14px 0}
 .theme-option{position:relative;display:flex;flex-direction:column;gap:8px;padding:8px;border-radius:13px;border:1.5px solid var(--line);font-size:12px;font-weight:550;cursor:pointer;transition:border-color .2s,transform .2s var(--spring)}
@@ -181,7 +181,6 @@ input.switch:checked{background:var(--accent)}input.switch:checked::after{transf
 
 @keyframes page-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes drop-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-@keyframes pop-in{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
 @keyframes toast-in{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 @keyframes toast-out{to{opacity:0;transform:translateX(24px)}}
 @keyframes pulse{0%{box-shadow:0 0 0 0 #34c75966}70%{box-shadow:0 0 0 6px #34c75900}100%{box-shadow:0 0 0 0 #34c75900}}
