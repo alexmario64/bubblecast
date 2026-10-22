@@ -5,8 +5,8 @@ import {randomBytes,createHash} from 'node:crypto';
 import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import {dirname} from 'node:path';
 // A Google "Desktop app" client. Google treats installed-app secrets as not confidential.
-export const YOUTUBE_CLIENT_ID='';
-export const YOUTUBE_CLIENT_SECRET='';
+export const YOUTUBE_CLIENT_ID='342478247598-7kgcd51fiav8fml8tuoseqq4c32mejlf.apps.googleusercontent.com';
+export const YOUTUBE_CLIENT_SECRET='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';
 export const YOUTUBE_SCOPE='https://www.googleapis.com/auth/youtube.force-ssl';
 export const youtubeRedirectUri='http://127.0.0.1:3927/oauth/youtube/callback';
 const API='https://www.googleapis.com/youtube/v3/',TOKEN='https://oauth2.googleapis.com/token';
