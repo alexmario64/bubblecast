@@ -2,7 +2,7 @@
 
 For any coding agent (Codex, Claude) or person picking up this repo. Read `AGENTS.md` (the rules) and `DEVELOPMENT.md` (the architecture) first. This file covers the current state, the next tasks, and lessons from recent work. Update it when those change.
 
-State as of 2026-10-22: `main` includes #16–#21, version 1.22.1. Helper release 1.23.0 is prepared on `release/1.23.0`, awaiting the owner's PR merge. After merging, return to `main` and run `git pull --ff-only`; on the Windows PC, pull the update, restart the background helper and refresh the OBS sources.
+State as of 2026-10-22: helper release 1.23.0 merged in #22 and the development checkout returned to `main` and pulled. Windows update/restart and OBS refresh have not been confirmed. The owner is setting up their own apps on macOS and reports pasting the Kick client ID and secret; successful authorization, viewers and sending are still unverified.
 
 ## How work is done here
 
@@ -39,7 +39,7 @@ Lessons from this session:
 
 ## Next tasks, in order
 
-1. **Finish helper release 1.23.0.** The version bump is prepared in `package.json`, `desktop/package.json` and all four version reports in `desktop/main.cjs`. The owner merges the release PR, pulls on the Windows PC, restarts the helper and refreshes the OBS sources. Then continue with task 2.
+1. **Deploy helper release 1.23.0 on Windows.** #22 is merged. The owner still needs to confirm pulling on the Windows PC, restarting the helper and refreshing OBS sources. macOS app setup and connection verification can proceed meanwhile.
 2. **Verify Kick against a real sign-in.** The field names in `kick-official.mjs` come from Kick's docs and haven't been confirmed live: `data[0].user_id`, `name`, `broadcaster_user_id`, `stream.is_live`, `stream.viewer_count`, and `data.is_sent` on `POST /public/v1/chat`. Ask the owner for the error text if Connect Kick, the viewer count or sending fails, and adjust the code and tests.
 3. **One-click Windows installer (the owner's main goal).** A `.exe` that:
    - installs Bubblecast and the background helper,
@@ -57,4 +57,11 @@ Lessons from this session:
 ## Waiting on the owner
 
 - Give the old Google client a new secret. The previous one is in git history (commit 18c9bc7). Then paste the client ID and new secret in Studio → Connections → Your Google app, and click Connect YouTube.
-- Create the Kick app (see `docs/own-apps.md`) and click Connect Kick.
+- Finish Kick authorization with **Connect Kick** after saving the pasted app keys (see `docs/own-apps.md`), then report the connected account, channel status and any error.
+
+## Setup guide and future Kick scope
+
+- `docs/own-apps.md` records the developer form, required description, exact callback, current scopes, local credential setup, secret replacement and connection checks. Each streamer creates their own Google project/client (quota is per project) and Kick app. Kick OAuth supports user authorization; using individual apps is our local deployment choice, not a platform restriction to the creator.
+- The owner wants future Kick parity: title/channel updates, subscription/gift events, reward management and moderation. The guide separates these future permissions from the three scopes currently requested. No runtime scope changes have been made. Stream-key access is unnecessary unless OBS streaming configuration becomes a feature.
+- Event delivery still needs a solution compatible with no hosted server. Native follows remain outside the current bot-based policy. Do not treat these proposed features as implemented or live-verified.
+- The old Google secret replacement and Google connection remain unconfirmed. Never save actual keys, secrets or account sessions in this guide or Git.
