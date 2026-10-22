@@ -1,6 +1,6 @@
 # Bubblecast development
 
-Read DEVELOPMENT.md for setup and current architecture. This folder is the repository root.
+Read DEVELOPMENT.md for setup and current architecture. This folder is the repository root. Read docs/HANDOFF.md for the current state, next tasks and lessons from recent work, and keep it up to date.
 
 ## Authoritative repository
 
@@ -16,3 +16,5 @@ The user has directed that all work from now on happens in https://github.com/al
 - Keep the dock's independent poll pane separate from chat filters and preserve existing iframe sessions when opening or resizing it.
 - This project targets Windows for streaming (OBS runs on Windows). macOS is supported for development only: the server, UI, tests and background helper run there, but every change must keep the Windows paths working. The Windows CI workflow must pass on each PR.
 - Browser sources are transparent; platform logos must remain transparent. Komika Axis is the default overlay font (users may choose any installed font); keep the established bubble style for overlays.
+- No hosted server or paid infrastructure, ever. Everything runs on the streamer's computer. Anything done as the streamer's account uses official APIs only (Twitch, YouTube, and Kick for sending and viewers), each on the streamer's own app keys in `.local/app-keys.json`. The one agreed exception is Kick polls, which have no API and run in the signed-in Kick page. Platforms without an official API (TikTok, Kick chat and events) are read anonymously, read-only and at a natural pace.
+- Follow alerts come from the streamer's chat bots (for example StreamElements). Don't build native follow capture.
