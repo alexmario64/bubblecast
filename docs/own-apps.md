@@ -2,11 +2,17 @@
 
 Bubblecast is free and open source, and it runs entirely on your computer. There is no Bubblecast server in the middle. To sign in to YouTube and Kick through their official APIs, each streamer registers their own free app with Google and with Kick, and then pastes its keys into Bubblecast.
 
-This is what keeps Bubblecast free for everyone. YouTube gives each Google app 10,000 API units a day. If every streamer shared one app, a handful of busy streams would use it up for everybody. With your own app, the quota is only yours.
+YouTube has a default quota of 10,000 API units a day per Google Cloud project. If every streamer shared one project, their combined usage would consume the same allowance. With your own project, the quota is only yours.
+
+A Google OAuth client identifies an app; the YouTube quota belongs to its Google Cloud project. A shared project would pool every streamer's usage. Each streamer should create their own project and Desktop app client, rather than reuse Bubblecast's developer credentials. This isolates quota; it does not remove the quota limit.
+
+Kick apps are not inherently restricted to their creator: Kick's [OAuth user authorization flow](https://github.com/KickEngineering/KickDevDocs/blob/main/getting-started/generating-tokens-oauth2-flow.md) lets a user approve an application's access. Bubblecast nevertheless requires each streamer to create their own Kick app and keep its secret locally. We do not distribute the developer's secret or operate a hosted token service. This is Bubblecast's deployment choice, not a claim that Kick apps can only serve one account. Twitch's existing connection needs no app registration by the streamer.
 
 Each setup takes about 10 minutes and only has to be done once. Twitch and TikTok need nothing here.
 
 Your keys are saved only on your computer, in `.local/app-keys.json`. Bubblecast sends them only to Google or Kick, when you sign in. Never share your client secret or post it online.
+
+These steps also work on macOS for development. Start the local server with `pnpm start`, or use the background helper, before connecting. Windows is the streaming/OBS target. Enter keys separately on each computer; do not copy account sessions or personal configuration between machines.
 
 ## YouTube
 
@@ -34,10 +40,14 @@ You need a Google account. It doesn't have to be the one that owns your YouTube 
 
 ### 4. Create the client
 
-1. Open **APIs & Services → Credentials** (or **Google Auth Platform → Clients**).
+1. Open [Google Cloud Credentials](https://console.cloud.google.com/apis/credentials) (or **Google Auth Platform → Clients**) with your project selected.
 2. Click **Create credentials → OAuth client ID**.
 3. Choose **Desktop app** as the application type, give it a name and click **Create**.
 4. Copy the **Client ID** (it ends in `.apps.googleusercontent.com`) and the **Client secret**.
+
+### Replacing an existing secret
+
+If you already have a Desktop app client, you can keep its client ID. Use that client's secret-management controls to replace a compromised secret and retire the exposed one, then save the new secret in Bubblecast. Creating a new OAuth client gives you a new client ID as well. Do not create another project merely to work around an exhausted quota.
 
 ### 5. Connect in Bubblecast
 
@@ -51,8 +61,8 @@ You need a Kick account. Use the account you stream with, so Bubblecast sends ch
 
 ### 1. Create the Kick app
 
-1. Sign in at [kick.com](https://kick.com), open **Settings → Developer** and create a new app.
-2. Give it a name (for example `Bubblecast`). A description and icon are optional.
+1. Sign in with your streaming account, open [Settings → Developer](https://kick.com/settings/developer) and create a new app. Kick's [app setup guide](https://github.com/KickEngineering/KickDevDocs/blob/main/getting-started/kick-apps-setup.md) requires two-factor authentication to access developer tools.
+2. Set **Application Name** to `Bubblecast`. The creation form asks for **App Description**; use, for example: `Local streaming companion for sending chat and displaying channel status and viewer counts.`
 3. Set the **Redirect URL** to exactly:
 
    ```
@@ -62,9 +72,9 @@ You need a Kick account. Use the account you stream with, so Bubblecast sends ch
 4. Turn on these permissions (scopes):
    - **Read user information** (`user:read`)
    - **Read channel information** (`channel:read`)
-   - **Write to chat** (`chat:write`)
+   - **Write to Chat feed** (`chat:write`)
 
-   Leave webhooks off. Bubblecast doesn't use them.
+   **Read user information** may already be checked. Leave **Enable webhooks** off and leave other permissions unchecked for the current release.
 5. Save the app, then copy its **Client ID** and **Client secret**.
 
 ### 2. Connect in Bubblecast
@@ -86,6 +96,31 @@ Studio and the dock put account connections first. TikTok keeps its handle field
 The fields are optional overrides for reading another channel or a specific YouTube stream. Existing saved channel values keep priority; clear them and save connections to switch to your connected account's default. Automatic channel names are not saved as overrides, so switching accounts changes the default. Disconnect all keeps sources disabled until you save connections again.
 
 Twitch and Kick can read a manually selected channel without API sign-in. YouTube requires its API connection even for reading chat. Sending uses the connected account; an override changes the destination, not who sends. Polls and owner-only actions still require the appropriate channel permissions. Kick's poll page shares the persistent session used by Connect Kick. TikTok setup is unchanged and still needs a handle.
+
+### Future Kick features and permissions
+
+The roadmap includes changing titles/channel settings, subscriptions and gifts, channel-point reward management, and moderation. These are requested future features, not capabilities enabled by saving the keys. Current Bubblecast requests only `user:read`, `channel:read` and `chat:write` during Connect Kick.
+
+The developer form also offers these permissions for that future work:
+
+| Future feature | Developer-form permission |
+| --- | --- |
+| Titles and channel settings | Update channel information |
+| Official chat, follow, subscription and gift events | Subscribe to events (read chat feed, follows, subscribes, gifts) |
+| Reward information | Read Channel points rewards information on a channel |
+| Reward management | Read, add, edit and delete Channel points rewards on a channel |
+| Moderator management | Execute moderation actions for moderators |
+| Chat moderation | Execute moderation actions on chat messages |
+
+Broader permissions were discussed while the owner prepared their app. Other streamers only need the three current permissions above. Selecting additional permissions in Kick does not make Bubblecast request or use them; future implementation will require the corresponding OAuth scopes and another authorization step.
+
+Keep **Read stream key** unchecked: it could support a future feature that configures OBS's streaming connection, but it is unnecessary for chat, titles, viewers, events, rewards or moderation. The key grants sensitive broadcasting access. Ads and KICKs-information permissions are not needed for current setup either.
+
+Kick's [official event delivery uses webhooks](https://github.com/KickEngineering/KickDevDocs/blob/main/events/introduction.md). The current local-only app has no public webhook receiver. Keep webhooks off; selecting event permissions does not solve delivery. Current chat/event capture stays as documented in DEVELOPMENT.md. Native follow capture would also require changing the current bot-based follow policy. Future work must preserve the no-hosted-server requirement.
+
+## Verify the connection
+
+After saving keys, click **Connect YouTube** or **Connect Kick** and complete authorization. Pasting keys alone is not a successful connection. Check the connected account name in Studio. For Kick, confirm the configured channel's live/offline state and, when live, its viewer count; allow about two minutes for a regular refresh. Sending should be checked once with a real message the streamer intends to post. If the result is unknown, inspect chat before any further action; never automatically retry it. Report the exact error text without secrets, tokens or callback URLs containing authorization codes.
 
 ## Troubleshooting
 

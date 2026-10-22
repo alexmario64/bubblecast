@@ -2,14 +2,14 @@
 
 For any coding agent (Codex, Claude) or person picking up this repo. Read `AGENTS.md` (the rules) and `DEVELOPMENT.md` (the architecture) first. This file covers the current state, the next tasks, and lessons from recent work. Update it when those change.
 
-State as of 2026-10-22: release 1.23.0 merged in #22. Open PR #24 prepares helper 1.24.0 with automatic account channels, connections-first layout and a single shared-session Kick connection flow. After its merge, return to main and pull; restart the updated helper and refresh Studio, the dock and affected OBS sources. The owner is developing on macOS; Windows deployment remains unconfirmed.
+State as of 2026-10-22: release 1.23.0 merged in #22, and the streamer app setup guide merged in #23. Open PR #24 prepares helper 1.24.0 with automatic account channels, a connections-first layout and a single shared-session Kick connection flow. After its merge, return to main and pull; restart the updated helper and refresh Studio, the dock and affected OBS sources. The owner is developing on macOS; Windows deployment (1.23.0 or 1.24.0) remains unconfirmed. The owner reports pasting the Kick client ID and secret on macOS; successful authorization, viewers and sending are still unverified.
 
 ## Open PRs and checkout at handoff
 
-- [#23 — Document streamer app setup and future Kick permissions](https://github.com/alexmario64/bubblecast/pull/23), branch `docs/streamer-app-setup`: Google project quota isolation, secret replacement, the observed Kick app form, current permissions versus future features, and local credential setup. Open and pushed; Windows CI passed.
+- [#23 — Document streamer app setup and future Kick permissions](https://github.com/alexmario64/bubblecast/pull/23): merged. Google project quota isolation, secret replacement, the observed Kick app form, current permissions versus future features, and local credential setup.
 - [#24 — Connect own channels automatically and unify Kick sign-in](https://github.com/alexmario64/bubblecast/pull/24), branch `feature/own-channel-connections`: the implementation and UI changes below, including helper **1.24.0**. Open and pushed; latest functional commit `d370efe` passed Windows CI. Latest local full suite: **337 passed, 0 failed**. Connection screenshots were reviewed using offline fixtures, including the final text/button alignment. The final documentation-only handoff commit will trigger fresh CI; check the latest PR checks before merging.
 - The active checkout is `feature/own-channel-connections`. At the wrap-up audit, the working tree was clean, all local branches had upstreams, and none was ahead of its upstream. `cleanup/youtube-api-only` is behind its upstream by two commits; it has no unpushed work. Only this checkout exists as a Git worktree.
-- Both PRs target `main` independently and both edit setup/handoff documentation. Preserve the information from both when resolving any merge conflicts. The owner merges; no merge was performed here. After a merge, return to `main` and `git pull --ff-only` before beginning another branch.
+- #24 was updated with `main` after #23 merged; the handoff conflict was resolved keeping both PRs' content. The owner merges; no merge was performed here. After a merge, return to `main` and `git pull --ff-only` before beginning another branch.
 - The owner requested wrap-up only, no new task. The only final change is this handoff update. Implementation is committed; real platform validation is pending, not completed by the fixtures.
 
 ## How work is done here
@@ -86,3 +86,10 @@ Lessons from this session:
 ## What was about to happen next
 
 The next functional step was an owner-approved real-session check of the new Kick connection flow after restarting helper 1.24.0, followed by the outstanding Kick identity/viewer/send/poll checks. That check was not started. PR review/owner merges and any documentation conflict resolution remain pending. After those, the existing prioritized backlog above still applies: Windows installer, overlay Spanish, then carefully scoped cleanups. Do not begin those as part of this wrap-up; the owner asked to hand the repo back and stop.
+
+## Setup guide and future Kick scope
+
+- `docs/own-apps.md` records the developer form, required description, exact callback, current scopes, local credential setup, secret replacement and connection checks. Each streamer creates their own Google project/client (quota is per project) and Kick app. Kick OAuth supports user authorization; using individual apps is our local deployment choice, not a platform restriction to the creator.
+- The owner wants future Kick parity: title/channel updates, subscription/gift events, reward management and moderation. The guide separates these future permissions from the three scopes currently requested. No runtime scope changes have been made. Stream-key access is unnecessary unless OBS streaming configuration becomes a feature.
+- Event delivery still needs a solution compatible with no hosted server. Native follows remain outside the current bot-based policy. Do not treat these proposed features as implemented or live-verified.
+- The old Google secret replacement and Google connection remain unconfirmed. Never save actual keys, secrets or account sessions in this guide or Git.
