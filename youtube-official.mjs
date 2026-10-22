@@ -4,9 +4,7 @@
 import {randomBytes,createHash} from 'node:crypto';
 import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import {dirname} from 'node:path';
-// A Google "Desktop app" client. Google treats installed-app secrets as not confidential.
-export const YOUTUBE_CLIENT_ID='342478247598-7kgcd51fiav8fml8tuoseqq4c32mejlf.apps.googleusercontent.com';
-export const YOUTUBE_CLIENT_SECRET='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';
+// Each streamer uses their own Google "Desktop app" client (see docs/own-apps.md), so the quota is theirs.
 export const YOUTUBE_SCOPE='https://www.googleapis.com/auth/youtube.force-ssl';
 export const youtubeRedirectUri='http://127.0.0.1:3927/oauth/youtube/callback';
 const API='https://www.googleapis.com/youtube/v3/',TOKEN='https://oauth2.googleapis.com/token';
@@ -14,20 +12,21 @@ const reasons={quotaExceeded:'The YouTube API daily quota is used up. It resets 
 export const sourceKeys=['youtube','youtubeShorts'];
 
 export class YouTubeOfficial{
- constructor({file,clientId=YOUTUBE_CLIENT_ID,clientSecret=YOUTUBE_CLIENT_SECRET,request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{},onMessage=()=>{}}){
+ constructor({file,clientId='',clientSecret='',request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{},onMessage=()=>{}}){
   Object.assign(this,{file,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth,onMessage});
   this.auth=null;this.pending=null;this.videos={};this.chats={};this.viewers={};this.polls={};this.error=null;this.timers={};this.generation=0;this.streams={};
  }
- get configured(){return !!this.clientId;}
+ setApp(app={}){const clientId=String(app.clientId||''),changed=clientId!==this.clientId;Object.assign(this,{clientId,clientSecret:String(app.clientSecret||'')});return changed;}
+ get configured(){return !!(this.clientId&&this.clientSecret);}
  get connected(){return !!this.auth?.refresh_token;}
- async load(){try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}}
+ async load(){try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}if(this.auth&&this.auth.client_id!==this.clientId)this.auth=null;}
  async save(){await mkdir(dirname(this.file),{recursive:true});await writeFile(this.file,JSON.stringify(this.auth),{mode:0o600});}
  timer(name,fn,ms){this.cancel(this.timers[name]);this.timers[name]=this.schedule(()=>{this.timers[name]=null;return fn();},ms);}
  status(){return {configured:this.configured,connected:this.connected,channel:this.auth?.channel||null,ready:this.connected,error:this.error,chats:Object.fromEntries(sourceKeys.map(k=>[k,{video:this.videos[k]||'',live:!!this.chats[k]}]))};}
 
  // ---- Sign-in: Google opens in the default browser and returns to this local server. ----
  startSignIn(){
-  if(!this.configured)throw Error('This build of Bubblecast has no Google client configured.');
+  if(!this.configured)throw Error('Add your Google app’s client ID and secret first. See the setup guide.');
   const verifier=randomBytes(48).toString('base64url'),state=randomBytes(32).toString('base64url');this.pending={state,verifier,until:this.now()+600000};this.error=null;
   return {url:'https://accounts.google.com/o/oauth2/v2/auth?'+new URLSearchParams({client_id:this.clientId,redirect_uri:youtubeRedirectUri,response_type:'code',scope:YOUTUBE_SCOPE,state,code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',access_type:'offline',prompt:'consent select_account'})};
  }
@@ -40,7 +39,7 @@ export class YouTubeOfficial{
   if(!ok)throw Error('Google sign-in did not finish. Try Connect YouTube again.');
   if(!String(body.scope||'').split(' ').includes(YOUTUBE_SCOPE))throw Error('YouTube access was not granted. Allow it when Google asks.');
   if(!body.refresh_token)throw Error('Google did not grant lasting access. Remove Bubblecast at myaccount.google.com/permissions and connect again.');
-  this.auth={access_token:body.access_token,refresh_token:body.refresh_token,expires_at:this.now()+body.expires_in*1000};
+  this.auth={client_id:this.clientId,access_token:body.access_token,refresh_token:body.refresh_token,expires_at:this.now()+body.expires_in*1000};
   try{const me=(await this.api('channels',{query:{part:'snippet',mine:'true'}})).items?.[0];this.auth.channel=me?{id:me.id,title:me.snippet.title}:null;}catch{}
   await this.save();this.refreshChats();this.onAuth();
  }
