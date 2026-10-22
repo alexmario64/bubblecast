@@ -75,11 +75,13 @@ You need a Kick account. Use the account you stream with, so Bubblecast sends ch
 
 Once connected, Bubblecast sends your Kick messages and reads your Kick viewer count through the API. Kick chat is still read from Kick's public chat, as before.
 
-Kick has no API for polls. To run Kick polls from Bubblecast, also click **Sign in for polls** in the Kick card and sign in to Kick in the window that opens.
+As checked on 2026-10-22, Kick's [official API index](https://github.com/KickEngineering/KickDevDocs/blob/main/SUMMARY.md) and [scope list](https://github.com/KickEngineering/KickDevDocs/blob/main/scopes/scopes.md) document no public poll endpoint or poll permission. The API connection cannot replace the separate poll page session. To run Kick polls from Bubblecast, also click **Sign in for polls** in the Kick card and sign in to Kick in the window that opens.
 
 ## Your channel is automatic after connecting
 
 Connect Twitch, YouTube or Kick with your streaming account. Leave Twitch and Kick channel fields blank to use the connected account's own channel. Leave both YouTube links blank to discover up to two active streams automatically. No second channel entry is required. Kick resolves the channel from the authenticated user ID rather than guessing from a display name.
+
+Studio and the dock put account connections first. TikTok keeps its handle field in the main setup; Twitch, YouTube and Kick fields are grouped below under **Optional channel overrides**.
 
 The fields are optional overrides for reading another channel or a specific YouTube stream. Existing saved channel values keep priority; clear them and save connections to switch to your connected account's default. Automatic channel names are not saved as overrides, so switching accounts changes the default. Disconnect all keeps sources disabled until you save connections again.
 

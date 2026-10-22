@@ -64,16 +64,13 @@
  <header class="page-header"><div><h1>Connections</h1><p>Connect your accounts to use your own channels automatically. Enter a channel or stream link only to override the default.</p></div></header>
  <div class="connection-grid">
   <article class="card platform-card" data-platform="twitch"><div class="platform-head"><img src="/logos/twitch.png" alt=""><h2>Twitch</h2><span class="pill" id="twitchStatus">Not connected</span></div>
-   <label class="field">Channel<input id="twitchChannel" placeholder="Your connected channel (optional override)" spellcheck="false"></label>
    <div class="account-line"><span id="account-twitch">Read-only chat</span><button type="button" class="button" id="twitchConnect">Connect Twitch</button></div>
    <div class="device-code" id="twitchCode" hidden><p>In Chrome, Edge, Safari or on your phone, go to <b>twitch.tv/activate</b> and enter this code:</p><strong id="twitchUserCode"></strong><a class="button primary" id="twitchActivate" target="_blank" rel="noopener">Open twitch.tv/activate</a><small>Waiting for you to approve Bubblecast on Twitch…</small></div>
    <details class="inline-advanced"><summary>Channel emotes</summary><label class="field">Twitch numeric user ID<input name="twitchId" inputmode="numeric" placeholder="Optional · loads your BetterTTV emotes"></label></details>
   </article>
   <article class="card platform-card" data-platform="youtube"><div class="platform-head"><img src="/logos/youtube.png" alt=""><h2>YouTube</h2><span class="pill" id="youtubeStatus">Not connected</span></div>
-   <p class="hint">Leave both links empty and Bubblecast finds your live streams on its own once YouTube is connected.</p>
-   <label class="field">Live stream <span class="optional">Optional</span><input id="youtubeVideo" placeholder="Found automatically" spellcheck="false"></label>
-   <label class="field">Shorts live stream <span class="optional">Optional · separate chat</span><input id="youtubeShortsVideo" placeholder="Found automatically" spellcheck="false"></label>
    <div class="account-line"><span id="account-youtube">Not connected</span><button type="button" class="button" id="youtubeConnect">Connect YouTube</button></div>
+   <p class="hint">Leave both links empty and Bubblecast finds your live streams on its own once YouTube is connected.</p>
    <details class="inline-advanced app-keys" data-app="youtube"><summary>Your Google app</summary><p class="hint">YouTube uses your own Google app, so the daily quota is yours. <a href="https://github.com/alexmario64/bubblecast/blob/main/docs/own-apps.md#youtube" target="_blank" rel="noopener">Setup guide</a></p><label class="field">Client ID<input name="clientId" placeholder="….apps.googleusercontent.com" spellcheck="false" autocomplete="off"></label><label class="field">Client secret<input name="clientSecret" type="password" placeholder="Paste the client secret" spellcheck="false" autocomplete="off"></label><button type="button" class="button" data-save-app="youtube">Save Google app</button></details>
   </article>
   <article class="card platform-card" data-platform="tiktok"><div class="platform-head"><img src="/logos/tiktok.svg" alt=""><h2>TikTok LIVE</h2><span class="pill" id="tiktokStatus">Not connected</span></div>
@@ -81,12 +78,17 @@
    <div class="account-line"><span id="account-tiktok">Read-only chat</span><button type="button" class="button" data-setup-signin="tiktok">Sign in</button></div>
   </article>
   <article class="card platform-card" data-platform="kick"><div class="platform-head"><img src="/logos/kick.svg" alt=""><h2>Kick</h2><span class="pill" id="kickStatus">Not connected</span></div>
-   <label class="field">Channel<input id="kickChannel" placeholder="Your connected channel (optional override)" spellcheck="false"></label>
    <div class="account-line"><span id="account-kick-api">Not connected</span><button type="button" class="button" id="kickConnect">Connect Kick</button></div>
    <div class="account-line"><span id="account-kick">Read-only chat</span><button type="button" class="button" data-setup-signin="kick">Sign in for polls</button></div>
    <details class="inline-advanced app-keys" data-app="kick"><summary>Your Kick app</summary><p class="hint">Kick uses your own Kick app. Set its redirect URL to <code>http://localhost:3927/oauth/kick/callback</code>. <a href="https://github.com/alexmario64/bubblecast/blob/main/docs/own-apps.md#kick" target="_blank" rel="noopener">Setup guide</a></p><label class="field">Client ID<input name="clientId" placeholder="Client ID" spellcheck="false" autocomplete="off"></label><label class="field">Client secret<input name="clientSecret" type="password" placeholder="Paste the client secret" spellcheck="false" autocomplete="off"></label><button type="button" class="button" data-save-app="kick">Save Kick app</button></details>
   </article>
  </div>
+ <details class="card connection-overrides"><summary>Optional channel overrides</summary><div class="connection-grid">
+  <label class="field">Twitch<input id="twitchChannel" placeholder="Your connected channel (optional override)" spellcheck="false"></label>
+  <label class="field">YouTube Live <span class="optional">Optional</span><input id="youtubeVideo" placeholder="Found automatically" spellcheck="false"></label>
+  <label class="field">YouTube Shorts Live <span class="optional">Optional · separate chat</span><input id="youtubeShortsVideo" placeholder="Found automatically" spellcheck="false"></label>
+  <label class="field">Kick<input id="kickChannel" placeholder="Your connected channel (optional override)" spellcheck="false"></label>
+ </div></details>
  <div class="action-bar"><p id="sourceFeedback" class="action-note"></p><button type="button" id="stopSources" class="button subtle">Disconnect all</button><button type="button" id="saveConnections" class="button primary">Save connections</button></div>
 </section>
 

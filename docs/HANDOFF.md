@@ -64,3 +64,7 @@ Lessons from this session:
 - Blank Twitch/Kick channel fields now use the connected account's own channel; explicit saved fields remain overrides. Kick looks up its authenticated user ID through the official channels API and remembers the returned slug locally. YouTube's existing live-stream discovery also works before any source form has been saved.
 - Runtime defaults stay separate from editable/saved fields, and disconnect-all remains respected. Studio/dock help and Spanish entries describe API sign-in, optional overrides and Kick's separate poll page sign-in. Dock account links remain available when the helper is offline.
 - This branch is based on main independently of open documentation PR #23. The additional setup notes in #23 still need the owner's merge. Neither PR proves live Kick compatibility; owner verification is still needed. No helper version bump is needed because desktop files are unchanged.
+
+- Connection layout follow-up: Studio and the dock show account sign-ins first, keep the TikTok handle in the main setup, and group Twitch/YouTube/Kick fields below in a collapsed **Optional channel overrides** section. Included in PR #24.
+
+- Owner requested one Kick sign-in for polls too. Checked the current official GitHub API index, scope list and changelog on 2026-10-22: no documented public poll endpoint or scope. The signed-in page poll exception remains; do not substitute private endpoints or imply OAuth alone enables polls.

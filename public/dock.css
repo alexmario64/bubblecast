@@ -359,3 +359,7 @@ body[data-theme=midnight] #autoscroll[aria-pressed=false],body[data-theme=midnig
 .event-line span{color:var(--text);font-weight:550}
 .event-row .body:empty{display:none}
 .account-link{padding:5px 10px;border-radius:999px;background:var(--surface-2);font-size:12px;font-weight:550}.account-link:hover{background:var(--accent-soft)}
+
+.connection-overrides{padding:12px 0;border-top:1px solid var(--line)}.connection-overrides summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--text-2)}
+
+.kick-account{flex-wrap:wrap}.kick-account>span{flex-basis:100%}

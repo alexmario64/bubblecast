@@ -3,6 +3,7 @@
 // pages add later. Brand names, URLs, chat messages and platform error details stay as they are.
 (()=>{
 const es={
+ 'Optional channel overrides':'Otros canales (opcional)',
  'Connect your accounts to use your own channels automatically. Enter a channel or stream link only to override the default.':'Conecta tus cuentas para usar tus canales automáticamente. Escribe un canal o enlace de stream solo para elegir otro.',
  'Your connected channel (optional override)':'Tu canal conectado (opcional: otro canal)',
  'Connect your accounts. Channel overrides are optional.':'Conecta tus cuentas. Elegir otros canales es opcional.',
