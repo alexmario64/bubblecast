@@ -73,3 +73,5 @@ Lessons from this session:
 - This is one guided connection entry point, not a new poll API. Fixture tests do not prove Kick's real SSO reuse or acceptance of OAuth in Electron. No live session was opened during implementation. If Kick prompts for credentials twice or rejects embedded authorization, capture the error and reassess before claiming one credential entry is achieved.
 
 - Product copy stays focused on connecting accounts and choosing another channel. API, OAuth and session-partition details belong in developer docs rather than the dock connection sheet.
+
+- Kick account status uses Connected as / Not connected plus poll readiness; it never falls back to Read-only chat, including before Studio finishes loading or when the API is disconnected.
