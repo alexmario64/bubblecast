@@ -96,6 +96,10 @@
   <div class="theme-picker wide"><label class="theme-option"><input type="radio" name="uiTheme" value="rose"><span class="swatch rose"></span><span>Rose &amp; peach</span></label><label class="theme-option"><input type="radio" name="uiTheme" value="red"><span class="swatch red"></span><span>Red &amp; white</span></label><label class="theme-option"><input type="radio" name="uiTheme" value="midnight"><span class="swatch midnight"></span><span>Midnight</span></label><label class="theme-option"><input type="radio" name="uiTheme" value="white"><span class="swatch white"></span><span>White</span></label></div>
   <p class="footnote">Used by Studio, and by the chat dock unless you give it its own theme.</p>
  </fieldset>
+ <fieldset class="group wide"><legend>Language</legend>
+  <div class="theme-picker wide"><label class="theme-option"><input type="radio" name="language" value="en"><span>English</span></label><label class="theme-option"><input type="radio" name="language" value="es"><span>Español</span></label></div>
+  <p class="footnote">Used by Studio and the chat dock.</p>
+ </fieldset>
  <fieldset class="group wide"><legend>Chat dock theme</legend>
   <div class="theme-picker wide"><label class="theme-option"><input type="radio" name="dockTheme" value="app"><span class="swatch match"></span><span>Match the app</span></label><label class="theme-option"><input type="radio" name="dockTheme" value="rose"><span class="swatch rose"></span><span>Rose &amp; peach</span></label><label class="theme-option"><input type="radio" name="dockTheme" value="red"><span class="swatch red"></span><span>Red &amp; white</span></label><label class="theme-option"><input type="radio" name="dockTheme" value="midnight"><span class="swatch midnight"></span><span>Midnight</span></label><label class="theme-option"><input type="radio" name="dockTheme" value="white"><span class="swatch white"></span><span>White</span></label></div>
   <p class="footnote">A darker dock can blend better with OBS. You can also change this from the dock's Connections sheet.</p>
@@ -245,5 +249,5 @@
 </div>
 <form id="previewOnly" hidden></form>
 <div class="toasts" id="toasts" aria-live="polite"></div>
-<script type="module" src="/app.js"></script>
+<script src="/i18n.js"></script><script type="module" src="/app.js"></script>
 </body></html>

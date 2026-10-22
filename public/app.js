@@ -17,7 +17,7 @@ function route(){const page=pages.includes(location.hash.slice(1))?location.hash
 window.addEventListener('hashchange',route);
 
 // Settings: every change previews instantly and saves shortly after.
-function fill(s){state=s;for(const el of form.elements){if(!el.name||!(el.name in s))continue;const v=s[el.name];if(el.type==='checkbox')el.checked=v===true;else if(el.type==='radio')el.checked=el.value===String(v);else el.value=Array.isArray(v)?v.join('\n'):v;}applyTheme(s.uiTheme);outputs();renderBots();renderEvents();syncPollColors();}
+function fill(s){state=s;for(const el of form.elements){if(!el.name||!(el.name in s))continue;const v=s[el.name];if(el.type==='checkbox')el.checked=v===true;else if(el.type==='radio')el.checked=el.value===String(v);else el.value=Array.isArray(v)?v.join('\n'):v;}applyTheme(s.uiTheme);window.bubblecastI18n?.setLanguage(s.language);outputs();renderBots();renderEvents();syncPollColors();}
 function collect(){const data={...state};for(const el of form.elements){if(!el.name)continue;if(el.type==='checkbox')data[el.name]=el.checked;else if(el.type==='radio'){if(el.checked)data[el.name]=el.value;}else if(el.type==='range'||el.type==='number')data[el.name]=Number(el.value);else data[el.name]=el.value;}return data;}
 function applyTheme(theme){document.body.dataset.theme=['red','midnight','white'].includes(theme)?theme:'rose';}
 function outputs(){for(const out of $$('output[data-for]'))out.textContent=form.elements[out.dataset.for].value+(out.dataset.unit||'');for(const range of $$('input[type=range]'))range.style.setProperty('--fill',(range.value-range.min)/(range.max-range.min)*100+'%');const resolution=collect().resolution||'2160',size={'2160':'3840 × 2160','1440':'2560 × 1440','1080':'1920 × 1080'}[resolution];$('#canvasSize').textContent={'2160':'4K · 50%','1440':'1440p · 75%','1080':'1080p · 100%'}[resolution];$('#obsSizeHint').textContent=size+' · transparent';fontStatus();}
@@ -27,7 +27,7 @@ for(const box of $$('[data-events]'))box.addEventListener('change',()=>{const sh
 function syncPollColors(){const custom=collect().pollColors==='custom',box=$('#pollCustomColors');box.classList.toggle('collapsed',!custom);for(const input of box.querySelectorAll('input'))input.disabled=!custom;}
 function preview(data){for(const frame of [$('#preview'),$('#pollPreview')])try{frame.contentWindow?.postMessage({type:'bubblecast-preview-settings',settings:data},location.origin);}catch{}}
 function saveState(text,type=''){for(const el of $$('.save-state')){el.textContent=text;el.dataset.state=type;}}
-function changed(){if(!loaded)return;const draft=collect();applyTheme(draft.uiTheme);outputs();syncPollColors();preview(draft);saveState('Editing…');clearTimeout(saveTimer);saveTimer=setTimeout(save,450);}
+function changed(){if(!loaded)return;const draft=collect();applyTheme(draft.uiTheme);window.bubblecastI18n?.setLanguage(draft.language);outputs();syncPollColors();preview(draft);saveState('Editing…');clearTimeout(saveTimer);saveTimer=setTimeout(save,450);}
 async function save(){clearTimeout(saveTimer);try{saveState('Saving…');state=await api('settings',collect());saveState('Saved','ok');store.set('bubblecast-styled','1');steps();}catch(e){saveState('Not saved','error');toast('Settings were not saved: '+e.message,'error');}}
 form.addEventListener('input',e=>{if(e.target.name)changed();});form.addEventListener('change',e=>{if(e.target.name==='filterBots')renderBots();if(e.target.name&&e.target.type!=='text')changed();});
 form.onsubmit=e=>{e.preventDefault();if(location.hash==='#connections')saveSources().catch(sourceError);};
@@ -109,7 +109,7 @@ for(const button of document.querySelectorAll('[data-save-app]'))button.onclick=
 loadApps();
 $('#twitchConnect').onclick=async()=>{const button=$('#twitchConnect');button.disabled=true;try{if(button.dataset.state==='connected'||button.dataset.state==='pending'){await api('twitch/disconnect',{});toast('Twitch disconnected.','success');}else{const pending=await api('twitch/connect',{});$('#twitchUserCode').textContent=pending.userCode;$('#twitchActivate').href=pending.verificationUri;$('#twitchCode').hidden=false;window.open(pending.verificationUri,'_blank','noopener');}await status();}catch(e){toast(e.message,'error');}finally{button.disabled=false;}};
 async function status(){try{const j=await(await fetch('/api/status')).json();lastStatus=j;paintViewers(j);
- if(!loaded){fill(j.settings);loaded=true;}else if((j.settings.uiTheme||'rose')!==(state.uiTheme||'rose')&&!saveTimer){state.uiTheme=j.settings.uiTheme;fill({...collect(),uiTheme:j.settings.uiTheme});}
+ if(!loaded){fill(j.settings);loaded=true;}else if(((j.settings.uiTheme||'rose')!==(state.uiTheme||'rose')||(j.settings.language||'en')!==(state.language||'en'))&&!saveTimer){state.uiTheme=j.settings.uiTheme;state.language=j.settings.language;fill({...collect(),uiTheme:j.settings.uiTheme,language:j.settings.language||'en'});}
  const online=!!j.collector?.active;$('#studioStatus').textContent=online?'Background app connected':'Background app offline';$('#helperChip').dataset.state=online?'online':'offline';$('#helperBanner').hidden=online;
  paintPlatforms(j);
  if(!sourceFieldsLoaded){if(j.sources?.configured)for(const id of sourceIds)$('#'+id).value=j.sources[id]||'';sourceFieldsLoaded=true;}
