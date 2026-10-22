@@ -52,3 +52,10 @@ test('Connect Twitch starts official sign-in and shows the activation code',asyn
  await doc.querySelector('#twitchConnect').onclick();
  assert.ok(calls.some(([url])=>url==='/api/twitch/connect'));assert.equal(doc.querySelector('#twitchCode').hidden,false);assert.equal(doc.querySelector('#twitchUserCode').textContent,'ABCD1234');assert.match(doc.querySelector('#twitchActivate').href,/twitch\.tv\/activate/);
 });
+test('your own app keys are saved per platform and the secret is never shown back',async t=>{
+ const {doc,calls}=await studio(t);const box=doc.querySelector('[data-app="kick"]');
+ box.querySelector('[name=clientId]').value='01KICKAPP';box.querySelector('[name=clientSecret]').value='kick-secret';box.querySelector('[data-save-app]').click();await wait(20);
+ const sent=calls.find(([url,o])=>url==='/api/apps'&&o?.method==='POST');assert.deepEqual(JSON.parse(sent[1].body),{platform:'kick',clientId:'01KICKAPP',clientSecret:'kick-secret'});
+ assert.equal(box.querySelector('[name=clientSecret]').value,'','the secret field is cleared after saving');
+ assert.equal(doc.querySelector('#kickConnect').disabled,true,'Connect Kick waits for a Kick app');assert.match(doc.querySelector('#account-kick-api').textContent,/Add your Kick app/);
+});
