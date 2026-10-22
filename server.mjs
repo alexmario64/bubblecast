@@ -52,7 +52,7 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/status')return json({bridge,traffic,settings:state,sources,sourceStatus,renderTiming,twitch:twitch.status(),youtube:youtube.status(),collector:{...collector,active:collectorActive(),viewers:{...collector.viewers,...youtube.viewers,...(twitch.viewers?{twitch:twitch.viewers}:{})}}});
  if(u.pathname==='/api/collector/commands'&&req.method==='GET'){if(req.headers['x-bubblecast-token']!==token)return json({error:'Pair the capture app.'},401);const deliver=()=>{const commands=collectorCommands.map(c=>c.action==='send'?{action:'send',job:forHelper(outbox.claim(c.id))}:c.action==='create-poll'?{action:'create-poll',job:forHelper(pollJobs.claim(c.id))}:c.action==='end-poll'?{action:'end-poll',job:forHelper(pollEndJobs.claim(c.id))}:c).filter(c=>!['send','create-poll','end-poll'].includes(c.action)||c.job);collectorCommands=[];json({commands});};if(collectorCommands.length||u.searchParams.get('wait')!=='1'){deliver();return;}if(collectorWaiter)return json({error:'Collector already listening'},409);const done=()=>{if(collectorWaiter!==done)return;collectorWaiter=null;clearTimeout(timer);deliver();};const timer=setTimeout(done,25000);collectorWaiter=done;res.on('close',()=>{if(collectorWaiter===done){collectorWaiter=null;clearTimeout(timer);}});return;}
  if(u.pathname==='/api/chat/history'&&req.method==='GET')return json({messages:dockHistory.snapshot(state)});
- if(u.pathname==='/api/sources'&&req.method==='GET')return json({...sources,urls:{...sources.urls,twitch:''},captureMode:collectorActive()?'desktop':'chrome'});
+ if(u.pathname==='/api/sources'&&req.method==='GET')return json({...sources,urls:{...sources.urls,twitch:'',...(youtube.connected?{youtube:'',youtubeShorts:''}:{})},captureMode:collectorActive()?'desktop':'chrome'});
  if(u.pathname==='/api/pair'&&req.method==='GET')return json({token});
  if(u.pathname==='/api/emotes')return json(await emotes());
  if(req.method==='POST'){
@@ -101,9 +101,9 @@ setInterval(()=>{const removed=polls.prune();for(const poll of removed)emit('pol
 setInterval(()=>{for(const r of clients)r.write(': keepalive\n\n');},20000).unref();
 // Twitch runs here. Chat, subs and raids always come from Twitch's official chat connection (the only
 // source with GIFs); signing in adds badges, reward titles, text-free redemptions, polls, sending and viewers.
-function ingestTwitch(data){bridge.twitch=Date.now();if(data.action==='delete'){emit('delete',{platform:'twitch',sourceKey:'twitch',id:String(data.id||'').slice(0,200),userId:String(data.userId||'').slice(0,100)});return;}if(data.action==='clear'){emit('clear',{});return;}traffic.twitch.received++;traffic.twitch.lastMessageAt=Date.now();const event=relay.ingest(data,state);if(event){emit(event.type,event.message);if(event.type==='message')traffic.twitch.displayed++;}}
-const twitch=new TwitchOfficial({file:join(root,'.local','twitch-auth.json'),onMessage:ingestTwitch,onAuth:()=>configureTwitch(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
-const twitchChat=new TwitchLive({onMessage:ingestTwitch,reward:id=>twitch.rewards.get(id),badgeImages:(tag,info)=>twitch.badgeList(tag,info)});
+function ingestOfficial(data){const platform=data.platform;bridge[platform]=Date.now();if(data.action==='delete'){emit('delete',{platform,sourceKey:data.sourceKey||platform,id:String(data.id||'').slice(0,200),userId:String(data.userId||'').slice(0,100)});return;}if(data.action==='clear'){emit('clear',{});return;}traffic[platform].received++;traffic[platform].lastMessageAt=Date.now();const event=relay.ingest(data,state);if(event){emit(event.type,event.message);if(event.type==='message')traffic[platform].displayed++;}}
+const twitch=new TwitchOfficial({file:join(root,'.local','twitch-auth.json'),onMessage:ingestOfficial,onAuth:()=>configureTwitch(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
+const twitchChat=new TwitchLive({onMessage:ingestOfficial,reward:id=>twitch.rewards.get(id),badgeImages:(tag,info)=>twitch.badgeList(tag,info)});
 function configureTwitch(){const channel=sources.enabled&&sources.urls.twitch?sources.twitchChannel:'';twitch.configure(twitch.connected?channel:'');twitchChat.configure(channel);}
 // Opens Google sign-in in the default browser, so docks inside OBS can connect too (Google blocks embedded sign-in).
 function openBrowser(url){if(!/^https:\/\/accounts\.google\.com\//.test(url))return;const [cmd,args]=process.platform==='win32'?['rundll32',['url.dll,FileProtocolHandler',url]]:process.platform==='darwin'?['open',[url]]:['xdg-open',[url]];try{spawn(cmd,args,{detached:true,stdio:'ignore',windowsHide:true}).on('error',()=>{}).unref();}catch{}}
@@ -111,7 +111,7 @@ const officialTargets=new Set(['twitch',...youtubeKeys]);
 function helperTargets(data){return (Array.isArray(data.targets)?data.targets:[]).some(k=>!officialTargets.has(k));}
 function forHelper(job){return job&&{...job,urls:Object.fromEntries(Object.entries(job.urls).filter(([k])=>!officialTargets.has(k)))};}
 // YouTube: official API for sending, polls and viewers; the helper reads chat from the page signed out.
-const youtube=new YouTubeOfficial({file:join(root,'.local','youtube-auth.json'),onAuth:()=>configureYouTube(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
+const youtube=new YouTubeOfficial({file:join(root,'.local','youtube-auth.json'),onMessage:ingestOfficial,onAuth:()=>configureYouTube(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
 function configureYouTube(){youtube.configure(sources.enabled?{youtube:sources.urls.youtube?sources.youtubeVideo:'',youtubeShorts:sources.urls.youtubeShorts?sources.youtubeShortsVideo:''}:{});}
 await twitch.load();configureTwitch();await youtube.load();configureYouTube();
 server.listen(3927,'127.0.0.1',()=>console.log('Bubblecast ready: http://127.0.0.1:3927 • OBS: http://127.0.0.1:3927/overlay'));

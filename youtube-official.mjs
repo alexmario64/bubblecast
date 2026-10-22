@@ -1,6 +1,6 @@
 // Official YouTube connection: Google sign-in for desktop apps (loopback + PKCE) and the YouTube Data API.
-// Used only for actions as the streamer (sending chat, polls) and viewer counts. Chat itself is read by the
-// helper from YouTube's live chat page while signed out, which keeps custom emojis and uses no API quota.
+// Reads chat through YouTube's official live chat stream and sends chat, runs polls and reads viewer counts.
+// Channel custom emojis arrive as :name: text. Without a connection, the helper reads the chat page signed out.
 import {randomBytes,createHash} from 'node:crypto';
 import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import {dirname} from 'node:path';
@@ -14,9 +14,9 @@ const reasons={quotaExceeded:'The YouTube API daily quota is used up. It resets 
 export const sourceKeys=['youtube','youtubeShorts'];
 
 export class YouTubeOfficial{
- constructor({file,clientId=YOUTUBE_CLIENT_ID,clientSecret=YOUTUBE_CLIENT_SECRET,request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{}}){
-  Object.assign(this,{file,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth});
-  this.auth=null;this.pending=null;this.videos={};this.chats={};this.viewers={};this.polls={};this.error=null;this.timers={};this.generation=0;
+ constructor({file,clientId=YOUTUBE_CLIENT_ID,clientSecret=YOUTUBE_CLIENT_SECRET,request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{},onMessage=()=>{}}){
+  Object.assign(this,{file,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth,onMessage});
+  this.auth=null;this.pending=null;this.videos={};this.chats={};this.viewers={};this.polls={};this.error=null;this.timers={};this.generation=0;this.streams={};
  }
  get configured(){return !!this.clientId;}
  get connected(){return !!this.auth?.refresh_token;}
@@ -49,7 +49,7 @@ export class YouTubeOfficial{
   if(this.auth.expires_at-this.now()<60000){const {ok,body}=await this.token({grant_type:'refresh_token',refresh_token:this.auth.refresh_token});if(!ok){await this.forget('YouTube sign-in ended. Connect YouTube again.');throw Error(this.error);}Object.assign(this.auth,{access_token:body.access_token,expires_at:this.now()+body.expires_in*1000});await this.save();}
   return this.auth.access_token;
  }
- async forget(error=null){this.auth=null;this.pending=null;this.error=error;this.chats={};this.viewers={};for(const name of Object.keys(this.timers))this.cancel(this.timers[name]);await rm(this.file,{force:true});this.onAuth();}
+ async forget(error=null){this.stopStreams();this.auth=null;this.pending=null;this.error=error;this.chats={};this.viewers={};for(const name of Object.keys(this.timers))this.cancel(this.timers[name]);await rm(this.file,{force:true});this.onAuth();}
  async disconnect(){const token=this.auth?.refresh_token;await this.forget();if(token)try{await this.request('https://oauth2.googleapis.com/revoke',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({token}),signal:AbortSignal.timeout(10000)});}catch{}}
  async api(resource,{method='GET',query={},body}={}){
   const token=await this.access();
@@ -60,15 +60,39 @@ export class YouTubeOfficial{
  }
 
  // ---- Live chats and viewers: one videos.list call (1 unit) per stream about every 90-110 s. ----
- configure(videos){const next=Object.fromEntries(sourceKeys.map(k=>[k,String(videos?.[k]||'')]).filter(([,v])=>/^[\w-]{11}$/.test(v)));if(JSON.stringify(next)===JSON.stringify(this.videos))return;this.videos=next;this.chats={};this.viewers={};this.refreshChats();}
+ configure(videos){const next=Object.fromEntries(sourceKeys.map(k=>[k,String(videos?.[k]||'')]).filter(([,v])=>/^[\w-]{11}$/.test(v)));if(JSON.stringify(next)===JSON.stringify(this.videos))return;this.videos=next;this.stopStreams();this.chats={};this.viewers={};this.refreshChats();}
  refreshChats(){const generation=++this.generation;this.cancel(this.timers.chats);if(this.connected&&Object.keys(this.videos).length)this.timer('chats',()=>this.pollChats(generation),1000);}
  async pollChats(generation){
   if(generation!==this.generation||!this.connected)return;
   try{const ids=Object.values(this.videos);const items=(await this.api('videos',{query:{part:'liveStreamingDetails',id:ids.join(',')}})).items||[];
-   for(const [key,video] of Object.entries(this.videos)){const d=items.find(i=>i.id===video)?.liveStreamingDetails;const live=!!d?.activeLiveChatId&&!d.actualEndTime;this.chats[key]=live?d.activeLiveChatId:null;this.viewers[key]={live,viewers:live&&d.concurrentViewers!=null?Number(d.concurrentViewers):null,updatedAt:this.now(),error:null};}
+   for(const [key,video] of Object.entries(this.videos)){const d=items.find(i=>i.id===video)?.liveStreamingDetails;const live=!!d?.activeLiveChatId&&!d.actualEndTime;this.chats[key]=live?d.activeLiveChatId:null;this.readChat(key);this.viewers[key]={live,viewers:live&&d.concurrentViewers!=null?Number(d.concurrentViewers):null,updatedAt:this.now(),error:null};}
    this.error=null;
   }catch(error){this.error=String(error.message||error);}
   this.timer('chats',()=>this.pollChats(generation),90000+this.random()*20000);
+ }
+ // ---- Reading chat: YouTube's official server-streaming endpoint (5 units per connection, not per message). ----
+ stopStreams(){for(const key of Object.keys(this.streams))this.stopStream(key);}
+ stopStream(key){const stream=this.streams[key];if(!stream)return;stream.stopped=true;stream.abort.abort();this.cancel(this.timers['stream-'+key]);delete this.streams[key];}
+ readChat(key){const chat=this.chats[key],current=this.streams[key];if(current?.chat===chat)return;this.stopStream(key);if(!chat||!this.connected)return;this.streams[key]={chat,token:'',since:this.now(),failures:0,abort:new AbortController()};this.openStream(key);}
+ async openStream(key){
+  const stream=this.streams[key];if(!stream||stream.stopped)return;
+  try{
+   const token=await this.access();const r=await this.request(API+'liveChat/messages/stream?'+new URLSearchParams({liveChatId:stream.chat,part:'id,snippet,authorDetails',...(stream.token?{pageToken:stream.token}:{})}),{headers:{Authorization:'Bearer '+token},signal:stream.abort.signal});
+   if(!r.ok){let json={};try{json=await r.json();}catch{}const reason=json.error?.errors?.[0]?.reason;const error=Error(reasons[reason]||json.error?.message||'YouTube chat returned HTTP '+r.status);error.reason=reason;throw error;}
+   const parser=new JsonObjects();for await(const chunk of r.body){for(const page of parser.push(chunk)){if(stream.stopped)return;stream.failures=0;this.accept(key,stream,page);}}
+   if(stream.stopped)return;this.timer('stream-'+key,()=>this.openStream(key),1000+this.random()*1000);
+  }catch(error){
+   if(stream.stopped)return;this.error=String(error.message||error);
+   if(['liveChatEnded','liveChatDisabled','liveChatNotFound','forbidden','quotaExceeded','insufficientPermissions'].includes(error.reason)){if(error.reason!=='quotaExceeded')this.chats[key]=null;delete this.streams[key];return;}
+   if(error.reason==='pageTokenInvalid')stream.token='';stream.failures++;this.timer('stream-'+key,()=>this.openStream(key),Math.min(60000,2000*2**Math.min(stream.failures,5))+this.random()*1000);
+  }
+ }
+ accept(key,stream,page){
+  // The first connection replays recent history; only messages posted after Bubblecast started reading are shown.
+  if(page.nextPageToken)stream.token=page.nextPageToken;
+  for(const item of page.items||[]){if(Date.parse(item.snippet?.publishedAt||0)<stream.since-2000)continue;const message=chatMessage(item,key);if(message)this.onMessage(message);const p=item.snippet?.pollDetails&&youtubePoll(item,key);if(p)this.onPoll(p);}
+  if(page.activePollItem){const p=youtubePoll(page.activePollItem,key);if(p)this.onPoll(p);}
+  if(page.offlineAt){this.chats[key]=null;this.stopStream(key);}
  }
  chatFor(key){const chat=this.chats[key];if(!chat)throw Error(this.videos[key]?'This YouTube stream is not live, or its chat is off.':'Add this YouTube stream in Connections.');return chat;}
 
@@ -92,4 +116,40 @@ export class YouTubeOfficial{
   try{await this.api('liveChat/messages/transition',{method:'POST',query:{id,status:'closed',part:'snippet'}});delete this.polls[key];return {status:'submitted',detail:'Poll ended'};}
   catch(error){return {status:error.reason?'failed':'unknown',detail:String(error.message||error)+(error.reason?'':' Check the chat before trying again.')};}
  }
+}
+
+// Splits a streamed JSON response (an array or a run of objects) into complete top-level objects.
+export class JsonObjects{
+ constructor(){this.buffer='';this.decoder=new TextDecoder();}
+ push(chunk){
+  this.buffer+=typeof chunk==='string'?chunk:this.decoder.decode(chunk,{stream:true});const out=[];let depth=0,start=-1,quoted=false,escaped=false,consumed=0;
+  for(let i=0;i<this.buffer.length;i++){const c=this.buffer[i];
+   if(quoted){if(escaped)escaped=false;else if(c==='\\')escaped=true;else if(c==='"')quoted=false;continue;}
+   if(c==='"'){quoted=true;continue;}
+   if(c==='{'){if(depth++===0)start=i;}else if(c==='}'&&depth>0&&--depth===0){try{out.push(JSON.parse(this.buffer.slice(start,i+1)));}catch{}consumed=i+1;}
+  }
+  this.buffer=depth?this.buffer.slice(start>=consumed?start:consumed):'';return out;
+ }
+}
+const text=value=>[{type:'text',text:String(value||'')}];
+// Maps a liveChatMessage resource to Bubblecast's chat message model.
+export function chatMessage(item,sourceKey='youtube'){
+ const s=item?.snippet||{},a=item?.authorDetails||{},type=s.type;
+ if(type==='messageDeletedEvent')return {platform:'youtube',sourceKey,action:'delete',id:s.messageDeletedDetails?.deletedMessageId||''};
+ if(type==='userBannedEvent')return {platform:'youtube',sourceKey,action:'delete',id:'',userId:s.userBannedDetails?.bannedUserDetails?.channelId||''};
+ const base={id:item.id,sourceId:item.id,platform:'youtube',sourceKey,user:a.displayName||'YouTube viewer',userId:a.channelId||s.authorChannelId||'',parts:[],badges:[],sourceTime:Date.parse(s.publishedAt)||Date.now()};
+ if(!item?.id)return null;
+ if(type==='textMessageEvent')return {...base,parts:text(s.textMessageDetails?.messageText??s.displayMessage)};
+ if(type==='superChatEvent')return {...base,parts:s.superChatDetails?.userComment?text(s.superChatDetails.userComment):[],event:{kind:'superchat',title:s.superChatDetails?.amountDisplayString||'Super Chat'}};
+ if(type==='superStickerEvent')return {...base,event:{kind:'superchat',title:s.superStickerDetails?.amountDisplayString||'Super Sticker'}};
+ if(type==='newSponsorEvent')return {...base,event:{kind:'membership',title:s.newSponsorDetails?.isUpgrade?'Upgraded membership':'New member'+(s.newSponsorDetails?.memberLevelName?' · '+s.newSponsorDetails.memberLevelName:'')}};
+ if(type==='memberMilestoneChatEvent'){const d=s.memberMilestoneChatDetails||{};return {...base,parts:d.userComment?text(d.userComment):[],event:{kind:'membership',title:'Member for '+(d.memberMonth||1)+(d.memberMonth===1?' month':' months')}};}
+ if(type==='membershipGiftingEvent'){const n=s.membershipGiftingDetails?.giftMembershipsCount||1;return {...base,event:{kind:'giftmembership',title:'Gifted '+n+(n===1?' membership':' memberships')}};}
+ return null;
+}
+// Maps a poll message to the shared poll model; YouTube reports per-option tallies while the poll runs.
+export function youtubePoll(item,sourceKey='youtube'){
+ const d=item?.snippet?.pollDetails,m=d?.metadata;if(!item?.id||!m?.questionText||!Array.isArray(m.options))return null;
+ const votes=m.options.map(o=>o.tally==null?null:Number(o.tally)),total=votes.every(Number.isFinite)?votes.reduce((a,b)=>a+b,0):null;
+ return {platform:'youtube',sourceKey,id:item.id,question:m.questionText,status:d.status==='closed'?'closed':'active',choices:m.options.map((o,i)=>({id:String(i),text:o.optionText,votes:votes[i],percent:total?votes[i]/total*100:null}))};
 }
