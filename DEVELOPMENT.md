@@ -54,6 +54,8 @@ Never point automated browsers or scripts at live platform sites (Twitch, YouTub
 
 ## Behavior reference
 
+**Language**: Studio and the dock are written in English; `public/i18n.js` translates them to Spanish when `language` is `es` (Studio → Appearance, or the dock's Connections sheet; one shared setting). It swaps visible text, placeholders, tooltips and accessible labels by exact match, by pattern for built-up text ("Connected as …"), and piece by piece for text joined with " · ", and keeps watching for text the pages add later. Chat rows, names, poll questions, URLs and platform error details are left as written. New UI text needs a Spanish entry; `test/browser/i18n.test.mjs` fails on any untranslated visible text in `index.html` or `dock.html`.
+
 **Studio** (`/`): sidebar pages addressed by hash (`/#polls`): Overview (setup checklist, live viewers, channels, quick actions), Connections, Appearance, Chat overlay, Poll overlay, Chat dock and OBS setup. Appearance and overlay changes preview instantly and save automatically; connections save explicitly because saving reloads sources. Confirmations are brief toasts; failures stay until dismissed, and a banner appears only while the background app is offline.
 
 **Themes and brand**: interface themes are rose, red, midnight and white. All colors, including status colors, come from `public/theme.css`, shared by Studio and the dock. `uiTheme` is the app theme; `dockTheme` is `app` (match) or its own theme. The logo is the bubble trio (`public/logo-glyph.svg`) on a theme tile (`--logo-tile`); `public/favicon.svg` and `logos/tray*.png`, `logos/icon-256.png` are the full icon for tabs and the helper.
