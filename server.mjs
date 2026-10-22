@@ -9,6 +9,7 @@ import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {join,extname} from 'node:path';
 import {randomBytes} from 'node:crypto';
+import {spawn} from 'node:child_process';
 import {settings,normalize} from './core.mjs';
 import {setupObs} from './obs.mjs';
 import {MessageRelay} from './relay.mjs';
@@ -59,7 +60,7 @@ const server=http.createServer(async(req,res)=>{
  let body='';for await(const c of req){body+=c;if(body.length>100000){json({error:'Too large'},413);req.destroy();return;}}
  const data=JSON.parse(body||'{}');
  if(u.pathname==='/api/twitch/connect')return json(await twitch.startSignIn());
- if(u.pathname==='/api/youtube/connect')return json(youtube.startSignIn());
+ if(u.pathname==='/api/youtube/connect'){const sign=youtube.startSignIn();if(data.browser)openBrowser(sign.url);return json(sign);}
  if(u.pathname==='/api/youtube/disconnect'){await youtube.disconnect();return json({ok:true});}
  if(u.pathname==='/api/twitch/disconnect'){await twitch.disconnect();return json({ok:true});}
  if(u.pathname==='/api/polls/create'){if(origin?.startsWith('chrome-extension://'))return json({error:'Use the dock poll composer.'},403);const helperNeeded=helperTargets(data);if(helperNeeded&&(!collectorActive()||!collector.pollCreation))return json({error:'Restart the updated background helper before creating polls.'},409);if(collectorCommands.length>=64)return json({error:'Capture command queue is busy.'},429);const {job,fresh}=pollJobs.enqueue(data,sources.enabled?sources.urls:{},polls.snapshot());if(fresh){if(job.urls.twitch)pollJobs.result(job.id,'twitch',await twitch.createPoll(job.spec));for(const key of youtubeKeys)if(job.urls[key])pollJobs.result(job.id,key,await youtube.createPoll(key,job.spec));if(helperNeeded)queueCollector({action:'create-poll',id:job.id});}return json(pollJobs.public(job));}
@@ -104,6 +105,8 @@ function ingestTwitch(data){bridge.twitch=Date.now();if(data.action==='delete'){
 const twitch=new TwitchOfficial({file:join(root,'.local','twitch-auth.json'),onMessage:ingestTwitch,onAuth:()=>configureTwitch(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
 const twitchChat=new TwitchLive({onMessage:ingestTwitch,reward:id=>twitch.rewards.get(id),badgeImages:(tag,info)=>twitch.badgeList(tag,info)});
 function configureTwitch(){const channel=sources.enabled&&sources.urls.twitch?sources.twitchChannel:'';twitch.configure(twitch.connected?channel:'');twitchChat.configure(channel);}
+// Opens Google sign-in in the default browser, so docks inside OBS can connect too (Google blocks embedded sign-in).
+function openBrowser(url){if(!/^https:\/\/accounts\.google\.com\//.test(url))return;const [cmd,args]=process.platform==='win32'?['rundll32',['url.dll,FileProtocolHandler',url]]:process.platform==='darwin'?['open',[url]]:['xdg-open',[url]];try{spawn(cmd,args,{detached:true,stdio:'ignore',windowsHide:true}).on('error',()=>{}).unref();}catch{}}
 const officialTargets=new Set(['twitch',...youtubeKeys]);
 function helperTargets(data){return (Array.isArray(data.targets)?data.targets:[]).some(k=>!officialTargets.has(k));}
 function forHelper(job){return job&&{...job,urls:Object.fromEntries(Object.entries(job.urls).filter(([k])=>!officialTargets.has(k)))};}
