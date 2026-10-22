@@ -57,5 +57,16 @@ test('your own app keys are saved per platform and the secret is never shown bac
  box.querySelector('[name=clientId]').value='01KICKAPP';box.querySelector('[name=clientSecret]').value='kick-secret';box.querySelector('[data-save-app]').click();await wait(20);
  const sent=calls.find(([url,o])=>url==='/api/apps'&&o?.method==='POST');assert.deepEqual(JSON.parse(sent[1].body),{platform:'kick',clientId:'01KICKAPP',clientSecret:'kick-secret'});
  assert.equal(box.querySelector('[name=clientSecret]').value,'','the secret field is cleared after saving');
- assert.equal(doc.querySelector('#kickConnect').disabled,true,'Connect Kick waits for a Kick app');assert.match(doc.querySelector('#account-kick-api').textContent,/Add your Kick app/);
+ assert.equal(doc.querySelector('#kickConnect').disabled,true,'Connect Kick waits for a Kick app');assert.match(doc.querySelector('#account-kick-api').textContent,/Add your Kick app/);assert.equal(doc.querySelector('#account-kick').textContent,'Connect Kick for chat and polls.');
+});
+
+test('Studio keeps automatic channels out of manual fields and saves blank overrides',async t=>{
+ const prior=status.sources;status.sources={configured:true,enabled:true,twitchChannel:'owner',kickChannel:'kick-owner',entered:{twitchChannel:'',kickChannel:''},urls:{twitch:'t',kick:'k'}};
+ t.after(()=>{status.sources=prior;});const {doc,w,calls}=await studio(t,'#connections');await wait(20);
+ assert.equal(doc.querySelector('#twitchChannel').value,'');assert.equal(doc.querySelector('#kickChannel').value,'');
+ doc.querySelector('#saveConnections').click();await wait(20);const call=calls.find(([url,o])=>url==='/api/sources'&&o?.method==='POST');assert.ok(call);const body=JSON.parse(call[1].body);assert.equal(body.twitchChannel,'');assert.equal(body.kickChannel,'');
+});
+test('Connect Kick queues one helper flow without opening a separate browser or poll login',async t=>{
+ const prior=status.kick;status.kick={configured:true,connected:false};t.after(()=>{status.kick=prior;});const {doc,w,calls}=await studio(t,'#connections');await wait(20);let opened=0;w.open=()=>{opened++;};
+ await doc.querySelector('#kickConnect').onclick();assert.equal(calls.filter(([url])=>url==='/api/kick/connect').length,1);assert.equal(opened,0);assert.equal(doc.querySelector('[data-setup-signin="kick"]'),null);assert.equal(doc.querySelector('#kickDisconnect').hidden,true);
 });

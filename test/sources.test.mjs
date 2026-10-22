@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {sourceConfig} from '../source-config.mjs';
+import {sourceConfig,withAccountChannels} from '../source-config.mjs';
 const script=fs.readFileSync(new URL('../extension/sources.js',import.meta.url),'utf8');
 function fixture(){
  const data={},tabs=new Map([[99,{id:99}]]),calls=[];let id=100;
@@ -21,3 +21,12 @@ test('Save refreshes an old bridge tab once after an extension update',async()=>
 test('two YouTube broadcasts have independent source tabs, labels and disconnects',async()=>{const f=fixture(),s=sourceConfig({youtubeVideo:'https://youtu.be/abcdefghijk',youtubeShortsVideo:'https://youtube.com/live/lmnopqrstuv'});assert.equal(s.youtubeShortsVideo,'lmnopqrstuv');assert.match(s.urls.youtubeShorts,/v=lmnopqrstuv/);await f.manager.configure(s);const primary=f.data.managedTabs.youtube.id,shorts=f.data.managedTabs.youtubeShorts.id;assert.equal(await f.manager.sourceKey('youtube',primary),'youtube');assert.equal(await f.manager.sourceKey('youtube',shorts),'youtubeShorts');assert.equal(await f.manager.accepts('twitch',shorts),false);await f.manager.configure(sourceConfig({...s,youtubeVideo:''}));assert.equal(f.tabs.has(primary),false);assert.equal(f.tabs.has(shorts),true);});
 test('saving the same YouTube video twice captures it once and invalid second links are rejected',()=>{const s=sourceConfig({youtubeVideo:'abcdefghijk',youtubeShortsVideo:'abcdefghijk'});assert.equal(s.urls.youtubeShorts,'');assert.equal(sourceConfig({...s,enabled:false}).youtubeShortsVideo,'abcdefghijk');assert.throws(()=>sourceConfig({youtubeShortsVideo:'https://evil.test/watch?v=abcdefghijk'}));});
 test('desktop capture mode closes owned Chrome sources without opening new tabs',async()=>{const f=fixture(),s=sourceConfig({twitchChannel:'alex',youtubeVideo:'abcdefghijk',youtubeShortsVideo:'lmnopqrstuv'});await f.manager.configure(s);await f.manager.configure({...s,captureMode:'desktop'});assert.equal(f.calls.filter(c=>c[0]==='create').length,3);assert.equal(f.tabs.size,1);assert.equal(f.tabs.has(99),true);});
+
+test('connected account defaults follow sign-in and sign-out without becoming saved channel overrides',()=>{
+ const saved=sourceConfig({}),accounts={twitch:'owner',kick:'kick-owner'},resolved=withAccountChannels(saved,accounts);
+ assert.equal(resolved.twitchChannel,'owner');assert.equal(resolved.kickChannel,'kick-owner');assert.match(resolved.urls.twitch,/popout\/owner/);assert.equal(resolved.urls.kick,'https://kick.com/kick-owner');
+ assert.equal(resolved.entered.twitchChannel,'');assert.equal(resolved.entered.kickChannel,'');assert.equal(saved.twitchChannel,'');
+ assert.equal(withAccountChannels(saved,{twitch:'next_owner'}).twitchChannel,'next_owner');assert.equal(withAccountChannels(saved,{}).urls.twitch,'');
+ const manual=withAccountChannels(sourceConfig({twitchChannel:'another',kickChannel:'other'}),accounts);assert.equal(manual.twitchChannel,'another');assert.equal(manual.kickChannel,'other');
+ const stopped=withAccountChannels(sourceConfig({enabled:false}),accounts);assert.equal(stopped.urls.twitch,'');assert.equal(stopped.urls.kick,'');assert.equal(stopped.enabled,false);
+});

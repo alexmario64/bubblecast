@@ -86,6 +86,7 @@ test('with no links entered, the channel’s own live streams are found and fill
 });
 test('found streams fill only empty YouTube links and leave other platforms alone',async()=>{
  const {sourceConfig,withFoundVideos}=await import('../source-config.mjs');const found=[{video:'aaaaaaaaaaa',title:'Main'},{video:'bbbbbbbbbbb',title:'Vertical'}];
+ assert.equal(withFoundVideos({...sourceConfig({}),configured:false},found).configured,true,'discovery works before the first connection-form save');
  const auto=withFoundVideos(sourceConfig({kickChannel:'truealex'}),found);assert.match(auto.urls.youtube,/v=aaaaaaaaaaa/);assert.match(auto.urls.youtubeShorts,/v=bbbbbbbbbbb/);assert.match(auto.urls.kick,/truealex/);assert.equal(auto.youtubeVideo,'','typed fields stay empty');
  const typed=withFoundVideos(sourceConfig({youtubeVideo:'ccccccccccc'}),found);assert.match(typed.urls.youtube,/v=ccccccccccc/);assert.equal(typed.urls.youtubeShorts,'');
  assert.equal(withFoundVideos(sourceConfig({enabled:false}),found).urls.youtube,'','disconnected sources stay off');

@@ -3,6 +3,28 @@
 // pages add later. Brand names, URLs, chat messages and platform error details stay as they are.
 (()=>{
 const es={
+ 'Troubleshooting':'Solución de problemas',
+ 'Reload Kick chat':'Recargar chat de Kick',
+ 'Reload TikTok chat':'Recargar chat de TikTok',
+ 'Connect your accounts to bring your chats together.':'Conecta tus cuentas para reunir tus chats.',
+ 'Only fill these in to watch a different channel.':'Completa estos campos solo para ver otro canal.',
+ 'Finish connecting Kick in the window that opens.':'Termina de conectar Kick en la ventana que se abre.',
+ 'Finish connecting Kick':'Terminar de conectar Kick',
+ 'Reconnect Kick':'Volver a conectar Kick',
+ 'Polls ready':'Encuestas listas',
+ 'Connect Kick for chat and polls.':'Conecta Kick para el chat y las encuestas.',
+ 'finish connecting':'termina de conectar',
+ 'Finish connecting Kick in the helper window. This connects chat and polls.':'Termina de conectar Kick en la ventana de la app. Esto conecta el chat y las encuestas.',
+ 'Connect Twitch, YouTube and Kick in Studio to use your own channels automatically. Twitch and Kick can read a manually selected channel without API sign-in. YouTube requires a connection to read chat. Connect Kick opens one helper flow for chat and polls.':'Conecta Twitch, YouTube y Kick en Studio para usar tus canales automáticamente. Twitch y Kick pueden leer un canal elegido manualmente sin conexión a la API. YouTube requiere una conexión para leer el chat. Conectar Kick abre un solo proceso en la app para el chat y las encuestas.',
+
+ 'Optional channel overrides':'Otros canales (opcional)',
+ 'Connect your accounts to use your own channels automatically. Enter a channel or stream link only to override the default.':'Conecta tus cuentas para usar tus canales automáticamente. Escribe un canal o enlace de stream solo para elegir otro.',
+ 'Your connected channel (optional override)':'Tu canal conectado (opcional: otro canal)',
+ 'Connect your accounts. Channel overrides are optional.':'Conecta tus cuentas. Elegir otros canales es opcional.',
+ 'Connections and poll sign-in':'Conexiones e inicio de sesión para encuestas',
+ 'Connect Twitch, YouTube and Kick in Studio to use your own channels automatically. Twitch and Kick can read a manually selected channel without API sign-in. YouTube requires a connection to read chat. Kick page sign-in is only for polls.':'Conecta Twitch, YouTube y Kick en Studio para usar tus canales automáticamente. Twitch y Kick pueden leer un canal elegido manualmente sin conexión a la API. YouTube requiere una conexión para leer el chat. El inicio de sesión en la página de Kick es solo para encuestas.',
+
+
  'Studio':'Estudio','Connecting':'Conectando','Connecting…':'Conectando…','Studio sections':'Secciones del estudio','Overview':'Resumen','Connections':'Conexiones','Appearance':'Apariencia','Overlays':'Overlays','Chat overlay':'Overlay del chat','Poll overlay':'Overlay de encuestas','Workspace':'Espacio de trabajo','Chat dock':'Dock del chat','OBS setup':'Configurar OBS','Platform status':'Estado de las plataformas','Channels':'Canales','Open chat dock':'Abrir dock del chat',
  'Background app is offline.':'La app en segundo plano está desconectada.','Chat capture, sending and polls are paused. Start Bubblecast Background (or reopen OBS) to resume.':'La lectura del chat, los envíos y las encuestas están en pausa. Abre Bubblecast Background (o vuelve a abrir OBS) para continuar.',
  'Your stream at a glance.':'Tu stream de un vistazo.','Get set up in three steps':'Configúralo en tres pasos','Connect your channels':'Conecta tus canales','Add your Twitch, YouTube, TikTok or Kick stream.':'Agrega tu stream de Twitch, YouTube, TikTok o Kick.','Connect':'Conectar','Add Bubblecast to OBS':'Agrega Bubblecast a OBS','Copy the overlay and dock URLs into OBS.':'Copia en OBS los enlaces del overlay y del dock.','Open OBS setup':'Abrir configuración de OBS','Make it yours':'Hazlo tuyo','Tune colors, motion and the poll card.':'Ajusta los colores, el movimiento y la tarjeta de encuestas.','Customize':'Personalizar',

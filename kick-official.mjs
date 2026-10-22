@@ -1,4 +1,4 @@
-// Official Kick connection: OAuth 2.1 with PKCE against the streamer's own Kick app, opened in the default browser
+// Official Kick connection: OAuth 2.1 with PKCE against the streamer's own Kick app, opened in the helper session
 // and returned to this local server. Used for account actions only: sending chat, live status and viewer count.
 // Kick delivers chat and events through webhooks, which need a public server, so chat keeps being read from
 // Kick's public chat connection in the helper. Kick polls have no API and stay in the signed-in Kick page.
@@ -12,7 +12,7 @@ const ID='https://id.kick.com/oauth/',API='https://api.kick.com/public/v1/';
 export class KickOfficial{
  constructor({file,request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onAuth=()=>{}}){
   Object.assign(this,{file,request,now,schedule,cancel,random,onAuth});
-  this.app={clientId:'',clientSecret:''};this.auth=null;this.pending=null;this.channel='';this.target=null;this.viewers=null;this.error=null;this.timer=null;this.generation=0;
+  this.app={clientId:'',clientSecret:''};this.auth=null;this.pending=null;this.channel='';this.enabled=true;this.target=null;this.viewers=null;this.error=null;this.timer=null;this.generation=0;
  }
  setApp(app={}){const next={clientId:String(app.clientId||''),clientSecret:String(app.clientSecret||'')};const changed=next.clientId!==this.app.clientId;this.app=next;return changed;}
  get configured(){return !!(this.app.clientId&&this.app.clientSecret);}
@@ -56,11 +56,14 @@ export class KickOfficial{
  }
 
  // ---- Channel, live status and viewers: one channels call about every 90-110 s. ----
- configure(channel){const next=String(channel||'').toLowerCase();if(next===this.channel)return;this.channel=next;this.target=null;this.viewers=null;this.refresh();}
- refresh(){const generation=++this.generation;this.cancel(this.timer);if(this.connected&&this.channel)this.timer=this.schedule(()=>this.poll(generation),1000);}
+ configure(channel,{enabled=true}={}){const next=String(channel||'').toLowerCase();if(next===this.channel&&enabled===this.enabled){if(this.connected&&enabled&&!this.timer)this.refresh();return;}this.enabled=enabled;this.channel=next;this.target=null;this.viewers=null;this.refresh();}
+ refresh(){const generation=++this.generation;this.cancel(this.timer);if(this.connected&&this.enabled)this.timer=this.schedule(()=>this.poll(generation),1000);}
  async poll(generation){
-  if(generation!==this.generation||!this.connected||!this.channel)return;
-  try{const c=(await this.api('channels',{query:{slug:this.channel}})).data?.[0];if(!c)throw Error('Kick channel '+this.channel+' was not found.');
+  if(generation!==this.generation||!this.connected||!this.enabled)return;
+  try{const own=!this.channel;if(own&&!this.auth.user?.id)throw Error('Kick did not identify your account. Enter a channel or reconnect Kick.');
+   const c=(await this.api('channels',{query:own?{broadcaster_user_id:this.auth.user.id}:{slug:this.channel}})).data?.[0];if(generation!==this.generation||!this.auth)return;if(!c)throw Error('Kick channel '+(this.channel||'for your account')+' was not found.');
+   if(own){if(!/^[a-z0-9][a-z0-9_-]{0,49}$/.test(c.slug||''))throw Error('Kick did not return your channel name. Enter a channel manually.');if(Number(c.broadcaster_user_id)!==Number(this.auth.user.id))throw Error('Kick returned a different account channel. Enter a channel manually.');this.auth.channel=c.slug;this.channel=c.slug;await this.save();this.onAuth();if(generation!==this.generation)return;}
+
    this.target=Number(c.broadcaster_user_id)||null;const live=c.stream?.is_live===true;this.viewers={live,viewers:live&&Number.isFinite(Number(c.stream?.viewer_count))?Number(c.stream.viewer_count):null,updatedAt:this.now(),error:null};this.error=null;
   }catch(error){this.error=String(error.message||error);if(error.status===401)return;}
   if(generation===this.generation)this.timer=this.schedule(()=>this.poll(generation),90000+Math.floor(this.random()*20000));

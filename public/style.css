@@ -232,3 +232,7 @@ body[data-theme=red] .page-actions .button.primary{background:#fff;color:var(--a
 .swatch.match{background:linear-gradient(135deg,#a173b1 0 25%,#d9404d 25% 50%,#1d1b26 50% 75%,#f4f5f8 75%);box-shadow:inset 0 0 0 1px #1d1d2614}
 .device-code{margin-top:12px;padding:14px;border-radius:12px;background:var(--accent-soft);display:flex;flex-direction:column;align-items:flex-start;gap:8px;animation:drop-in .3s var(--ease)}
 .device-code p{margin:0;font-size:12.5px;color:var(--text-2)}.device-code strong{font:700 26px/1.1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;color:var(--text)}.device-code small{font-size:11.5px;color:var(--text-3)}
+
+.connection-overrides{margin-top:18px;padding:16px 18px}.connection-overrides summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--text-2)}.connection-overrides .connection-grid{margin-top:4px}
+
+.kick-connection{flex-wrap:wrap}.kick-connection>span{flex-basis:100%}
