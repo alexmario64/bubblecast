@@ -7,12 +7,16 @@ import {dirname} from 'node:path';
 const shortcut=/^:[^:\s]+:$/;
 // Letters and digits only: standard emoji are unicode in the API but images on the page.
 const words=parts=>parts.map(p=>p.type==='text'?p.text.replace(/:[^:\s]+:/g,' '):'').join('').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
+// Standard emoji arrive from the API as characters; YouTube draws them as Noto images, so link the same image by code point.
+const graphemes=new Intl.Segmenter('en',{granularity:'grapheme'}),textOnly=new Set(['\u00a9','\u00ae','\u2122']);
+export function notoUrl(emoji){if(!/\p{Extended_Pictographic}/u.test(emoji)||textOnly.has(emoji.replace(/\ufe0f/g,'')))return '';return `https://fonts.gstatic.com/s/e/notoemoji/15.1/${[...emoji].map(c=>c.codePointAt(0)).filter(c=>c!==0xfe0f).map(c=>c.toString(16)).join('_')}/72.png`;}
+const notoParts=text=>{if(/^:[^:\s]+:$/.test(text)||!/\p{Extended_Pictographic}/u.test(text))return [text];const out=[];for(const {segment} of graphemes.segment(text)){const src=notoUrl(segment);if(src)out.push({type:'image',src,alt:segment,large:false});else if(typeof out.at(-1)==='string')out[out.length-1]+=segment;else out.push(segment);}return out;};
 export class YouTubeMerge{
  constructor({file,now=Date.now,schedule=setTimeout}={}){Object.assign(this,{file,now,schedule});this.emojis=new Map();this.badges=new Map();this.recent=[];this.pending=[];this.saving=null;}
  async load(){try{for(const [name,src] of Object.entries(JSON.parse(await readFile(this.file,'utf8'))))if(shortcut.test(name)&&typeof src==='string')this.emojis.set(name,src);}catch{}}
  save(){if(!this.file||this.saving)return;this.saving=this.schedule(async()=>{this.saving=null;try{await mkdir(dirname(this.file),{recursive:true});await writeFile(this.file,JSON.stringify(Object.fromEntries(this.emojis)));}catch{}},2000);}
  // Swaps :name: for emoji images already seen on the page.
- withEmojis(parts){const out=[];for(const p of parts)for(const piece of p.type==='text'?p.text.split(/(:[^:\s]+:)/).filter(Boolean):[p]){const part=typeof piece==='string'?(this.emojis.has(piece)?{type:'image',src:this.emojis.get(piece),alt:piece,large:false}:{type:'text',text:piece}):piece;const last=out.at(-1);if(part.type==='text'&&last?.type==='text')last.text+=part.text;else out.push(part);}return out;}
+ withEmojis(parts){const out=[];for(const p of parts)for(const piece of p.type==='text'?p.text.split(/(:[^:\s]+:)/).filter(Boolean).flatMap(notoParts):[p]){const part=typeof piece==='string'?(this.emojis.has(piece)?{type:'image',src:this.emojis.get(piece),alt:piece,large:false}:{type:'text',text:piece}):piece;const last=out.at(-1);if(part.type==='text'&&last?.type==='text')last.text+=part.text;else out.push(part);}return out;}
  learn(parts){let changed=false;for(const p of parts)if(p.type==='image'&&shortcut.test(p.alt||'')&&this.emojis.get(p.alt)!==p.src){this.emojis.set(p.alt,p.src);changed=true;}while(this.emojis.size>2000)this.emojis.delete(this.emojis.keys().next().value);if(changed)this.save();}
  prune(){const cutoff=this.now()-90000;this.recent=this.recent.filter(r=>r.at>=cutoff&&!r.matched);this.pending=this.pending.filter(p=>p.at>=this.now()-15000);}
  upgrade(entry,page){entry.matched=true;return {...entry.message,parts:page.parts?.length?page.parts:entry.message.parts,badges:page.badges||[],action:'update'};}

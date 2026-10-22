@@ -44,7 +44,7 @@ export function settings(input={}) {
 }
 // Match ordinary URLs, bare domains, email addresses, and common obfuscated links.
 export const links=/(?:https?:\/\/|www\.)[^\s<>]+|[\w.+-]+@[\w.-]+\.[a-z]{2,}|(?:[\p{L}\d-]+\s*(?:\.|\[\.\]|\(dot\))\s*)+(?:com|net|org|gg|tv|io|co|dev|app|xyz|live|me|be|edu|gov|uk|de|fr|jp|ru|info|link|ly|ai|us|ca|au|it|es|br|in|to|cc|biz|online|site|store|tech|social)(?:\/[^\s<>]*)?/giu;
-export function safeMedia(value){try{const u=new URL(value);return u.protocol==='https:'&&/^(?:[\w-]+\.)*(?:jtvnw\.net|twitchcdn\.net|twitch\.tv|kick\.com|kickcdn\.com|ytimg\.com|ggpht\.com|googleusercontent\.com|youtube\.com|tiktokcdn\.com|tiktokcdn-us\.com|tiktokcdn-eu\.com|betterttv\.net|7tv\.app|frankerfacez\.com|giphy\.com|tenor\.com)$/.test(u.hostname)?u.href:null;}catch{return null;}}
+export function safeMedia(value){try{const u=new URL(value);return u.protocol==='https:'&&/^(?:[\w-]+\.)*(?:jtvnw\.net|twitchcdn\.net|twitch\.tv|kick\.com|kickcdn\.com|ytimg\.com|ggpht\.com|googleusercontent\.com|gstatic\.com|youtube\.com|tiktokcdn\.com|tiktokcdn-us\.com|tiktokcdn-eu\.com|betterttv\.net|7tv\.app|frankerfacez\.com|giphy\.com|tenor\.com)$/.test(u.hostname)?u.href:null;}catch{return null;}}
 // Twitch hydrates Giphy's original GIF into an animated WebP shortly after
 // insertion. Both URLs refer to the same rendition; keep playback continuous.
 export function sameMediaSource(a,b){
