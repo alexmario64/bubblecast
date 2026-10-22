@@ -156,15 +156,11 @@ time{margin-left:auto;font-size:10.5px;font-variant-numeric:tabular-nums;color:v
 .account-row{display:flex;align-items:center;gap:7px;padding:10px 0;border-bottom:1px solid var(--line)}
 .account-row>span{flex:1;font-size:12px;color:var(--text-2);line-height:1.5}
 .account-row>span.connected{color:var(--good)}
-.account-row button,.source-tools button{padding:5px 10px;border-radius:999px;background:var(--surface-2);font-size:12px;font-weight:550}
-.account-row button:hover,.source-tools button:hover{background:var(--accent-soft);color:var(--accent)}
+.account-row button{padding:5px 10px;border-radius:999px;background:var(--surface-2);font-size:12px;font-weight:550}
+.account-row button:hover{background:var(--accent-soft);color:var(--accent)}
 .session-help{font-size:11.5px;line-height:1.6;color:var(--text-3);margin-top:10px}
 #captureMessage{font-size:11.5px;color:var(--bad);line-height:1.5}
 #captureMessage:empty{display:none}
-.source-tools{font-size:12px;color:var(--text-2);padding-top:12px;margin-top:12px;border-top:1px solid var(--line)}
-.source-tools summary{cursor:pointer}
-.source-tools>div{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.source-tools p{font-size:11.5px;line-height:1.6;color:var(--text-3)}
 .dock-link{margin-top:16px;font-size:11.5px;color:var(--text-3);display:flex;flex-direction:column;gap:3px}
 .dock-link code{font:11.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere;color:var(--text-2)}
 .dock-link a{margin-top:6px;font-weight:550}
