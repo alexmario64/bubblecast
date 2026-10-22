@@ -5,20 +5,6 @@ export async function viewerProbe(platform){
  const timeout=ms=>AbortSignal.timeout(ms);
  const count=value=>{const n=Number(String(value??'').replace(/[^\d]/g,''));return Number.isFinite(n)&&String(value??'').match(/\d/)?n:null;};
  try{
-  if(platform==='youtube'){
-   const videoId=new URLSearchParams(location.search).get('v'),cfg=window.ytcfg;
-   const key=cfg?.get?.('INNERTUBE_API_KEY'),context=cfg?.get?.('INNERTUBE_CONTEXT');
-   if(!videoId||!key||!context)return {live:null,error:'YouTube page is not ready.'};
-   const r=await fetch('/youtubei/v1/updated_metadata?prettyPrint=false&key='+encodeURIComponent(key),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({context,videoId}),signal:timeout(8000)});
-   const json=await r.json();
-   // Current format: a view count entity. Live streams carry "N watching now" text;
-   // ended videos carry a viewCountNumber with lifetime views instead.
-   const entity=(json?.frameworkUpdates?.entityBatchUpdate?.mutations||[]).map(m=>m.payload?.viewCountEntity).find(Boolean);
-   if(entity)return entity.viewCountNumber!=null?{live:false,viewers:null}:{live:true,viewers:count(entity.viewCount?.runs?.[0]?.text??entity.viewCount?.simpleText)};
-   const renderer=(json?.actions||[]).map(a=>a.updateViewershipAction?.viewCount?.videoViewCountRenderer).find(Boolean);
-   if(!renderer)return {live:false,viewers:null};
-   return {live:renderer.isLive!==false,viewers:count(renderer.originalViewCount)??count(renderer.viewCount?.runs?.[0]?.text??renderer.viewCount?.simpleText)};
-  }
   if(platform==='kick'){
    const slug=location.pathname.split('/').filter(Boolean)[0];
    const r=await fetch('/api/v2/channels/'+encodeURIComponent(slug),{headers:{Accept:'application/json'},signal:timeout(8000)});
