@@ -52,5 +52,5 @@ test('stream events render as labeled, highlighted bubbles and respect the enabl
  events.emit('message',{id:'red1',platform:'twitch',user:'Viewer',parts:[{type:'text',text:'drink water'}],event:{kind:'redemption',title:'Hydrate!',amount:300,color:'#00c7ac'}});
  events.emit('message',{id:'f1',platform:'twitch',user:'Viewer',parts:[],event:{kind:'follow',title:'Viewer followed'}});
  const bubbles=[...doc.querySelectorAll('.message.event')];assert.equal(bubbles.length,2,'follows are off by default');
- assert.equal(bubbles[0].querySelector('.event-tag').textContent,'New sub');assert.equal(bubbles[0].querySelector('.event-title').textContent,'Viewer subscribed at Tier 1.');
- assert.equal(bubbles[1].dataset.event,'redemption');assert.equal(bubbles[1].querySelector('.event-title').textContent,'Hydrate! · 300');assert.match(bubbles[1].querySelector('.body').textContent,/drink water/);assert.equal(bubbles[1].style.getPropertyValue('--event'),'#00c7ac');});
+ assert.equal(bubbles[0].querySelector('.event-chip').textContent,'New sub');assert.equal(bubbles[0].querySelector('.event-detail').textContent,'Viewer subscribed at Tier 1.');assert.equal(bubbles[0].querySelector('.pill .event-chip'),null,'the label sits in the bubble, not the name pill');
+ assert.equal(bubbles[1].dataset.event,'redemption');assert.equal(bubbles[1].querySelector('.event-detail').textContent,'Hydrate! · 300 points');assert.match(bubbles[1].querySelector('.body').textContent,/drink water/);assert.equal(bubbles[1].style.getPropertyValue('--event'),'#00c7ac');});

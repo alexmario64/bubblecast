@@ -5,12 +5,6 @@ export async function viewerProbe(platform){
  const timeout=ms=>AbortSignal.timeout(ms);
  const count=value=>{const n=Number(String(value??'').replace(/[^\d]/g,''));return Number.isFinite(n)&&String(value??'').match(/\d/)?n:null;};
  try{
-  if(platform==='twitch'){
-   const login=location.pathname.split('/').filter(Boolean)[location.pathname.startsWith('/popout/')?1:0];
-   const r=await fetch('https://gql.twitch.tv/gql',{method:'POST',headers:{'Client-Id':'kimne78kx3ncx6brgo4mv6wki5h1ko','Content-Type':'text/plain'},body:JSON.stringify({query:'query($login:String!){user(login:$login){stream{viewersCount}}}',variables:{login}}),signal:timeout(8000)});
-   const stream=(await r.json())?.data?.user?.stream;
-   return stream?{live:true,viewers:count(stream.viewersCount)}:{live:false,viewers:null};
-  }
   if(platform==='youtube'){
    const videoId=new URLSearchParams(location.search).get('v'),cfg=window.ytcfg;
    const key=cfg?.get?.('INNERTUBE_API_KEY'),context=cfg?.get?.('INNERTUBE_CONTEXT');

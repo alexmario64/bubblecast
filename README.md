@@ -22,7 +22,9 @@ Bubblecast targets Windows for streaming. See [DEVELOPMENT.md](DEVELOPMENT.md) f
 
 ## How it connects
 
-A background helper (Electron) keeps one window per platform with your own signed-in session and reads chat, polls, events and viewer counts from those pages, the same way you would see them in a browser. Twitch chat is also read anonymously over Twitch's chat connection. Nothing is posted unless you send a message or start a poll yourself, and an action whose result is unclear is never retried automatically.
+**Twitch** connects through Twitch's official API: click Connect Twitch in Studio and approve Bubblecast with a short code at twitch.tv/activate (in any normal browser or on your phone). Chat, subs, gifts, raids, redemptions, polls and viewer counts then come from Twitch directly, and messages and polls are sent through it. Without connecting, Twitch chat is still read anonymously over Twitch's official chat connection.
+
+YouTube, Kick and TikTok are currently read by a background helper (Electron) that keeps one window per platform with your own session; they are moving to official APIs wherever the platform offers one. Nothing is posted unless you send a message or start a poll yourself, and an action whose result is unclear is never retried automatically. There is no Bubblecast server: everything runs on your computer.
 
 ## Privacy
 

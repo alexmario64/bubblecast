@@ -65,7 +65,8 @@
  <div class="connection-grid">
   <article class="card platform-card" data-platform="twitch"><div class="platform-head"><img src="/logos/twitch.png" alt=""><h2>Twitch</h2><span class="pill" id="twitchStatus">Not connected</span></div>
    <label class="field">Channel<input id="twitchChannel" placeholder="Channel name or link" spellcheck="false"></label>
-   <div class="account-line"><span id="account-twitch">Read-only chat</span><button type="button" class="button" data-setup-signin="twitch">Sign in</button></div>
+   <div class="account-line"><span id="account-twitch">Read-only chat</span><button type="button" class="button" id="twitchConnect">Connect Twitch</button></div>
+   <div class="device-code" id="twitchCode" hidden><p>In Chrome, Edge, Safari or on your phone, go to <b>twitch.tv/activate</b> and enter this code:</p><strong id="twitchUserCode"></strong><a class="button primary" id="twitchActivate" target="_blank" rel="noopener">Open twitch.tv/activate</a><small>Waiting for you to approve Bubblecast on Twitch…</small></div>
    <details class="inline-advanced"><summary>Channel emotes</summary><label class="field">Twitch numeric user ID<input name="twitchId" inputmode="numeric" placeholder="Optional · loads your BetterTTV emotes"></label></details>
   </article>
   <article class="card platform-card" data-platform="youtube"><div class="platform-head"><img src="/logos/youtube.png" alt=""><h2>YouTube</h2><span class="pill" id="youtubeStatus">Not connected</span></div>

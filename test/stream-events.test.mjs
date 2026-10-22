@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {twitchHermesEvent,kickEvent} from '../desktop/stream-events.mjs';
+import {kickEvent} from '../desktop/stream-events.mjs';
 import {parseIRC,twitchNotice,TwitchLive} from '../twitch-live.mjs';
 import {youtubeActions} from '../network-chat.mjs';
 import {settings,normalize,eventKinds} from '../core.mjs';
@@ -14,13 +14,6 @@ test('Twitch notices become sub, resub, gift bomb and raid events with Twitch sy
  const bomb=twitchNotice(notice({'msg-id':'submysterygift','msg-param-mass-gift-count':'5','system-msg':'Viewer\\sis\\sgifting\\s5\\ssubs!'}));assert.deepEqual([bomb.event.kind,bomb.event.amount],['giftbomb',5]);
  assert.equal(twitchNotice(notice({'msg-id':'raid','msg-param-viewerCount':'120'})).event.amount,120);
  assert.equal(twitchNotice(notice({'msg-id':'announcement'})),null);
-});
-test('Twitch event socket redemptions without text become events; text redemptions are left to chat',()=>{
- const frame=reward=>JSON.stringify({type:'notification',notification:{type:'pubsub',pubsub:JSON.stringify({type:'reward-redeemed',data:{redemption:{id:'r1',user:{id:'7',login:'viewer',display_name:'Viewer'},reward:{id:'w1',title:'Hydrate!',cost:300,background_color:'#00C7AC',default_image:{url_4x:'https://static-cdn.jtvnw.net/custom-reward-images/default-4.png'}},...reward}}})}});
- const event=twitchHermesEvent(frame({}));assert.equal(event.id,'reward-r1');assert.equal(event.user,'Viewer');assert.deepEqual(event.event,{kind:'redemption',title:'Hydrate!',amount:300,color:'#00C7AC',image:'https://static-cdn.jtvnw.net/custom-reward-images/default-4.png'});
- assert.equal(twitchHermesEvent(frame({user_input:'drink water'})),null);
- assert.equal(twitchHermesEvent(JSON.stringify({type:'notification',notification:{pubsub:JSON.stringify({type:'custom-reward-updated'})}})),null);
- assert.equal(twitchHermesEvent('PING'),null);
 });
 test('Twitch chat redemptions carry the reward title from the channel reward list',async()=>{
  const sent=[],messages=[];class Socket{constructor(){this.listeners={};Socket.last=this;}addEventListener(k,f){this.listeners[k]=f;}send(s){sent.push(s);}close(){}}
@@ -56,3 +49,7 @@ test('overlays show only enabled event kinds while the relay keeps every event',
  assert.equal(new MessageRelay().ingest(raw,settings({})).message.event.kind,'follow');
  assert.deepEqual(settings({eventsShown:['sub','nope','raid']}).eventsShown,['sub','raid']);assert.ok(eventKinds.includes('redemption'));
 });
+test('chat-connection messages use official badges and reward details when signed in',()=>{const messages=[];class Socket{constructor(){this.listeners={};Socket.last=this;}addEventListener(k,f){this.listeners[k]=f;}send(){}close(){}}
+ const live=new TwitchLive({onMessage:m=>messages.push(m),Socket,schedule:()=>0,cancel:()=>{},reward:id=>id==='w1'?{title:'Hydrate!',cost:300,color:'#00C7AC'}:null,badgeImages:tag=>tag?[{src:'https://static-cdn.jtvnw.net/badges/v1/b/3',alt:'Broadcaster'}]:[]});live.configure('channel');
+ Socket.last.listeners.message({data:'@id=m1;display-name=Viewer;badges=broadcaster/1;custom-reward-id=w1;gifs=0-4||https://media.giphy.com/media/abc/giphy.gif :viewer!viewer@tmi PRIVMSG #channel :hello\r\n'});
+ assert.deepEqual(messages[0].badges,[{src:'https://static-cdn.jtvnw.net/badges/v1/b/3',alt:'Broadcaster'}]);assert.deepEqual(messages[0].event,{kind:'redemption',title:'Hydrate!',amount:300,color:'#00C7AC'});assert.equal(messages[0].parts[0].type,'image','GIFs from the chat connection are kept');live.stop();});

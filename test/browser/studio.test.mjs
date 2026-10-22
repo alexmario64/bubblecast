@@ -45,3 +45,10 @@ test('studio lists built-in and custom bots with separate stream and dock visibi
  await wait(520);const last=saved().at(-1);assert.equal(last.ignoredBots,'TrueBot64');assert.equal(last.overlayShownBots,'TrueBot64');assert.equal(last.dockHiddenBots,'Nightbot');assert.equal(last.filterBots,true);
  const filter=doc.querySelector('[name=filterBots]');filter.checked=false;filter.dispatchEvent(ev('change'));assert.ok(rows().every(r=>r.querySelectorAll('input')[0].checked&&r.querySelectorAll('input')[0].disabled));
 });
+test('Connect Twitch starts official sign-in and shows the activation code',async t=>{
+ const {w,doc,calls}=await studio(t,'#connections');w.open=()=>null;
+ const original=w.fetch,pending={userCode:'ABCD1234',verificationUri:'https://www.twitch.tv/activate?device-code=ABCD1234',expiresAt:Date.now()+1800000};let started=false;w.fetch=async(url,options)=>{if(url==='/api/twitch/connect'){started=true;calls.push([url,options]);return {ok:true,json:async()=>pending};}const r=await original(url,options);if(url!=='/api/status'||!started)return r;const body=await r.json();return {ok:true,json:async()=>({...body,twitch:{connected:false,pending}})};};
+ assert.equal(doc.querySelector('#twitchConnect').textContent,'Connect Twitch');assert.match(doc.querySelector('#account-twitch').textContent,/Read-only chat/);
+ await doc.querySelector('#twitchConnect').onclick();
+ assert.ok(calls.some(([url])=>url==='/api/twitch/connect'));assert.equal(doc.querySelector('#twitchCode').hidden,false);assert.equal(doc.querySelector('#twitchUserCode').textContent,'ABCD1234');assert.match(doc.querySelector('#twitchActivate').href,/twitch\.tv\/activate/);
+});
