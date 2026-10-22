@@ -2,7 +2,7 @@
 
 For any coding agent (Codex, Claude) or person picking up this repo. Read `AGENTS.md` (the rules) and `DEVELOPMENT.md` (the architecture) first. This file covers the current state, the next tasks, and lessons from recent work. Update it when those change.
 
-State as of 2026-10-22: `main` includes #16–#21, version 1.22.1. Helper release 1.23.0 is prepared on `release/1.23.0`, awaiting the owner's PR merge. After merging, return to `main` and run `git pull --ff-only`; on the Windows PC, pull the update, restart the background helper and refresh the OBS sources.
+State as of 2026-10-22: release 1.23.0 merged in #22. Open PR #24 prepares helper 1.24.0 with automatic account channels, connections-first layout and a single shared-session Kick connection flow. After its merge, return to main and pull; restart the updated helper and refresh Studio, the dock and affected OBS sources. The owner is developing on macOS; Windows deployment remains unconfirmed.
 
 ## How work is done here
 
@@ -39,7 +39,7 @@ Lessons from this session:
 
 ## Next tasks, in order
 
-1. **Finish helper release 1.23.0.** The version bump is prepared in `package.json`, `desktop/package.json` and all four version reports in `desktop/main.cjs`. The owner merges the release PR, pulls on the Windows PC, restarts the helper and refreshes the OBS sources. Then continue with task 2.
+1. **Verify and deploy helper 1.24.0 from PR #24.** After merge, pull and restart the helper. Verify the shared-session Kick flow with the owner, including whether OAuth reuses the page login without a second credentials prompt. Pull/restart on Windows and refresh OBS sources when deploying there.
 2. **Verify Kick against a real sign-in.** The field names in `kick-official.mjs` come from Kick's docs and haven't been confirmed live: `data[0].user_id`, `name`, `broadcaster_user_id`, `stream.is_live`, `stream.viewer_count`, and `data.is_sent` on `POST /public/v1/chat`. Ask the owner for the error text if Connect Kick, the viewer count or sending fails, and adjust the code and tests.
 3. **One-click Windows installer (the owner's main goal).** A `.exe` that:
    - installs Bubblecast and the background helper,
@@ -62,9 +62,14 @@ Lessons from this session:
 ## Automatic own-channel connections (pending PR)
 
 - Blank Twitch/Kick channel fields now use the connected account's own channel; explicit saved fields remain overrides. Kick looks up its authenticated user ID through the official channels API and remembers the returned slug locally. YouTube's existing live-stream discovery also works before any source form has been saved.
-- Runtime defaults stay separate from editable/saved fields, and disconnect-all remains respected. Studio/dock help and Spanish entries describe API sign-in, optional overrides and Kick's separate poll page sign-in. Dock account links remain available when the helper is offline.
-- This branch is based on main independently of open documentation PR #23. The additional setup notes in #23 still need the owner's merge. Neither PR proves live Kick compatibility; owner verification is still needed. No helper version bump is needed because desktop files are unchanged.
+- Runtime defaults stay separate from editable/saved fields, and disconnect-all remains respected. Studio/dock help and Spanish entries describe API sign-in, optional overrides and one Connect Kick flow. Dock account links remain available when the helper is offline.
+- This branch is based on main independently of open documentation PR #23. The additional setup notes in #23 still need the owner's merge. Neither PR proves live Kick compatibility; owner verification is still needed. Helper versions are now bumped together to 1.24.0 for the shared-session Kick connection flow.
 
 - Connection layout follow-up: Studio and the dock show account sign-ins first, keep the TikTok handle in the main setup, and group Twitch/YouTube/Kick fields below in a collapsed **Optional channel overrides** section. Included in PR #24.
 
 - Owner requested one Kick sign-in for polls too. Checked the current official GitHub API index, scope list and changelog on 2026-10-22: no documented public poll endpoint or scope. The signed-in page poll exception remains; do not substitute private endpoints or imply OAuth alone enables polls.
+
+- Shared-session Kick follow-up: Connect Kick queues `kick-connect` only for an active helper advertising support. The helper opens Kick page login first, then official OAuth in the same `persist:bubblecast-kick` partition. Only the exact loopback callback with that attempt's state is allowed. Existing cookie sessions are reused; no cookie values are copied into API tokens or logged. The separate poll sign-in button is removed. Helper is 1.24.0; restart it before trying this flow.
+- This is one guided connection entry point, not a new poll API. Fixture tests do not prove Kick's real SSO reuse or acceptance of OAuth in Electron. No live session was opened during implementation. If Kick prompts for credentials twice or rejects embedded authorization, capture the error and reassess before claiming one credential entry is achieved.
+
+- Product copy stays focused on connecting accounts and choosing another channel. API, OAuth and session-partition details belong in developer docs rather than the dock connection sheet.

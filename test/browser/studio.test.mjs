@@ -66,3 +66,7 @@ test('Studio keeps automatic channels out of manual fields and saves blank overr
  assert.equal(doc.querySelector('#twitchChannel').value,'');assert.equal(doc.querySelector('#kickChannel').value,'');
  doc.querySelector('#saveConnections').click();await wait(20);const call=calls.find(([url,o])=>url==='/api/sources'&&o?.method==='POST');assert.ok(call);const body=JSON.parse(call[1].body);assert.equal(body.twitchChannel,'');assert.equal(body.kickChannel,'');
 });
+test('Connect Kick queues one helper flow without opening a separate browser or poll login',async t=>{
+ const prior=status.kick;status.kick={configured:true,connected:false};t.after(()=>{status.kick=prior;});const {doc,w,calls}=await studio(t,'#connections');await wait(20);let opened=0;w.open=()=>{opened++;};
+ await doc.querySelector('#kickConnect').onclick();assert.equal(calls.filter(([url])=>url==='/api/kick/connect').length,1);assert.equal(opened,0);assert.equal(doc.querySelector('[data-setup-signin="kick"]'),null);assert.equal(doc.querySelector('#kickDisconnect').hidden,true);
+});

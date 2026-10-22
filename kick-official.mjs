@@ -1,4 +1,4 @@
-// Official Kick connection: OAuth 2.1 with PKCE against the streamer's own Kick app, opened in the default browser
+// Official Kick connection: OAuth 2.1 with PKCE against the streamer's own Kick app, opened in the helper session
 // and returned to this local server. Used for account actions only: sending chat, live status and viewer count.
 // Kick delivers chat and events through webhooks, which need a public server, so chat keeps being read from
 // Kick's public chat connection in the helper. Kick polls have no API and stay in the signed-in Kick page.

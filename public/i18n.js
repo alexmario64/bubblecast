@@ -3,6 +3,17 @@
 // pages add later. Brand names, URLs, chat messages and platform error details stay as they are.
 (()=>{
 const es={
+ 'Connect your accounts to bring your chats together.':'Conecta tus cuentas para reunir tus chats.',
+ 'Only fill these in to watch a different channel.':'Completa estos campos solo para ver otro canal.',
+ 'Finish connecting Kick in the window that opens.':'Termina de conectar Kick en la ventana que se abre.',
+ 'Finish connecting Kick':'Terminar de conectar Kick',
+ 'Reconnect Kick':'Volver a conectar Kick',
+ 'Polls ready':'Encuestas listas',
+ 'Connect Kick for chat and polls.':'Conecta Kick para el chat y las encuestas.',
+ 'finish connecting':'termina de conectar',
+ 'Finish connecting Kick in the helper window. This connects chat and polls.':'Termina de conectar Kick en la ventana de la app. Esto conecta el chat y las encuestas.',
+ 'Connect Twitch, YouTube and Kick in Studio to use your own channels automatically. Twitch and Kick can read a manually selected channel without API sign-in. YouTube requires a connection to read chat. Connect Kick opens one helper flow for chat and polls.':'Conecta Twitch, YouTube y Kick en Studio para usar tus canales automáticamente. Twitch y Kick pueden leer un canal elegido manualmente sin conexión a la API. YouTube requiere una conexión para leer el chat. Conectar Kick abre un solo proceso en la app para el chat y las encuestas.',
+
  'Optional channel overrides':'Otros canales (opcional)',
  'Connect your accounts to use your own channels automatically. Enter a channel or stream link only to override the default.':'Conecta tus cuentas para usar tus canales automáticamente. Escribe un canal o enlace de stream solo para elegir otro.',
  'Your connected channel (optional override)':'Tu canal conectado (opcional: otro canal)',

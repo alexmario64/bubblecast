@@ -234,3 +234,5 @@ body[data-theme=red] .page-actions .button.primary{background:#fff;color:var(--a
 .device-code p{margin:0;font-size:12.5px;color:var(--text-2)}.device-code strong{font:700 26px/1.1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;color:var(--text)}.device-code small{font-size:11.5px;color:var(--text-3)}
 
 .connection-overrides{margin-top:18px;padding:16px 18px}.connection-overrides summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--text-2)}.connection-overrides .connection-grid{margin-top:4px}
+
+.kick-connection{flex-wrap:wrap}.kick-connection>span{flex-basis:100%}

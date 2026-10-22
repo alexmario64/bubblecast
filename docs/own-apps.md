@@ -71,11 +71,11 @@ You need a Kick account. Use the account you stream with, so Bubblecast sends ch
 
 1. In Studio, go to **Connections** and open **Your Kick app** in the Kick card.
 2. Paste the client ID and client secret, and click **Save Kick app**.
-3. Click **Connect Kick**, sign in to Kick if asked and approve the permissions.
+3. Start background helper **1.24.0 or newer**, then click **Connect Kick**. One helper window handles the Kick page login and then the official API authorization using the same persistent session. Sign in if asked, approve the permissions and return to Bubblecast. An existing helper login is reused; there is no separate poll sign-in button.
 
 Once connected, Bubblecast sends your Kick messages and reads your Kick viewer count through the API. Kick chat is still read from Kick's public chat, as before.
 
-As checked on 2026-10-22, Kick's [official API index](https://github.com/KickEngineering/KickDevDocs/blob/main/SUMMARY.md) and [scope list](https://github.com/KickEngineering/KickDevDocs/blob/main/scopes/scopes.md) document no public poll endpoint or poll permission. The API connection cannot replace the separate poll page session. To run Kick polls from Bubblecast, also click **Sign in for polls** in the Kick card and sign in to Kick in the window that opens.
+As checked on 2026-10-22, Kick's [official API index](https://github.com/KickEngineering/KickDevDocs/blob/main/SUMMARY.md) and [scope list](https://github.com/KickEngineering/KickDevDocs/blob/main/scopes/scopes.md) document no public poll endpoint or poll permission. Polls still use the signed-in Kick page internally. Connect Kick now prepares that page session and official API authorization in one helper flow; the API token itself is not used as a website cookie. Kick controls its login and consent screens. The flow has fixture coverage, but whether Kick reuses credentials without another prompt still requires a real-session check.
 
 ## Your channel is automatic after connecting
 
@@ -85,9 +85,13 @@ Studio and the dock put account connections first. TikTok keeps its handle field
 
 The fields are optional overrides for reading another channel or a specific YouTube stream. Existing saved channel values keep priority; clear them and save connections to switch to your connected account's default. Automatic channel names are not saved as overrides, so switching accounts changes the default. Disconnect all keeps sources disabled until you save connections again.
 
-Twitch and Kick can read a manually selected channel without API sign-in. YouTube requires its API connection even for reading chat. Sending uses the connected account; an override changes the destination, not who sends. Polls and owner-only actions still require the appropriate channel permissions. Kick's separate page sign-in is for polls only. TikTok setup is unchanged and still needs a handle.
+Twitch and Kick can read a manually selected channel without API sign-in. YouTube requires its API connection even for reading chat. Sending uses the connected account; an override changes the destination, not who sends. Polls and owner-only actions still require the appropriate channel permissions. Kick's poll page shares the persistent session used by Connect Kick. TikTok setup is unchanged and still needs a handle.
 
 ## Troubleshooting
+
+- **Kick: "Start the updated background helper"**: restart helper 1.24.0 or newer, refresh Studio/the dock, then click Connect Kick. Kick connection setup now runs in the helper rather than a separate browser profile.
+- **Kick API already connected but polls unavailable**: use **Finish connecting Kick** (or **Reconnect Kick** in the dock) to run the shared-session connection flow. No messages or polls are posted during connection setup.
+
 
 - **"Add your … app first"**: the keys aren't saved yet. Paste both the client ID and the client secret, then click Save.
 - **YouTube: "Google hasn't verified this app"**: expected for your own app. Click **Advanced → Go to … (unsafe)**.
