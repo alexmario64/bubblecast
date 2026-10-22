@@ -31,7 +31,7 @@ export class TwitchMerge{
  fromIRC(m,badgeKey){
   this.prune();if(this.native.has(m.id))return null;
   const key=bodyKey(m),before=this.dom.find(e=>e.key===key&&!e.matched),cached=this.users[m.user.toLowerCase()];
-  m={...m,badges:cached&&(!cached.badgeKey||cached.badgeKey===badgeKey)?cached.badges:[]};if(before){before.matched=true;m.id=before.id;m.action='update';m.badges=before.badges;}
+  m={...m,badges:m.badges?.length?m.badges:cached&&(!cached.badgeKey||cached.badgeKey===badgeKey)?cached.badges:[]};if(before){before.matched=true;m.id=before.id;m.action='update';m.badges=before.badges;}
   else this.irc.push({key,id:m.id,at:this.now(),badgeKey,matched:false});
   bounded(this.native,m.sourceId,m.id);bounded(this.badgeKeys,m.id,badgeKey);bounded(this.metadata,m.id,{userId:m.userId,userColor:m.userColor});return m;
  }
@@ -45,7 +45,7 @@ export class TwitchMerge{
  }
 }
 export class TwitchLive{
- constructor({onMessage,onState=()=>{},Socket=WebSocket,merge=new TwitchMerge(),schedule=setTimeout,cancel=clearTimeout,now=Date.now,lookupRewards=null}){Object.assign(this,{onMessage,onState,Socket,merge,schedule,cancel,now,lookupRewards});this.rewards=new Map();this.channel='';this.socket=null;this.timer=null;this.ready=false;this.attempt=0;}
+ constructor({onMessage,onState=()=>{},Socket=WebSocket,merge=new TwitchMerge(),schedule=setTimeout,cancel=clearTimeout,now=Date.now,lookupRewards=null,reward=null,badgeImages=null}){Object.assign(this,{onMessage,onState,Socket,merge,schedule,cancel,now,lookupRewards,reward,badgeImages});this.rewards=new Map();this.channel='';this.socket=null;this.timer=null;this.ready=false;this.attempt=0;}
  configure(channel){channel=String(channel||'').toLowerCase();if(!/^[a-z0-9_]{1,25}$/.test(channel))channel='';if(channel===this.channel)return;this.stop();this.channel=channel;if(channel){this.connect();this.loadRewards();}}
  // Reward titles come from the channel's public reward list; redemption chat lines only carry an id.
  async loadRewards(){if(!this.lookupRewards||!this.channel)return;const channel=this.channel;try{const rewards=await this.lookupRewards(channel);if(this.channel===channel&&rewards instanceof Map){this.rewards=rewards;this.rewardsAt=this.now();}}catch{}}
@@ -56,8 +56,8 @@ export class TwitchLive{
   socket.addEventListener('message',event=>{if(this.socket!==socket)return;for(const line of String(event.data).split('\r\n')){const p=parseIRC(line);if(!p)continue;if(p.command==='PING'){socket.send('PONG :'+p.text);continue;}if(p.command==='RECONNECT'){socket.close();continue;}if(!p.params.includes('#'+channel))continue;
    if(p.command==='ROOMSTATE'||p.command==='JOIN'){this.ready=true;this.attempt=0;this.onState(true);}
    const observedAt=this.now(),base={platform:'twitch',sourceKey:'twitch',captureState:'listening',observedAt,capturedAt:observedAt};
-   if(p.command==='PRIVMSG'&&p.tags.id&&!p.text.startsWith('\x01ACTION ')){const rewardId=p.tags['custom-reward-id'];if(rewardId&&!this.rewards.has(rewardId)&&this.now()-(this.rewardsAt||0)>60000)this.loadRewards();const m=this.merge.fromIRC({...base,id:p.tags.id,sourceId:p.tags.id,user:p.tags['display-name']||p.prefix.split('!')[0],userId:p.tags['user-id']||'',userColor:p.tags.color||'',parts:twitchParts(p.text,p.tags),...(rewardId?{event:{kind:'redemption',title:this.rewards.get(rewardId)?.title||'Channel points',amount:this.rewards.get(rewardId)?.cost,color:this.rewards.get(rewardId)?.color}}:{})},p.tags.badges||'');if(m)this.onMessage(m);}
-   if(p.command==='USERNOTICE'){const notice=twitchNotice(p);if(notice)this.onMessage({...base,...notice});}
+   if(p.command==='PRIVMSG'&&p.tags.id&&!p.text.startsWith('\x01ACTION ')){const rewardId=p.tags['custom-reward-id'],rewardInfo=rewardId?this.reward?.(rewardId)||this.rewards.get(rewardId):null;if(rewardId&&!rewardInfo&&this.lookupRewards&&this.now()-(this.rewardsAt||0)>60000)this.loadRewards();const badges=this.badgeImages?.(p.tags.badges,p.tags['badge-info']);const m=this.merge.fromIRC({...base,id:p.tags.id,sourceId:p.tags.id,user:p.tags['display-name']||p.prefix.split('!')[0],userId:p.tags['user-id']||'',userColor:p.tags.color||'',parts:twitchParts(p.text,p.tags),...(badges?.length?{badges}:{}),...(rewardId?{event:{kind:'redemption',title:rewardInfo?.title||'Channel points',amount:rewardInfo?.cost,color:rewardInfo?.color}}:{})},p.tags.badges||'');if(m)this.onMessage(m);}
+   if(p.command==='USERNOTICE'){const notice=twitchNotice(p);if(notice)this.onMessage({...base,...notice,badges:this.badgeImages?.(p.tags.badges,p.tags['badge-info'])||[]});}
    if(p.command==='CLEARMSG')this.onMessage({...base,action:'delete',id:p.tags['target-msg-id']||''});
    if(p.command==='CLEARCHAT')this.onMessage({...base,...(p.tags['target-user-id']?{action:'delete',id:'',userId:p.tags['target-user-id']}:{action:'clear'})});
   }});

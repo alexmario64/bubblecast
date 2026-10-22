@@ -7,22 +7,8 @@ export const TWITCH_SCOPES=['user:read:chat','user:write:chat','channel:read:sub
 const ID='https://id.twitch.tv/oauth2',HELIX='https://api.twitch.tv/helix',EVENTSUB='wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_seconds=30';
 
 // ---- EventSub event mapping (pure) ----
-const emoteURL=id=>'https://static-cdn.jtvnw.net/emoticons/v2/'+encodeURIComponent(id)+'/default/dark/3.0';
-export function chatParts(message){const parts=[];for(const f of message?.fragments||[]){if(f.type==='emote'&&f.emote?.id)parts.push({type:'image',src:emoteURL(f.emote.id),alt:f.text,large:false});else if(f.text)parts.push({type:'text',text:f.text});}return parts;}
-const badgeList=(badges,images)=>(badges||[]).map(b=>{const image=images.get(b.set_id+'/'+b.id);return image?{src:image.src,alt:image.title||b.set_id,...(b.set_id==='subscriber'&&b.info?{label:b.info}:{})}:null;}).filter(Boolean);
-export function chatMessage(e,{badges=new Map(),rewards=new Map()}={}){
- if(!e?.message_id||!e.chatter_user_name)return null;
- const reward=e.channel_points_custom_reward_id?rewards.get(e.channel_points_custom_reward_id):null;
- return {platform:'twitch',sourceKey:'twitch',id:e.message_id,user:e.chatter_user_name,userId:e.chatter_user_id||'',userColor:e.color||'',parts:chatParts(e.message),badges:badgeList(e.badges,badges),...(e.channel_points_custom_reward_id?{event:{kind:'redemption',title:reward?.title||'Channel points',amount:reward?.cost,color:reward?.color}}:{})};
-}
-const noticeKinds={sub:'sub',resub:'resub',sub_gift:'giftsub',community_sub_gift:'giftbomb',gift_paid_upgrade:'sub',prime_paid_upgrade:'sub',raid:'raid'};
-export function chatNotification(e,{badges=new Map()}={}){
- const kind=noticeKinds[e?.notice_type];if(!kind||!e.message_id)return null;
- // Single gifts that are part of a gift bomb are shown once, as the bomb.
- if(kind==='giftsub'&&e.sub_gift?.community_gift_id)return null;
- const amount=kind==='giftbomb'?e.community_sub_gift?.total:kind==='raid'?e.raid?.viewer_count:kind==='resub'?e.resub?.cumulative_months:0;
- return {platform:'twitch',sourceKey:'twitch',id:e.message_id,user:e.chatter_is_anonymous?'Anonymous':e.chatter_user_name||'Someone',userId:e.chatter_user_id||'',userColor:e.color||'',parts:chatParts(e.message),badges:badgeList(e.badges,badges),event:{kind,title:e.system_message||'',amount}};
-}
+// Chat, subs and raids come from Twitch's chat connection (twitch-live.mjs), which alone carries GIFs.
+// EventSub adds what chat cannot: text-free redemptions and poll updates.
 // Redemptions with text also arrive as a chat message carrying the reward id; only text-free ones are taken here.
 export function redemption(e,rewards=new Map()){
  if(!e?.id||!e.reward||String(e.user_input||'').trim())return null;const reward=rewards.get(e.reward.id);
@@ -36,15 +22,15 @@ export function poll(e,type){
 
 // ---- Connection ----
 export class TwitchOfficial{
- constructor({file,request=fetch,Socket=WebSocket,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onMessage=()=>{},onPoll=()=>{},onAction=()=>{},onAuth=()=>{}}){
-  Object.assign(this,{file,request,Socket,now,schedule,cancel,random,onMessage,onPoll,onAction,onAuth});
+ constructor({file,request=fetch,Socket=WebSocket,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onMessage=()=>{},onPoll=()=>{},onAuth=()=>{}}){
+  Object.assign(this,{file,request,Socket,now,schedule,cancel,random,onMessage,onPoll,onAuth});
   this.auth=null;this.pending=null;this.channel='';this.broadcaster=null;this.socket=null;this.session=null;this.subscribed=[];this.failed=[];this.error=null;this.viewers=null;this.badges=new Map();this.rewards=new Map();this.seen=new Set();this.timers={};this.generation=0;
  }
  async load(){try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}this.timer('validate',()=>this.validate(),1000);}
  async save(){await mkdir(dirname(this.file),{recursive:true});await writeFile(this.file,JSON.stringify(this.auth),{mode:0o600});}
  timer(name,fn,ms){this.cancel(this.timers[name]);this.timers[name]=this.schedule(()=>{this.timers[name]=null;return fn();},ms);}
  get connected(){return !!this.auth?.access_token;}
- get ready(){return !!(this.connected&&this.broadcaster&&this.session);}
+ get ready(){return !!(this.connected&&this.broadcaster);}
  get isBroadcaster(){return !!(this.broadcaster&&this.auth?.user_id===this.broadcaster.id);}
  status(){return {connected:this.connected,login:this.auth?.login||'',channel:this.channel,ready:this.ready,broadcaster:this.isBroadcaster,pending:this.pending&&this.pending.expiresAt>this.now()?{userCode:this.pending.userCode,verificationUri:this.pending.verificationUri,expiresAt:this.pending.expiresAt}:null,missing:this.failed,error:this.error,viewers:this.viewers};}
  async form(path,fields){const r=await this.request(ID+path,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(fields),signal:AbortSignal.timeout(10000)});let body={};try{body=await r.json();}catch{}return {ok:r.ok,status:r.status,body};}
@@ -101,8 +87,9 @@ export class TwitchOfficial{
   const user=(await this.helix('/users?login='+encodeURIComponent(this.channel))).data?.[0];if(generation!==this.generation)return;
   if(!user)throw Error('Twitch channel '+this.channel+' was not found.');this.broadcaster={id:user.id,login:user.login};this.error=null;
   await this.loadBadges();if(this.isBroadcaster)await this.loadRewards();if(generation!==this.generation)return;
-  this.open(EVENTSUB,generation);this.timer('viewers',()=>this.refreshViewers(generation),3000);
+  if(this.isBroadcaster)this.open(EVENTSUB,generation);this.timer('viewers',()=>this.refreshViewers(generation),3000);
  }
+ badgeList(tag,info){const months=Object.fromEntries(String(info||'').split(',').filter(Boolean).map(b=>b.split('/')));return String(tag||'').split(',').filter(Boolean).map(b=>{const [set,version]=b.split('/'),image=this.badges.get(set+'/'+version);return image?{src:image.src,alt:image.title||set,...(set==='subscriber'&&months.subscriber?{label:months.subscriber}:{})}:null;}).filter(Boolean);}
  async loadBadges(){const images=new Map();for(const path of ['/chat/badges/global','/chat/badges?broadcaster_id='+this.broadcaster.id])try{for(const set of (await this.helix(path)).data||[])for(const v of set.versions||[])images.set(set.set_id+'/'+v.id,{src:v.image_url_4x||v.image_url_2x,title:v.title});}catch{}this.badges=images;}
  async loadRewards(){try{const rewards=new Map();for(const r of (await this.helix('/channel_points/custom_rewards?broadcaster_id='+this.broadcaster.id)).data||[])rewards.set(r.id,{title:r.title,cost:r.cost,color:r.background_color,image:r.image?.url_4x||r.default_image?.url_4x});this.rewards=rewards;}catch{}}
  open(url,generation){
@@ -118,21 +105,13 @@ export class TwitchOfficial{
   socket.addEventListener('close',()=>{if(this.socket===socket&&generation===this.generation){this.session=null;this.timer('retry',()=>this.reconnect(),5000+this.random()*5000);}});
  }
  async subscribe(generation){
-  const b=this.broadcaster.id,u=this.auth.user_id,chat={broadcaster_user_id:b,user_id:u},types=[['channel.chat.message',chat],['channel.chat.notification',chat],['channel.chat.message_delete',chat],['channel.chat.clear_user_messages',chat],['channel.chat.clear',chat]];
-  if(this.isBroadcaster)types.push(['channel.channel_points_custom_reward_redemption.add',{broadcaster_user_id:b}],['channel.poll.begin',{broadcaster_user_id:b}],['channel.poll.progress',{broadcaster_user_id:b}],['channel.poll.end',{broadcaster_user_id:b}]);
+  const b={broadcaster_user_id:this.broadcaster.id},types=[['channel.channel_points_custom_reward_redemption.add',b],['channel.poll.begin',b],['channel.poll.progress',b],['channel.poll.end',b]];
   this.subscribed=[];this.failed=[];
   for(const [type,condition] of types){if(generation!==this.generation)return;try{await this.helix('/eventsub/subscriptions',{method:'POST',body:{type,version:'1',condition,transport:{method:'websocket',session_id:this.session}}});this.subscribed.push(type);}catch{this.failed.push(type);}}
  }
  dispatch(type,e){
-  const context={badges:this.badges,rewards:this.rewards};let data=null;
-  if(type==='channel.chat.message')data=chatMessage(e,context);
-  else if(type==='channel.chat.notification')data=chatNotification(e,context);
-  else if(type==='channel.channel_points_custom_reward_redemption.add')data=redemption(e,this.rewards);
-  else if(type.startsWith('channel.poll.')){const p=poll(e,type);if(p)this.onPoll(p);return;}
-  else if(type==='channel.chat.message_delete')return this.onAction({platform:'twitch',sourceKey:'twitch',action:'delete',id:e.message_id||''});
-  else if(type==='channel.chat.clear_user_messages')return this.onAction({platform:'twitch',sourceKey:'twitch',action:'delete',id:'',userId:e.target_user_id||''});
-  else if(type==='channel.chat.clear')return this.onAction({platform:'twitch',sourceKey:'twitch',action:'clear'});
-  if(data)this.onMessage(data);
+  if(type==='channel.channel_points_custom_reward_redemption.add'){const data=redemption(e,this.rewards);if(data)this.onMessage(data);}
+  else if(type.startsWith('channel.poll.')){const p=poll(e,type);if(p)this.onPoll(p);}
  }
  // Viewer count from Helix, about every 90-110 s.
  async refreshViewers(generation){if(generation!==this.generation||!this.broadcaster)return;try{const s=(await this.helix('/streams?user_id='+this.broadcaster.id)).data?.[0];this.viewers={live:!!s,viewers:s?s.viewer_count:null,updatedAt:this.now(),error:null};}catch(error){this.viewers={live:null,viewers:null,updatedAt:this.now(),error:String(error.message||error).slice(0,120)};}this.timer('viewers',()=>this.refreshViewers(generation),90000+this.random()*20000);}

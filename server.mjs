@@ -91,11 +91,12 @@ const server=http.createServer(async(req,res)=>{
 });
 setInterval(()=>{const removed=polls.prune();for(const poll of removed)emit('poll-remove',poll);if(removed.length)savePolls().catch(()=>{});},1000).unref();
 setInterval(()=>{for(const r of clients)r.write(': keepalive\n\n');},20000).unref();
-// Twitch runs here: the official EventSub connection when signed in, otherwise anonymous chat.
+// Twitch runs here. Chat, subs and raids always come from Twitch's official chat connection (the only
+// source with GIFs); signing in adds badges, reward titles, text-free redemptions, polls, sending and viewers.
 function ingestTwitch(data){bridge.twitch=Date.now();if(data.action==='delete'){emit('delete',{platform:'twitch',sourceKey:'twitch',id:String(data.id||'').slice(0,200),userId:String(data.userId||'').slice(0,100)});return;}if(data.action==='clear'){emit('clear',{});return;}traffic.twitch.received++;traffic.twitch.lastMessageAt=Date.now();const event=relay.ingest(data,state);if(event){emit(event.type,event.message);if(event.type==='message')traffic.twitch.displayed++;}}
-const twitch=new TwitchOfficial({file:join(root,'.local','twitch-auth.json'),onMessage:ingestTwitch,onAction:ingestTwitch,onAuth:()=>configureTwitch(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
-const twitchChat=new TwitchLive({onMessage:ingestTwitch});
-function configureTwitch(){const channel=sources.enabled&&sources.urls.twitch?sources.twitchChannel:'';twitch.configure(twitch.connected?channel:'');twitchChat.configure(twitch.connected?'':channel);}
+const twitch=new TwitchOfficial({file:join(root,'.local','twitch-auth.json'),onMessage:ingestTwitch,onAuth:()=>configureTwitch(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
+const twitchChat=new TwitchLive({onMessage:ingestTwitch,reward:id=>twitch.rewards.get(id),badgeImages:(tag,info)=>twitch.badgeList(tag,info)});
+function configureTwitch(){const channel=sources.enabled&&sources.urls.twitch?sources.twitchChannel:'';twitch.configure(twitch.connected?channel:'');twitchChat.configure(channel);}
 function helperTargets(data){return (Array.isArray(data.targets)?data.targets:[]).some(k=>k!=='twitch');}
 function forHelper(job){return job&&{...job,urls:Object.fromEntries(Object.entries(job.urls).filter(([k])=>k!=='twitch'))};}
 await twitch.load();configureTwitch();

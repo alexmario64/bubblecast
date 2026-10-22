@@ -49,3 +49,7 @@ test('overlays show only enabled event kinds while the relay keeps every event',
  assert.equal(new MessageRelay().ingest(raw,settings({})).message.event.kind,'follow');
  assert.deepEqual(settings({eventsShown:['sub','nope','raid']}).eventsShown,['sub','raid']);assert.ok(eventKinds.includes('redemption'));
 });
+test('chat-connection messages use official badges and reward details when signed in',()=>{const messages=[];class Socket{constructor(){this.listeners={};Socket.last=this;}addEventListener(k,f){this.listeners[k]=f;}send(){}close(){}}
+ const live=new TwitchLive({onMessage:m=>messages.push(m),Socket,schedule:()=>0,cancel:()=>{},reward:id=>id==='w1'?{title:'Hydrate!',cost:300,color:'#00C7AC'}:null,badgeImages:tag=>tag?[{src:'https://static-cdn.jtvnw.net/badges/v1/b/3',alt:'Broadcaster'}]:[]});live.configure('channel');
+ Socket.last.listeners.message({data:'@id=m1;display-name=Viewer;badges=broadcaster/1;custom-reward-id=w1;gifs=0-4||https://media.giphy.com/media/abc/giphy.gif :viewer!viewer@tmi PRIVMSG #channel :hello\r\n'});
+ assert.deepEqual(messages[0].badges,[{src:'https://static-cdn.jtvnw.net/badges/v1/b/3',alt:'Broadcaster'}]);assert.deepEqual(messages[0].event,{kind:'redemption',title:'Hydrate!',amount:300,color:'#00C7AC'});assert.equal(messages[0].parts[0].type,'image','GIFs from the chat connection are kept');live.stop();});
