@@ -4,7 +4,7 @@ import {Window} from 'happy-dom';
 import {readFile} from 'node:fs/promises';
 import {defaults,knownBots} from '../../core.mjs';
 const root=new URL('../../public/',import.meta.url);
-const status={settings:{...defaults,ignoredBots:['MyBot']},bridge:{},traffic:{twitch:{received:12}},sources:{configured:true,enabled:true,twitchChannel:'test',youtubeVideo:'normal',urls:{twitch:'t',youtube:'y'}},collector:{active:true,accounts:{youtube:{signedIn:true,canSend:false}}}};
+const status={settings:{...defaults,ignoredBots:['MyBot']},bridge:{},traffic:{twitch:{received:12}},sources:{configured:true,enabled:true,twitchChannel:'test',youtubeVideo:'normal',urls:{twitch:'t',youtube:'y'}},collector:{active:true,accounts:{youtube:{signedIn:true,canSend:false}}},youtube:{configured:true,connected:true,channel:{title:'My channel'}}};
 async function studio(t,hash=''){
  const w=new Window({url:'http://127.0.0.1:3927/'+hash});t.after(()=>w.happyDOM.abort());w.document.write(await readFile(new URL('index.html',root),'utf8'));
  const calls=[];w.fetch=async(url,options)=>{calls.push([url,options]);return {ok:true,json:async()=>url==='/api/pair'?{token:'test'}:url==='/api/status'?structuredClone(status):url==='/api/settings'?JSON.parse(options.body):{}};};
@@ -16,7 +16,7 @@ async function studio(t,hash=''){
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 test('studio loads settings, connection controls and account identity without requiring an available chat',async t=>{
  const {doc,calls}=await studio(t);
- assert.equal(doc.querySelector('#studioStatus').textContent,'Background app connected');assert.equal(doc.querySelector('#helperBanner').hidden,true);assert.equal(doc.querySelector('#account-youtube').textContent,'Signed in · chat not available');
+ assert.equal(doc.querySelector('#studioStatus').textContent,'Background app connected');assert.equal(doc.querySelector('#helperBanner').hidden,true);assert.equal(doc.querySelector('#account-youtube').textContent,'Connected as My channel');assert.equal(doc.querySelector('#youtubeConnect').textContent,'Disconnect');
  assert.equal(doc.querySelector('#page-overview').hidden,false);assert.equal(doc.querySelector('#twitchStatus').textContent,'Waiting for stream');assert.equal(doc.querySelector('#nav-kick').dataset.state,'off');assert.equal(doc.querySelector('#connectionCount').textContent,'2');assert.match(doc.querySelector('#platformList').textContent,/12 msgs/);
  assert.equal(doc.querySelector('#youtubeVideo').value,'normal');assert.equal(doc.querySelector('#googleClientFile'),null);assert.ok(!calls.some(([url])=>url==='/api/youtube/config'));
 });

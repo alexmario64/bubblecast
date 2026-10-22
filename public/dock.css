@@ -25,7 +25,7 @@ header{flex-shrink:0;padding:12px 12px 0;background:var(--surface);border:1px so
 .dock-title strong{font-size:14.5px;font-weight:680;letter-spacing:-.3px;line-height:1.2}
 #connection{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #connection::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;background:#ffb340}
-#connection[data-state=ok]::before{background:#34c759;animation:pulse 2.4s ease-out infinite}
+#connection[data-state=ok]::before{background:#34c759;animation:pulse 2.4s ease-out 3}
 #connection[data-state=error]::before{background:#ff6b5f}
 #connections{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:12px;font-weight:550;padding:6px 11px 6px 9px;border-radius:999px;background:var(--surface-solid);color:var(--text-2);box-shadow:var(--shadow-sm);border:1px solid var(--line)}
 #connections svg{width:16px;height:16px}
@@ -156,15 +156,11 @@ time{margin-left:auto;font-size:10.5px;font-variant-numeric:tabular-nums;color:v
 .account-row{display:flex;align-items:center;gap:7px;padding:10px 0;border-bottom:1px solid var(--line)}
 .account-row>span{flex:1;font-size:12px;color:var(--text-2);line-height:1.5}
 .account-row>span.connected{color:var(--good)}
-.account-row button,.source-tools button{padding:5px 10px;border-radius:999px;background:var(--surface-2);font-size:12px;font-weight:550}
-.account-row button:hover,.source-tools button:hover{background:var(--accent-soft);color:var(--accent)}
+.account-row button{padding:5px 10px;border-radius:999px;background:var(--surface-2);font-size:12px;font-weight:550}
+.account-row button:hover{background:var(--accent-soft);color:var(--accent)}
 .session-help{font-size:11.5px;line-height:1.6;color:var(--text-3);margin-top:10px}
 #captureMessage{font-size:11.5px;color:var(--bad);line-height:1.5}
 #captureMessage:empty{display:none}
-.source-tools{font-size:12px;color:var(--text-2);padding-top:12px;margin-top:12px;border-top:1px solid var(--line)}
-.source-tools summary{cursor:pointer}
-.source-tools>div{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.source-tools p{font-size:11.5px;line-height:1.6;color:var(--text-3)}
 .dock-link{margin-top:16px;font-size:11.5px;color:var(--text-3);display:flex;flex-direction:column;gap:3px}
 .dock-link code{font:11.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere;color:var(--text-2)}
 .dock-link a{margin-top:6px;font-weight:550}
@@ -350,10 +346,9 @@ html:has(body.dock-pane){background:transparent}
 #botMenuButton[aria-expanded=true]{background:var(--surface-solid);color:var(--accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 45%,transparent)}
 .viewer-total{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:#ff3b3014;color:var(--live);font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;animation:pop-in .35s var(--spring)}
 .viewer-total svg{width:15px;height:15px}
-.viewer-total::before{content:'';width:6px;height:6px;border-radius:50%;background:#ff3b30;animation:live-dot 1.6s ease-in-out infinite}
+.viewer-total::before{content:'';width:6px;height:6px;border-radius:50%;background:#ff3b30}
 .viewer-total:not([hidden])+#connections{margin-left:8px}
 .viewer-count{font-size:10.5px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--live);background:#ff3b3012;padding:1px 6px;border-radius:999px}
-@keyframes live-dot{50%{opacity:.35}}
 @media(max-width:400px){.viewer-total svg{display:none}}
 /* Platform chips need lighter brand tints on the dark theme. */
 body[data-theme=midnight] .origin.twitch{color:#c4a6ff;background:#9146ff2e}body[data-theme=midnight] .origin.youtube{color:#ff8f8f;background:#ff2a2a26}body[data-theme=midnight] .origin.tiktok{color:#7ff3ee;background:#25f4ee1f}body[data-theme=midnight] .origin.kick{color:#8bf06f;background:#53fc1821}
