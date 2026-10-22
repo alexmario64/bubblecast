@@ -77,3 +77,5 @@ Lessons from this session:
 - Kick account status uses Connected as / Not connected plus poll readiness; it never falls back to Read-only chat, including before Studio finishes loading or when the API is disconnected.
 
 - Dock refresh controls are moved out of account rows into a collapsed Troubleshooting section, with explicit Reload Kick chat / Reload TikTok chat actions only for configured sources. No source reload occurs until the user clicks.
+
+- Kick dock account row now uses the same inline status and right-aligned Connect / Manage styling as Twitch and YouTube. Manage opens Studio; Connect keeps the unified helper flow.

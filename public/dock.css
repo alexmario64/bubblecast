@@ -362,6 +362,6 @@ body[data-theme=midnight] #autoscroll[aria-pressed=false],body[data-theme=midnig
 
 .connection-overrides{padding:12px 0;border-top:1px solid var(--line)}.connection-overrides summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--text-2)}
 
-.kick-account{flex-wrap:wrap}.kick-account>span{flex-basis:100%}
+.account-row button.account-link{color:var(--accent)}.account-row .account-link{flex-shrink:0;white-space:nowrap}
 
 #sourceReloads{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}#sourceReloads button{padding:7px 11px;border-radius:999px;background:var(--surface-2);font-size:12px;color:var(--text-2)}#sourceReloads button:hover{background:var(--accent-soft);color:var(--accent)}
