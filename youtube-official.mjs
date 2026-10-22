@@ -12,8 +12,8 @@ const reasons={quotaExceeded:'The YouTube API daily quota is used up. It resets 
 export const sourceKeys=['youtube','youtubeShorts'];
 
 export class YouTubeOfficial{
- constructor({file,clientId='',clientSecret='',request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{},onMessage=()=>{}}){
-  Object.assign(this,{file,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth,onMessage});
+ constructor({file,clientId='',clientSecret='',request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{},onMessage=()=>{},onFound=()=>{}}){
+  Object.assign(this,{file,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth,onMessage,onFound});this.found=[];this.finding=false;
   this.auth=null;this.pending=null;this.videos={};this.chats={};this.viewers={};this.polls={};this.error=null;this.timers={};this.generation=0;this.streams={};
  }
  setApp(app={}){const clientId=String(app.clientId||''),changed=clientId!==this.clientId;Object.assign(this,{clientId,clientSecret:String(app.clientSecret||'')});return changed;}
@@ -22,7 +22,7 @@ export class YouTubeOfficial{
  async load(){try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}if(this.auth&&this.auth.client_id!==this.clientId)this.auth=null;}
  async save(){await mkdir(dirname(this.file),{recursive:true});await writeFile(this.file,JSON.stringify(this.auth),{mode:0o600});}
  timer(name,fn,ms){this.cancel(this.timers[name]);this.timers[name]=this.schedule(()=>{this.timers[name]=null;return fn();},ms);}
- status(){return {configured:this.configured,connected:this.connected,channel:this.auth?.channel||null,ready:this.connected,error:this.error,chats:Object.fromEntries(sourceKeys.map(k=>[k,{video:this.videos[k]||'',live:!!this.chats[k]}]))};}
+ status(){return {configured:this.configured,connected:this.connected,channel:this.auth?.channel||null,ready:this.connected,error:this.error,found:this.finding?this.found:null,chats:Object.fromEntries(sourceKeys.map(k=>[k,{video:this.videos[k]||'',live:!!this.chats[k]}]))};}
 
  // ---- Sign-in: Google opens in the default browser and returns to this local server. ----
  startSignIn(){
@@ -48,7 +48,7 @@ export class YouTubeOfficial{
   if(this.auth.expires_at-this.now()<60000){const {ok,body}=await this.token({grant_type:'refresh_token',refresh_token:this.auth.refresh_token});if(!ok){await this.forget('YouTube sign-in ended. Connect YouTube again.');throw Error(this.error);}Object.assign(this.auth,{access_token:body.access_token,expires_at:this.now()+body.expires_in*1000});await this.save();}
   return this.auth.access_token;
  }
- async forget(error=null){this.stopStreams();this.auth=null;this.pending=null;this.error=error;this.chats={};this.viewers={};for(const name of Object.keys(this.timers))this.cancel(this.timers[name]);await rm(this.file,{force:true});this.onAuth();}
+ async forget(error=null){this.stopStreams();this.finding=false;if(this.found.length){this.found=[];this.onFound([]);}this.auth=null;this.pending=null;this.error=error;this.chats={};this.viewers={};for(const name of Object.keys(this.timers))this.cancel(this.timers[name]);await rm(this.file,{force:true});this.onAuth();}
  async disconnect(){const token=this.auth?.refresh_token;await this.forget();if(token)try{await this.request('https://oauth2.googleapis.com/revoke',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({token}),signal:AbortSignal.timeout(10000)});}catch{}}
  async api(resource,{method='GET',query={},body}={}){
   const token=await this.access();
@@ -68,6 +68,17 @@ export class YouTubeOfficial{
    this.error=null;
   }catch(error){this.error=String(error.message||error);}
   this.timer('chats',()=>this.pollChats(generation),90000+this.random()*20000);
+ }
+ // ---- Finding the channel's own live streams: one liveBroadcasts.list call (1 unit) about every 90-110 s. ----
+ // Used when no stream links are entered. Up to two streams at once fill the YouTube and Shorts slots, oldest first.
+ autoFind(on){on=!!on&&this.connected;if(on===this.finding)return;this.finding=on;this.cancel(this.timers.find);if(on)this.timer('find',()=>this.findLive(),1000);else if(this.found.length){this.found=[];this.onFound([]);}}
+ async findLive(){
+  if(!this.finding||!this.connected)return;
+  try{const items=(await this.api('liveBroadcasts',{query:{part:'id,snippet',broadcastStatus:'active',broadcastType:'all',maxResults:'5'}})).items||[];
+   const found=items.filter(i=>/^[\w-]{11}$/.test(i.id||'')).sort((a,b)=>Date.parse(a.snippet?.actualStartTime||0)-Date.parse(b.snippet?.actualStartTime||0)).slice(0,2).map(i=>({video:i.id,title:String(i.snippet?.title||'').slice(0,120)}));
+   if(JSON.stringify(found)!==JSON.stringify(this.found)){this.found=found;this.onFound(found);}
+  }catch(error){this.error=String(error.message||error);}
+  if(this.finding)this.timer('find',()=>this.findLive(),90000+this.random()*20000);
  }
  // ---- Reading chat: YouTube's official server-streaming endpoint (5 units per connection, not per message). ----
  reading(key){return !!this.streams[key];}
