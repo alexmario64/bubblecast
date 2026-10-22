@@ -5,8 +5,6 @@ export function pageComposer(platform,action='inspect',expected=''){
  const pick=selector=>[...document.querySelectorAll(selector)].find(visible);
  const selectors={
   kick:{input:'[data-testid="chat-input"][contenteditable="true"],#chat-input-wrapper textarea',send:'#send-message-button',login:'[data-testid="login-button"]'},
-  twitch:{input:'[data-a-target="chat-input"][contenteditable="true"],.chat-wysiwyg-input__editor[contenteditable="true"],textarea[data-a-target="chat-input"]',send:'[data-a-target="chat-send-button"]',login:'[data-a-target="login-button"]'},
-  youtube:{input:'yt-live-chat-message-input-renderer #input:is([contenteditable=""],[contenteditable="true"],[contenteditable="plaintext-only"])',send:'yt-live-chat-message-input-renderer #send-button button,yt-live-chat-message-input-renderer #send-button yt-button-shape button',login:'yt-live-chat-message-input-renderer #sign-in-button,yt-live-chat-renderer a[href*="accounts.google.com/ServiceLogin"]'},
   tiktok:{input:'[data-e2e="room-chat-input-field"]:is([contenteditable=""],[contenteditable="true"],[contenteditable="plaintext-only"]),[data-e2e="chat-input"] [contenteditable="true"],[data-e2e="chat-input"][contenteditable="true"],[data-e2e="comment-input"][contenteditable="true"],textarea[data-e2e="chat-input"]',send:'[data-e2e="room-chat-send-btn"],[data-e2e="chat-send-button"],[data-e2e="chat-send"],[data-e2e="comment-post"]',login:'[data-e2e="top-login-button"]'}
  };
  const config=selectors[platform];if(!config)return {state:'unavailable',detail:'Unsupported platform'};
@@ -18,7 +16,7 @@ export function pageComposer(platform,action='inspect',expected=''){
  const button=pick(config.send)||hiddenTikTokSend;
  const content=el=>el?('value' in el?el.value:el.textContent).replace(/\uFEFF/g,'').trim():'';
  const state=login?'signed-out':!input||input.getAttribute('aria-disabled')==='true'||input.disabled?'unavailable':'ready';
- const nativeSignedIn=platform==='kick'?(login?false:document.querySelector('[data-testid="user-menu"],[data-testid="user-avatar"],button[aria-label="Open user menu"]')?true:null):platform==='youtube'&&typeof window.ytcfg?.get?.('LOGGED_IN')==='boolean'?window.ytcfg.get('LOGGED_IN'):null;
+ const nativeSignedIn=platform==='kick'?(login?false:document.querySelector('[data-testid="user-menu"],[data-testid="user-avatar"],button[aria-label="Open user menu"]')?true:null):null;
  const info={state,signedIn:nativeSignedIn,detail:state==='ready'?'Chat composer ready':state==='signed-out'?'Sign in to send messages':!input?'The message field was not found on the connected chat page. Refresh this source in Connections.':'The platform has disabled this chat’s message field.',draft:!!content(input),maxLength:input?.maxLength>0?input.maxLength:null};
  if(action==='inspect')return info;
  if(state!=='ready')return {...info,ok:false};

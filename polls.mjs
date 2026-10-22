@@ -17,18 +17,3 @@ export class PollStore{
  clear(){this.polls.clear();this.retired.clear();}
  snapshot(){return [...this.polls.values()].filter(p=>p.closedAt===undefined||this.now()-p.closedAt<this.retentionMs);}
 }
-const text=v=>typeof v==='string'?v:v?.simpleText||v?.runs?.map(r=>r.text||'').join('')||'';
-export function extractPolls(payload,platform,sourceKey=platform){
- const out=[],stack=[payload];let count=0;
- while(stack.length&&count++<20000){const n=stack.pop();if(!n||typeof n!=='object')continue;
- if(platform==='twitch'&&Array.isArray(n.choices)&&(n.__typename==='Poll'||n.title&&n.status&&n.id)){
-  const state=String(n.status||'').toUpperCase();const p=normalizePoll({platform,sourceKey,id:n.id,question:n.title,status:/COMPLETED|ARCHIVED/.test(state)?'completed':/TERMINATED|MODERATED|INVALID/.test(state)?'terminated':'active',choices:n.choices.map(c=>({id:c.id,text:c.title||c.text,votes:c.totalVotes??c.votes?.total??(typeof c.votes==='number'?c.votes:null)})),totalVotes:n.totalVotes,endsAt:Date.parse(n.endsAt||n.endedAt)});if(p)out.push(p);
- }
- if(platform==='youtube'){
-  const r=n.liveChatPollRenderer||n.liveChatBannerPollRenderer;
-  if(r){const poll=r.poll?.pollRenderer||r.pollRenderer||r,header=r.header?.liveChatPollHeaderRenderer||r.header?.pollHeaderRenderer||r.header||r;const p=normalizePoll({platform,sourceKey,id:poll.liveChatPollId||r.liveChatPollId||r.id||r.liveChatPollStateEntityKey,question:text(header.pollQuestion||r.pollQuestion),status:/ENDED|CLOSED/.test(header.liveChatPollType||r.status||'')?'completed':'active',totalLabel:text(poll.totalVotes||header.metadataText),choices:(poll.choices||r.pollChoices||[]).map(c=>({id:c.pollOptionId||c.id,text:text(c.text),percent:typeof c.voteRatioIfNotSelected==='number'?c.voteRatioIfNotSelected*100:null}))});if(p)out.push(p);}
- }
- for(const v of Object.values(n)){if(v&&typeof v==='object')stack.push(v);else if(platform==='twitch'&&typeof v==='string'&&v.length<1048576&&/^[{[]/.test(v)){try{stack.push(JSON.parse(v));}catch{}}}
- }
- return out;
-}

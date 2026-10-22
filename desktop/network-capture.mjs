@@ -1,12 +1,10 @@
 import {kickFrame} from './kick-chat.mjs';
 import {kickEvent} from './stream-events.mjs';
-import {extractPolls} from '../polls.mjs';
 import {NetworkFeed,youtubeActions,tiktokPayload} from '../network-chat.mjs';
 function allowedURL(value,platform,socket=false){try{const u=new URL(value);if(platform==='kick')return socket&&u.protocol==='wss:'&&(/(^|\.)pusher\.com$/.test(u.hostname)||/(^|\.)platform\.kick\.com$/.test(u.hostname)||u.hostname==='websockets.kick.com');if(platform==='youtube')return u.protocol==='https:'&&['www.youtube.com','youtube.com'].includes(u.hostname)&&u.pathname==='/youtubei/v1/live_chat/get_live_chat';return (socket?u.protocol==='wss:':u.protocol==='https:')&&/(^|\.)(tiktok\.com|tiktokv\.com|tiktokcdn\.com)$/.test(u.hostname)&&/^\/webcast\/im\/(?:push|fetch)(?:\/|$)/.test(u.pathname);}catch{return false;}}
 export function attachNetworkCapture(contents,{platform,sourceKey,onMessage,onError=()=>{},now=Date.now}){
  const feed=new NetworkFeed({platform,sourceKey,onMessage,now}),debug=contents.debugger,requests=new Map(),sockets=new Set(),diagnostics={responses:0,paths:[],sockets:[],events:[],wire:[],http:[],attached:false};let stopped=false,needsBaseline=true;
- const publishPolls=payload=>{for(const poll of extractPolls(payload,platform,sourceKey)){onMessage({action:'poll',platform,sourceKey,poll});}};
- const youtubePayload=payload=>{publishPolls(payload);const messages=youtubeActions(payload,sourceKey);feed.accept(messages,{baseline:needsBaseline});if(messages!==null)needsBaseline=false;};
+ const youtubePayload=payload=>{const messages=youtubeActions(payload,sourceKey);feed.accept(messages,{baseline:needsBaseline});if(messages!==null)needsBaseline=false;};
   const navigate=(_event,_url,_inPlace,mainFrame)=>{if(mainFrame){feed.startedAt=now();feed.ready=false;needsBaseline=true;requests.clear();sockets.clear();}};contents.on?.('did-start-navigation',navigate);
  const report=error=>{if(!stopped)onError(error);};
  const listener=async(_event,method,params)=>{if(stopped)return;try{
