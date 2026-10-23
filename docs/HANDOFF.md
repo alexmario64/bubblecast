@@ -49,13 +49,7 @@ Lessons from this session:
 
 1. **Verify and deploy helper 1.24.0 from PR #24.** After merge, pull and restart the helper. Verify the shared-session Kick flow with the owner, including whether OAuth reuses the page login without a second credentials prompt. Pull/restart on Windows and refresh OBS sources when deploying there.
 2. **Verify Kick against a real sign-in.** The field names in `kick-official.mjs` come from Kick's docs and haven't been confirmed live: `data[0].user_id`, `name`, `broadcaster_user_id`, `stream.is_live`, `stream.viewer_count`, and `data.is_sent` on `POST /public/v1/chat`. Ask the owner for the error text if Connect Kick, the viewer count or sending fails, and adjust the code and tests.
-3. **One-click Windows installer (the owner's main goal).** A `.exe` that:
-   - installs Bubblecast and the background helper,
-   - starts the helper with Windows,
-   - adds the dock to OBS,
-   - creates a Start menu or desktop shortcut that opens Studio.
-
-   Existing pieces: `desktop/install.mjs` (downloads and verifies Electron), `Install Background App.cmd`, `Start Bubblecast Background.vbs`, `Start Bubblecast.cmd`, `Install OBS Themes.cmd`, and `obs.mjs` `setupObs` (adds the overlay through OBS WebSocket). OBS custom browser docks live in the OBS profile's `basic.ini` / `user.ini` (DockState and ExtraBrowserDocks). Confirm the exact keys on the owner's OBS version before writing them. No servers, and no PHP.
+3. **Windows installer: built in PR #34 (helper 1.25.0), not yet tried on a real PC.** `pnpm dist:win` / the Windows installer workflow builds `Bubblecast-Setup-<version>.exe` (electron-builder, per-user NSIS, `build` key in package.json); `v<version>` tags attach it to a release. Installed copies keep data in `%APPDATA%\Bubblecast` via `BUBBLECAST_DATA`. First launch starts with Windows, adds the dock with `obs-dock.mjs` (ExtraBrowserDocks in `user.ini`, or `global.ini` before OBS 31, only while OBS is closed) and opens Studio. Still to confirm on the owner's Windows PC: the install, the dock appearing in OBS, start-with-Windows, and uninstall. The installer is unsigned (SmartScreen warns), and releases of a private repo are only downloadable by collaborators.
 4. **Spanish for the stream overlays:** the event lines (subs, raids, gifts) from `eventLabels` in `core.mjs` and `public/overlay.js`.
 5. **Cleanups to check first:**
    - `extension/` (the older Chrome bridge) still captures YouTube and Twitch pages. The helper reuses `extension/capture.js` and `extension/tiktok.js`, so don't delete those blindly.
@@ -81,7 +75,7 @@ Lessons from this session:
 - **Permission for live inspection is still pending.** Before further UI cleanup, the previous agent asked whether it could restart the helper and inspect the real Kick window. The owner did not approve; subsequent messages only steered UI changes. Ask before live helper inspection as AGENTS.md requires. No automated browser/script requests to live platform sites.
 - **Google:** replacement of the exposed old secret (in history at `18c9bc7`) and successful YouTube authorization remain unconfirmed. Each streamer uses their own Google project/client and Kick app. Do not save actual keys in docs or Git.
 - **Kick app setup:** the owner created the app and reported pasting the client ID and secret on macOS. Whether Save/Connect completed successfully has not been confirmed. Do not recreate or replace the app without evidence it is necessary.
-- **Deployment:** helper 1.24.0 restart on macOS, Windows pull/restart and affected OBS source refreshes are unconfirmed. macOS is for development; Windows remains the streaming target. No Windows installer work was started.
+- **Deployment:** helper 1.24.0 restart on macOS, Windows pull/restart and affected OBS source refreshes are unconfirmed. macOS is for development; Windows remains the streaming target. The Windows installer from PR #34 has not been run on Windows yet.
 
 ## What was about to happen next
 
