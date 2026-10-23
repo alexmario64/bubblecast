@@ -25,7 +25,7 @@ Streaming and OBS stay on Windows. On a Mac: install Node.js 22+ and pnpm as abo
 
 `pnpm dist:win` builds `dist/Bubblecast-Setup-<version>.exe` with electron-builder (on Windows; the build config is the `build` key in package.json). The installer is per user and needs no administrator rights or Node.js: the helper runs the server inside itself. An installed copy keeps its data in `%APPDATA%\Bubblecast\.local`, `settings.json` and `sources.json` (the helper sets `BUBBLECAST_DATA`); a checkout keeps using the repository folder. On its first launch it starts with Windows, adds the dock to OBS through `obs-dock.mjs` (only while OBS is closed, since OBS rewrites its config on exit) and opens Studio.
 
-The Windows installer workflow builds the `.exe` on every pull request; download it from the run's artifacts to test. To release, merge the version bump, then tag main with `v<version>` (for example `git tag v1.25.0 && git push origin v1.25.0`). The workflow checks the tag matches package.json and attaches the installer to that GitHub release. The installer is unsigned, so SmartScreen warns on first run.
+The Windows installer workflow builds the `.exe` on every pull request; download it from the run's artifacts to test. To release, merge the version bump, then tag main with `v<version>` (for example `git tag v1.25.0 && git push origin v1.25.0`). The workflow checks the tag matches package.json and attaches the installer to that GitHub release, as `Bubblecast-Setup-<version>.exe` and as `Bubblecast-Setup.exe`, which the README's download link points to through `releases/latest/download`. The installer is unsigned, so SmartScreen warns on first run.
 
 ## Workflow
 

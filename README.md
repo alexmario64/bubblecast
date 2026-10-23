@@ -2,6 +2,8 @@
 
 A local streaming workspace for Twitch, YouTube (including a second Shorts stream), TikTok LIVE and Kick. It combines every chat into one OBS dock, puts chat, polls and stream events on transparent OBS overlays in a comic bubble style, and runs native polls across platforms. Everything runs on your own computer; there is no Bubblecast cloud service.
 
+**[⬇ Download Bubblecast for Windows](https://github.com/alexmario64/bubblecast/releases/latest/download/Bubblecast-Setup.exe)** · [All versions](https://github.com/alexmario64/bubblecast/releases)
+
 ## What it does
 
 - **Chat dock** (`/dock`): one feed for every platform, or side-by-side panes. Send to any connected chat, run and end polls on several platforms at once, and see live viewer counts. Bots show in the dock unless you hide them from its Bots menu.
@@ -15,7 +17,7 @@ Optional OBS interface themes that match Bubblecast are in `obs-themes/` (instal
 
 Bubblecast targets Windows for streaming. The simplest way in is the installer:
 
-1. Download `Bubblecast-Setup-<version>.exe` from the latest GitHub release and run it. Windows SmartScreen warns about unsigned apps; choose More info → Run anyway.
+1. Download the installer with the link above (or any version from Releases) and run it. Windows SmartScreen warns about unsigned apps; choose More info → Run anyway.
 2. The installer adds Bubblecast to the Start menu and desktop, starts it with Windows, adds the chat dock to OBS (when OBS is closed) and opens Studio. Opening the shortcut again brings Studio back.
 3. Add your channels under Connections. Follow [docs/own-apps.md](docs/own-apps.md) once if you sign in to YouTube or Kick.
 4. In Studio → OBS setup, add the overlays to OBS. If OBS was open during the install, close it and press Add dock.
