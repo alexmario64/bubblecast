@@ -66,6 +66,7 @@ const server=http.createServer(async(req,res)=>{
  const data=JSON.parse(body||'{}');
  if(u.pathname==='/api/twitch/connect')return json(await twitch.startSignIn());
  if(u.pathname==='/api/youtube/connect'){const sign=youtube.startSignIn();if(data.browser)openBrowser(sign.url);return json(sign);}
+ if(u.pathname==='/api/youtube/stream'){await youtube.choose(String(data.video||''),String(data.choice||''));return json(youtube.status());}
  if(u.pathname==='/api/youtube/disconnect'){await youtube.disconnect();return json({ok:true});}
  if(u.pathname==='/api/kick/connect'){if(!collectorActive()||!collector.kickConnect)return json({error:'Start the updated background helper to connect Kick for chat and polls.'},409);if(collectorCommands.length>=64)return json({error:'Capture command queue is busy.'},429);const sign=kick.startSignIn();queueCollector({action:'kick-connect',url:sign.url});return json({helper:true});}
  if(u.pathname==='/api/kick/disconnect'){await kick.disconnect();return json({ok:true});}
@@ -126,13 +127,13 @@ function helperTargets(data,official=officialTargets){return (Array.isArray(data
 function forHelper(job,kind){if(!job)return job;const official=kind==='send'&&job.official?new Set(job.official):officialTargets;return {...job,urls:Object.fromEntries(Object.entries(job.urls).filter(([k])=>!official.has(k)))};}
 // YouTube: official API for sending, polls and viewers; the helper reads chat from the page signed out.
 const appKeys=new AppKeys({file:join(root,'.local','app-keys.json')});
-const youtube=new YouTubeOfficial({file:join(root,'.local','youtube-auth.json'),onFound:found=>youtubeFound(found).catch(()=>{}),onMessage:ingestYouTube,onAuth:()=>refreshSources(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
+const youtube=new YouTubeOfficial({file:join(root,'.local','youtube-auth.json'),choicesFile:join(root,'.local','youtube-streams.json'),onFound:found=>youtubeFound(found).catch(()=>{}),onMessage:ingestYouTube,onAuth:()=>refreshSources(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
 const youtubeMerge=new YouTubeMerge({file:join(root,'.local','youtube-emojis.json')});
 function ingestYouTube(m){if(m.action){ingestOfficial(m);return;}const {message,updates}=youtubeMerge.api(m);ingestOfficial(message);for(const u of updates)ingestOfficial(u);}
 // Kick: official API for sending and viewers once connected; chat and polls stay with the helper.
 const kick=new KickOfficial({file:join(root,'.local','kick-auth.json'),onAuth:()=>refreshSources()});
 function configureKick(){kick.configure(sources.enabled&&sources.urls.kick?sources.kickChannel:'',{enabled:sources.enabled});}
-function configureYouTube(){const found=sources.youtubeFound||[];youtube.configure(sources.enabled?{youtube:sources.urls.youtube?sources.youtubeVideo||found[0]?.video||'':'',youtubeShorts:sources.urls.youtubeShorts?sources.youtubeShortsVideo||found[1]?.video||'':''}:{});youtube.autoFind(savedSources.enabled&&!savedSources.youtubeVideo&&!savedSources.youtubeShortsVideo);}
+function configureYouTube(){const found=sources.youtubeFound||[],slot=k=>found.find(f=>f.slot===k)?.video||'';youtube.configure(sources.enabled?{youtube:sources.urls.youtube?sources.youtubeVideo||slot('youtube'):'',youtubeShorts:sources.urls.youtubeShorts?sources.youtubeShortsVideo||slot('youtubeShorts'):''}:{});youtube.autoFind(savedSources.enabled&&!savedSources.youtubeVideo&&!savedSources.youtubeShortsVideo);}
 // A newly found or ended YouTube stream updates the chat sources the same way saving connections does.
 async function youtubeFound(found){const next=resolvedSources(savedSources,found);if(JSON.stringify(next.urls)===JSON.stringify(sources.urls)&&JSON.stringify(next.youtubeFound)===JSON.stringify(sources.youtubeFound))return;const changed=JSON.stringify(next.urls)!==JSON.stringify(sources.urls);sources=next;if(changed)await savePolls();emit('sources',sources);configureYouTube();}
 function resolvedSources(saved=savedSources,found=youtube.found){return withFoundVideos(withAccountChannels(saved,{twitch:twitch.connected?twitch.auth?.login:'',kick:kick.connected?kick.auth?.channel:''}),found);}

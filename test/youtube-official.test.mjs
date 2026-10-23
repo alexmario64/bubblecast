@@ -76,21 +76,6 @@ test('stream helpers parse split JSON and map polls and memberships',()=>{
  assert.deepEqual(youtubePoll({id:'q',snippet:{pollDetails:{status:'active',metadata:{questionText:'Next?',options:[{optionText:'A',tally:'3'},{optionText:'B',tally:'1'}]}}}}).choices.map(c=>[c.votes,c.percent]),[[3,75],[1,25]]);
 });
 test('the server keeps serving the overlay font file',async()=>{const server=await readFile(new URL('../server.mjs',import.meta.url),'utf8');assert.match(server,/u\.pathname==='\/fonts\/komika-axis\.ttf'/);});
-test('with no links entered, the channel’s own live streams are found and fill the two YouTube slots oldest first',async t=>{
- const {yt,g,timers}=await signedIn(t);const found=[];yt.onFound=f=>found.push(f);
- const original=g.request;yt.request=async(url,options)=>new URL(url).pathname.endsWith('/liveBroadcasts')?{ok:true,status:200,json:async()=>({items:[{id:'bbbbbbbbbbb',snippet:{title:'Vertical',actualStartTime:'2026-10-22T10:05:00Z'}},{id:'aaaaaaaaaaa',snippet:{title:'Main',actualStartTime:'2026-10-22T10:00:00Z'}},{id:'bad'}]})}:original(url,options);
- yt.autoFind(true);const find=timers.find(h=>!h.cancelled&&h.ms===1000&&!h.ran);find.ran=true;await find.fn();
- assert.deepEqual(found.at(-1),[{video:'aaaaaaaaaaa',title:'Main'},{video:'bbbbbbbbbbb',title:'Vertical'}]);assert.equal(yt.status().found.length,2);
- assert.equal(timers.at(-1).ms,90000,'the channel is checked about every 90–110 s');
- yt.autoFind(false);assert.deepEqual(found.at(-1),[],'turning it off forgets found streams');
-});
-test('found streams fill only empty YouTube links and leave other platforms alone',async()=>{
- const {sourceConfig,withFoundVideos}=await import('../source-config.mjs');const found=[{video:'aaaaaaaaaaa',title:'Main'},{video:'bbbbbbbbbbb',title:'Vertical'}];
- assert.equal(withFoundVideos({...sourceConfig({}),configured:false},found).configured,true,'discovery works before the first connection-form save');
- const auto=withFoundVideos(sourceConfig({kickChannel:'truealex'}),found);assert.match(auto.urls.youtube,/v=aaaaaaaaaaa/);assert.match(auto.urls.youtubeShorts,/v=bbbbbbbbbbb/);assert.match(auto.urls.kick,/truealex/);assert.equal(auto.youtubeVideo,'','typed fields stay empty');
- const typed=withFoundVideos(sourceConfig({youtubeVideo:'ccccccccccc'}),found);assert.match(typed.urls.youtube,/v=ccccccccccc/);assert.equal(typed.urls.youtubeShorts,'');
- assert.equal(withFoundVideos(sourceConfig({enabled:false}),found).urls.youtube,'','disconnected sources stay off');
-});
 test('a stream that is not live yet is found when it is ready or starts soon, and live streams come first',async()=>{
  const {pickBroadcasts}=await import('../youtube-official.mjs'),now=Date.parse('2026-10-22T18:00:00Z'),b=(id,state,extra={})=>({id:id.repeat(11).slice(0,11),snippet:{title:id,...extra},status:{lifeCycleStatus:state}});
  assert.deepEqual(pickBroadcasts([],[b('r','ready',{scheduledStartTime:'2026-10-01T00:00:00Z'})],now).map(f=>f.title),['r'],'a stream ready on the encoder counts even with an old schedule');
@@ -99,9 +84,44 @@ test('a stream that is not live yet is found when it is ready or starts soon, an
  assert.deepEqual(pickBroadcasts([b('l','live',{actualStartTime:'2026-10-22T17:00:00Z'})],[b('s','created',{scheduledStartTime:'2026-10-22T19:00:00Z'}),b('r','ready')],now).map(f=>f.title),['l','r'],'live first, then ready before merely scheduled');
  assert.deepEqual(pickBroadcasts([b('l','live')],[b('l','live')],now).length,1,'the same stream is never listed twice');
 });
-test('the finder asks for upcoming streams only while fewer than two are live',async t=>{
- const {yt,g,timers}=await signedIn(t);const asked=[];const original=g.request;
- yt.request=async(url,options)=>{const u=new URL(url);if(u.pathname.endsWith('/liveBroadcasts')){asked.push(u.searchParams.get('broadcastStatus'));return {ok:true,status:200,json:async()=>({items:u.searchParams.get('broadcastStatus')==='upcoming'?[{id:'ccccccccccc',snippet:{title:'Soon'},status:{lifeCycleStatus:'ready'}}]:[]})};}return original(url,options);};
- const found=[];yt.onFound=f=>found.push(f);yt.autoFind(true);const find=timers.find(h=>!h.cancelled&&h.ms===1000&&!h.ran);find.ran=true;await find.fn();
- assert.deepEqual(asked,['active','upcoming']);assert.deepEqual(found.at(-1),[{video:'ccccccccccc',title:'Soon'}]);
+// A scripted liveBroadcasts/liveStreams pair for the finder.
+function broadcasts(g,{active=[],upcoming=[],sending=[]}={}){const asked=[];const original=g.request;return {asked,request:async(url,options)=>{const u=new URL(url);
+ if(u.pathname.endsWith('/liveBroadcasts')){asked.push(u.searchParams.get('broadcastStatus'));return {ok:true,status:200,json:async()=>({items:u.searchParams.get('broadcastStatus')==='active'?active:upcoming})};}
+ if(u.pathname.endsWith('/liveStreams')){asked.push('streams:'+u.searchParams.get('id'));return {ok:true,status:200,json:async()=>({items:u.searchParams.get('id').split(',').map(id=>({id,status:{streamStatus:sending.includes(id)?'active':'inactive'}}))})};}
+ return original(url,options);}};}
+const bc=(id,state,extra={},key='')=>({id:id.repeat(11).slice(0,11),snippet:{title:id,...extra},status:{lifeCycleStatus:state},contentDetails:{boundStreamId:key}});
+async function find(yt,timers){const h=timers.find(h=>!h.cancelled&&h.ms===1000&&!h.ran);h.ran=true;await h.fn();}
+test('with no links entered, live streams are found first and fill the YouTube slots by title, oldest first',async t=>{
+ const {yt,g,timers}=await signedIn(t),b=broadcasts(g,{active:[bc('v','live',{actualStartTime:'2026-10-22T10:05:00Z'}),bc('m','live',{actualStartTime:'2026-10-22T10:00:00Z'}),{id:'bad'}]});yt.request=b.request;const found=[];yt.onFound=f=>found.push(f);
+ yt.autoFind(true);await find(yt,timers);
+ assert.deepEqual(found.at(-1),[{video:'mmmmmmmmmmm',title:'m',slot:'youtube',format:''},{video:'vvvvvvvvvvv',title:'v',slot:'youtubeShorts',format:''}]);assert.deepEqual(b.asked,['active'],'with two live there is no upcoming lookup');
+ assert.equal(timers.at(-1).ms,90000);yt.autoFind(false);assert.deepEqual(found.at(-1),[]);
+});
+test('before going live, the broadcast OBS is already sending to wins over YouTube’s always-ready placeholder',async t=>{
+ const {yt,g,timers}=await signedIn(t),b=broadcasts(g,{upcoming:[bc('p','ready',{title:'TrueAlex Live Stream'},'default-key'),bc('k','created',{title:'Kingdom Hearts',scheduledStartTime:new Date(Date.now()+3600000).toISOString()},'main-key')],sending:['main-key']});yt.request=b.request;
+ yt.autoFind(true);await find(yt,timers);assert.deepEqual(b.asked,['active','upcoming','streams:default-key,main-key']);
+ assert.deepEqual(yt.found.map(f=>[f.title,f.slot]),[['Kingdom Hearts','youtube'],['TrueAlex Live Stream','youtubeShorts']]);
+});
+test('a vertical choice is remembered per stream key, hiding is per broadcast, and both survive a restart',async t=>{
+ const {yt,g,timers,dir}=await signedIn(t),file=join(dir,'youtube-streams.json');yt.choicesFile=file;const b=broadcasts(g,{upcoming:[bc('p','ready',{title:'Placeholder'},'default-key'),bc('k','ready',{title:'Main'},'main-key'),bc('s','ready',{title:'Vertical'},'phone-key')]});yt.request=b.request;
+ yt.autoFind(true);await find(yt,timers);
+ await yt.choose('sssssssssss','vertical');await yt.choose('ppppppppppp','hide');
+ assert.deepEqual(yt.found.map(f=>[f.title,f.slot]),[['Main','youtube'],['Vertical','youtubeShorts']]);
+ const saved=JSON.parse(await readFile(file,'utf8'));assert.deepEqual(saved,{formats:{'phone-key':'vertical'},hidden:['ppppppppppp']});
+ const next=new YouTubeOfficial({file:join(dir,'youtube-auth.json'),clientId:'client.apps.googleusercontent.com',clientSecret:'installed-secret',choicesFile:file});await next.load();assert.deepEqual(next.choices,saved);
+ await yt.choose('ppppppppppp','auto');assert.equal(yt.candidates.find(c=>c.title==='Placeholder').hidden,false,'auto brings a hidden stream back');
+ await assert.rejects(yt.choose('zzzzzzzzzzz','vertical'),/no longer listed/);
+});
+test('slots follow the chosen format and never guess Shorts',async()=>{
+ const {assignSlots}=await import('../youtube-official.mjs');
+ assert.deepEqual(assignSlots([{video:'a',title:'A',format:'vertical'}]).map(f=>f.slot),['youtubeShorts'],'a lone vertical stream takes the vertical slot');
+ assert.deepEqual(assignSlots([{video:'a',title:'A',format:'horizontal'},{video:'b',title:'B',format:'horizontal'}]).map(f=>f.title),['A'],'two horizontal streams do not share a slot');
+ assert.deepEqual(assignSlots([{video:'a',title:'A',hidden:true},{video:'b',title:'B'}]).map(f=>[f.title,f.slot]),[['B','youtube']]);
+});
+test('found streams fill only empty YouTube links and leave other platforms alone',async()=>{
+ const {sourceConfig,withFoundVideos}=await import('../source-config.mjs');const found=[{video:'aaaaaaaaaaa',title:'Main',slot:'youtube'},{video:'bbbbbbbbbbb',title:'Vertical',slot:'youtubeShorts'}];
+ const auto=withFoundVideos(sourceConfig({kickChannel:'truealex'}),found);assert.match(auto.urls.youtube,/v=aaaaaaaaaaa/);assert.match(auto.urls.youtubeShorts,/v=bbbbbbbbbbb/);assert.match(auto.urls.kick,/truealex/);assert.equal(auto.youtubeVideo,'');
+ assert.equal(withFoundVideos(sourceConfig({}),[found[1]]).urls.youtube,'','a lone vertical stream leaves the main slot empty');
+ const typed=withFoundVideos(sourceConfig({youtubeVideo:'ccccccccccc'}),found);assert.match(typed.urls.youtube,/v=ccccccccccc/);assert.equal(typed.urls.youtubeShorts,'');
+ assert.equal(withFoundVideos(sourceConfig({enabled:false}),found).urls.youtube,'');
 });
