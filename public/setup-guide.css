@@ -1,3 +1,4 @@
+@font-face{font-family:'Komika Axis';src:local('Komika Axis'),url('/fonts/komika-axis.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
 /* Setup guide dialog. Colors come from Studio's theme tokens; the pictures use their own neutral palette
    (light for Google and Twitch pages, dark for Kick and OBS) so they read like the real screens. */
 .open-guide{display:flex;align-items:center;gap:9px;margin:4px 10px 0;padding:8px 12px;border-radius:11px;color:var(--text-2);font-size:12.5px;font-weight:600;text-decoration:none}
@@ -24,7 +25,8 @@ html.sg-open{overflow:hidden}
 .sg-count{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
 .sg-close{width:32px;height:32px;border:0;border-radius:50%;background:var(--surface-2);color:var(--text-2);font-size:20px;line-height:1;cursor:pointer}
 .sg-close:hover{color:var(--text)}
-.sg h2{margin:6px 0 14px;font-size:24px;line-height:1.2;text-wrap:balance}
+.sg h2{margin:6px 0 14px;font:400 23px/1.25 'Komika Axis',system-ui,sans-serif;text-wrap:balance}
+.sg-kicker,.sg-count,.sg-bubble,.sg-meter-label{font-family:'Komika Axis',system-ui,sans-serif;font-weight:400}
 .sg-body{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:24px;align-items:start}
 .sg-text p{margin:0 0 12px;color:var(--text-2);font-size:14.5px;line-height:1.6}
 .sg-extras{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}

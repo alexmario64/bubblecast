@@ -10,7 +10,7 @@
 <meta property="og:image" content="img/overlay-chat.webp">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap">
 <style>
 /* Colors follow Studio's Rose & peach theme; the bubble blue is the overlay's name tag. */
 :root{color-scheme:light;--bg:#fbf3ee;--bg-2:#f4e4e2;--surface:#fffaf6;--text:#43344a;--text-2:#7d6380;--line:#8c6b8424;--accent:#2a9e9c;--accent-grad:linear-gradient(145deg,#54cfc8,#28a8b0);--on-accent:#fff;--bubble:#3fbfe2;--hero:radial-gradient(ellipse at 95% 85%,#f3c58299 0,transparent 55%),radial-gradient(ellipse at 0 0,#e2adbdaa 0,transparent 55%),linear-gradient(135deg,#a173b1,#d39a9e 62%,#bc91a8);--hero-text:#fff8f1;--shadow:0 18px 50px #79516926;--stage:linear-gradient(160deg,#5b4a6b,#3a2f47)}
@@ -22,8 +22,10 @@ body{margin:0;background:var(--bg);color:var(--text);font:500 17px/1.6 Nunito,"S
 img{max-width:100%;display:block;height:auto}
 a{color:var(--accent)}
 .wrap{max-width:1120px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
-h1,h2,.display{font-family:Bangers,"Komika Axis","Comic Sans MS",cursive;font-weight:400;letter-spacing:.02em;line-height:1.02;text-wrap:balance;margin:0}
-h2{font-size:clamp(34px,5vw,52px)}
+/* Komika Axis (Apostrophic Labs, freeware), the overlay font, for every headline. */
+@font-face{font-family:'Komika Axis';src:local('Komika Axis'),url('fonts/komika-axis.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+h1,h2,.display{font-family:"Komika Axis","Comic Sans MS",cursive;font-weight:400;letter-spacing:0;line-height:1.12;text-wrap:balance;margin:0}
+h2{font-size:clamp(26px,3.6vw,38px)}
 h3{font-size:19px;margin:0 0 4px;font-weight:800}
 p{margin:0}
 .lede{color:var(--text-2);max-width:60ch}
@@ -36,7 +38,7 @@ nav .spacer{flex:1}
 nav a.link{color:inherit;text-decoration:none;opacity:.9;font-size:15px}
 .lang{border:1px solid #ffffff70;background:#ffffff26;color:inherit;border-radius:99px;padding:5px 12px;font:inherit;font-size:14px;cursor:pointer}
 .hero-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center;padding-block:56px 72px}
-.hero h1{font-size:clamp(52px,8vw,92px);text-shadow:0 3px 0 #0000001f}
+.hero h1{font-size:clamp(36px,5.4vw,64px);text-shadow:0 3px 0 #0000001f}
 .hero h1 em{font-style:normal;color:#ffe9a8}
 .hero .lede{color:#fff1e8;font-size:19px;margin-top:18px}
 .cta{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:30px}
@@ -70,7 +72,7 @@ figcaption b{color:var(--text)}
 
 .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;counter-reset:step}
 .step{counter-increment:step;position:relative;padding-top:58px;min-width:0}
-.step::before{content:counter(step);position:absolute;top:0;left:0;width:44px;height:44px;border-radius:50% 50% 50% 8px;background:var(--bubble);color:#fff;font:400 26px/44px Bangers,cursive;text-align:center;box-shadow:0 6px 16px #3fbfe255}
+.step::before{content:counter(step);position:absolute;top:0;left:0;width:44px;height:44px;border-radius:50% 50% 50% 8px;background:var(--bubble);color:#fff;font:400 19px/44px 'Komika Axis',cursive;text-align:center;box-shadow:0 6px 16px #3fbfe255}
 .step p{color:var(--text-2);font-size:16px}
 .note{margin-top:34px;padding:16px 20px;border-radius:14px;background:var(--surface);border:1px dashed var(--line);font-size:15px;color:var(--text-2)}
 .note b{color:var(--text)}
@@ -84,17 +86,44 @@ details p{margin-top:10px;color:var(--text-2);font-size:16px}
 
 .final{text-align:center;background:var(--hero);color:var(--hero-text)}
 .final .cta{justify-content:center}
-.final h2{font-size:clamp(40px,6vw,64px)}
+.final h2{font-size:clamp(28px,4.2vw,46px)}
 footer{padding-block:28px calc(28px + env(safe-area-inset-bottom,0px));font-size:14px;color:var(--text-2)}
 footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
 
 @media (max-width:900px){.hero-grid{grid-template-columns:1fr}.features{grid-template-columns:1fr 1fr}.steps{grid-template-columns:1fr 1fr}}
 @media (max-width:600px){.features,.steps,.showcase{grid-template-columns:1fr}nav a.link{display:none}section{padding-block:60px}.stage .poll{width:36%}}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.download{transition:none}}
+/* Motion: the hero lands in quick, springy beats; sections pop up as they scroll in. */
+@keyframes slam{0%{opacity:0;transform:scale(2) rotate(-4deg)}60%{opacity:1;transform:scale(.95) rotate(1deg)}100%{opacity:1;transform:none}}
+@keyframes stamp{0%{opacity:0;transform:scale(2.6) rotate(-14deg)}70%{opacity:1;transform:scale(.92) rotate(-3deg)}100%{opacity:1;transform:rotate(-3deg)}}
+@keyframes rise{0%{opacity:0;transform:translateY(40px)}100%{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(0)}70%{opacity:1;transform:scale(1.12)}100%{opacity:1;transform:none}}
+@keyframes flyL{0%{opacity:0;transform:translateX(-120%) rotate(-8deg)}100%{opacity:1;transform:none}}
+@keyframes bob{50%{transform:translateY(-10px)}}
+@keyframes live{50%{transform:scale(1.12)}}
+@keyframes nudge{0%,88%,100%{transform:none}90%{transform:rotate(-4deg) scale(1.06)}92%{transform:rotate(4deg) scale(1.06)}94%{transform:rotate(-2deg)}}
+@keyframes drift{from{transform:translateY(0)}to{transform:translateY(-110vh)}}
+.hero{position:relative}
+.hero .wrap{position:relative;z-index:1}
+.hero h1{animation:slam .55s cubic-bezier(.2,1.4,.4,1) both}
+.hero h1 em{display:inline-block;animation:stamp .6s .28s cubic-bezier(.2,1.5,.4,1) both}
+.hero .lede{animation:rise .5s .45s cubic-bezier(.2,1.3,.4,1) both}
+.hero .cta{animation:rise .5s .55s cubic-bezier(.2,1.3,.4,1) both}
+.hero .download{animation:nudge 5s 2.5s infinite}
+.platforms .chip{animation:pop .45s cubic-bezier(.2,1.6,.4,1) both}
+.platforms .chip:nth-child(1){animation-delay:.65s}.platforms .chip:nth-child(2){animation-delay:.72s}.platforms .chip:nth-child(3){animation-delay:.79s}.platforms .chip:nth-child(4){animation-delay:.86s}
+.hero .stage{animation:rise .6s .1s cubic-bezier(.2,1.3,.4,1) both}
+.stage .chat{animation:flyL .6s .5s cubic-bezier(.2,1.3,.4,1) both}
+.stage .poll{animation:pop .5s .85s cubic-bezier(.2,1.6,.4,1) both,bob 2.6s 1.4s infinite ease-in-out}
+.stage::after{animation:live 1s infinite ease-in-out}
+.bubbles span{position:absolute;bottom:-60px;border-radius:50%;background:#ffffff22;border:2px solid #ffffff33;animation:drift linear infinite}
+html.js .reveal{opacity:0;transform:translateY(34px) scale(.97);transition:opacity .45s ease,transform .55s cubic-bezier(.2,1.4,.4,1);transition-delay:calc(var(--i,0) * 70ms)}
+html.js .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.download{transition:none}*,*::before,*::after{animation:none!important}html.js .reveal{opacity:1;transform:none;transition:none}.bubbles{display:none}}
 </style>
 </head>
 <body>
 <header class="hero">
+ <div class="bubbles" aria-hidden="true"><span style="left:5%;width:40px;height:40px;animation-duration:9s"></span><span style="left:22%;width:18px;height:18px;animation-duration:6s;animation-delay:-3s"></span><span style="left:41%;width:28px;height:28px;animation-duration:8s;animation-delay:-5s"></span><span style="left:58%;width:14px;height:14px;animation-duration:5.5s;animation-delay:-1s"></span><span style="left:77%;width:46px;height:46px;animation-duration:11s;animation-delay:-6s"></span><span style="left:92%;width:22px;height:22px;animation-duration:7s;animation-delay:-2s"></span></div>
  <div class="wrap">
   <nav>
    <a class="brand" href="#"><img src="favicon.svg" alt="">Bubblecast</a>
@@ -215,6 +244,10 @@ button.onclick=()=>{lang=lang==='es'?'en':'es';try{localStorage.setItem('lang',l
 let latest=null;function release(){if(!latest)return;const date=new Date(latest.published_at).toLocaleDateString(lang==='es'?'es':'en',{year:'numeric',month:'short',day:'numeric'});document.getElementById('version').textContent=(lang==='es'?'Versión ':'Version ')+latest.tag_name.replace(/^v/,'')+' · '+date+' · Windows 10 / 11';}
 fetch('https://api.github.com/repos/alexmario64/bubblecast/releases/latest').then(r=>r.ok?r.json():null).then(r=>{if(r?.tag_name){latest=r;release();}}).catch(()=>{});
 apply();
+// Sections pop up the first time they scroll into view.
+document.documentElement.classList.add('js');
+const reveal=[...document.querySelectorAll('.card,.step,figure,details,.section-head')];reveal.forEach((el,i)=>{el.classList.add('reveal');el.style.setProperty('--i',i%6);});
+if('IntersectionObserver' in window){const io=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}},{threshold:.15});reveal.forEach(el=>io.observe(el));}else reveal.forEach(el=>el.classList.add('in'));
 </script>
 </body>
 </html>
