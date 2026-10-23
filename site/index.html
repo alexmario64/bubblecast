@@ -108,6 +108,24 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-betw
 .follow:hover{transform:translateY(-2px) scale(1.03)}
 .follow img{width:22px;height:22px}
 @media (max-width:760px){.creator-card{grid-template-columns:1fr;justify-items:start;padding:28px}}
+/* The download prompt: a friendly ask to follow or greet TrueAlex. Every choice still downloads. */
+.thanks{border:0;padding:0;background:none;max-width:min(460px,calc(100vw - 32px));overflow:visible}
+.thanks::backdrop{background:#1a0d2ecc;backdrop-filter:blur(4px)}
+.thanks[open] .thanks-card{animation:pop .45s cubic-bezier(.2,1.6,.4,1) both}
+.thanks-card{position:relative;display:grid;gap:14px;justify-items:center;text-align:center;padding:34px 28px 24px;border-radius:28px;background:radial-gradient(ellipse at 100% 0,#b07bff66 0,transparent 60%),linear-gradient(150deg,#4b1fa3,#7c3aed 60%,#9146ff);color:#fff;box-shadow:0 30px 80px #2a0f6680}
+.thanks-card .mark{width:72px;height:72px;border-radius:22px;display:grid;place-items:center;background:#ffffff1f;border:2px solid #ffffff38;animation:hop .9s .5s ease-in-out 2}
+.thanks-card .mark img{width:42px;height:42px;filter:brightness(0) invert(1)}
+@keyframes hop{50%{transform:translateY(-8px) rotate(-6deg)}}
+.thanks-card h2{color:#fff;font-size:clamp(22px,5vw,28px)}
+.thanks-card p{color:#efe6ff;font-size:16px;max-width:36ch}
+.thanks-actions{display:grid;gap:10px;width:100%;margin-top:6px}
+.thanks-actions a,.thanks-actions button{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 18px;border-radius:99px;font:800 16px Nunito,"Segoe UI",sans-serif;text-decoration:none;cursor:pointer;border:0;transition:transform .2s cubic-bezier(.2,.9,.25,1.15)}
+.thanks-actions a:hover,.thanks-actions button:hover{transform:scale(1.03)}
+.thanks-follow{background:#fff;color:#6c2bd9}
+.thanks-follow img{width:22px;height:22px}
+.thanks-chat{background:#ffffff26;color:#fff;border:1.5px solid #ffffff66!important}
+.thanks-skip{background:none;color:#e6d9ff;text-decoration:underline!important;font-weight:700!important;padding:8px!important}
+.thanks-close{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;border:0;background:#ffffff26;color:#fff;font-size:20px;line-height:1;cursor:pointer}
 /* Motion: the hero lands in quick, springy beats; sections pop up as they scroll in. */
 @keyframes slam{0%{opacity:0;transform:scale(2) rotate(-4deg)}60%{opacity:1;transform:scale(.95) rotate(1deg)}100%{opacity:1;transform:none}}
 @keyframes stamp{0%{opacity:0;transform:scale(2.6) rotate(-14deg)}70%{opacity:1;transform:scale(.92) rotate(-3deg)}100%{opacity:1;transform:rotate(-3deg)}}
@@ -257,6 +275,19 @@ html.js .reveal.in{opacity:1;transform:none}
  </div>
 </footer>
 
+<dialog class="thanks" id="thanks" aria-labelledby="thanksTitle">
+ <div class="thanks-card">
+  <button class="thanks-close" type="button" data-thanks-close aria-label="Close">×</button>
+  <div class="mark"><img src="img/twitch.webp" alt=""></div>
+  <h2 id="thanksTitle" data-i18n="thanks.title">Say hi to TrueAlex!</h2>
+  <p data-i18n="thanks.text">Bubblecast is free. If it helps your streams, follow TrueAlex on Twitch or drop a thank-you in chat.</p>
+  <div class="thanks-actions">
+   <a class="thanks-follow" href="https://www.twitch.tv/truealexlive" target="_blank" rel="noopener" data-thanks-go><img src="img/twitch.webp" alt=""><span data-i18n="thanks.follow">Follow on Twitch and download</span></a>
+   <a class="thanks-chat" href="https://www.twitch.tv/popout/truealexlive/chat" target="_blank" rel="noopener" data-thanks-go data-i18n="thanks.chat">Say thanks in chat and download</a>
+   <button class="thanks-skip" type="button" data-thanks-go data-i18n="thanks.skip">No thanks, just download</button>
+  </div>
+ </div>
+</dialog>
 <script>
 // Spanish follows the visitor's browser language, with a button to switch. English stays in the HTML.
 const es={'nav.features':'Funciones','nav.install':'Instalar','hero.title':'Todos los chats. <em>Una burbuja.</em>','hero.lede':'Bubblecast junta el chat de Twitch, YouTube, TikTok LIVE y Kick en un solo dock de OBS, lo muestra en el stream con burbujas de cómic y crea encuestas en todas las plataformas a la vez. Gratis, y funciona en tu propia PC.','cta.download':'Descargar para Windows','cta.meta':'Windows 10 y 11 · Gratis','cta.all':'Todas las versiones',
@@ -265,7 +296,7 @@ const es={'nav.features':'Funciones','nav.install':'Instalar','hero.title':'Todo
 'cap.dock':'<b>El dock del chat.</b> Vive dentro de OBS junto a tus escenas.','cap.studio':'<b>Studio.</b> Conecta tus canales y personaliza el dock y los overlays.',
 'install.title':'En vivo en cuatro pasos','install.lede':'El instalador prepara todo lo que OBS necesita. Sin Node.js ni línea de comandos.','s1.t':'Cierra OBS y ejecuta el instalador','s1.d':'Windows puede avisar que la app no es reconocida. Elige Más información y luego Ejecutar de todas formas.','s2.t':'Se configura solo','s2.d':'Bubblecast crea accesos directos, inicia con Windows, agrega el dock del chat a OBS y abre Studio.','s3.t':'Conecta tus canales','s3.d':'La guía de configuración de Bubblecast te lleva por cada plataforma, con una imagen de cada pantalla.','s4.t':'Agrega los overlays','s4.d':'En Studio → Configuración de OBS, agrega los overlays de chat y encuestas a tu escena con un clic.','install.note':'<b>El inicio de sesión de YouTube y Kick</b> usa tu propia app de desarrollador gratuita, así que tus límites son solo tuyos. La guía de configuración de Bubblecast muestra cada paso con imágenes. Toma unos diez minutos, una sola vez.',
 'faq.title':'Preguntas','q1.q':'¿De verdad es gratis?','q1.a':'Sí. Bubblecast es de código abierto y no tiene servidores que pagar: todo funciona en tu computadora.','q2.q':'¿Funciona en Mac?','q2.a':'El instalador es para Windows, donde la mayoría usa OBS. Los desarrolladores pueden ejecutarlo desde el código en macOS.','q3.q':'¿Mi cuenta está segura?','q3.a':'Bubblecast nunca ve tus contraseñas. Twitch, YouTube y Kick usan el inicio de sesión oficial de cada plataforma, y el acceso se guarda en tu propia carpeta de usuario de Windows.','q4.q':'¿Cómo actualizo?','q4.a':'Descarga el instalador más reciente y ejecútalo. Tus canales, ajustes y sesiones se conservan.','q5.q':'El dock no aparece en OBS.','q5.a':'Seguramente OBS estaba abierto durante la instalación. Cierra OBS y pulsa Agregar dock en Studio → Configuración de OBS, o usa Agregar dock a OBS desde el icono de Bubblecast en la bandeja.',
-'final.title':'Junta todos tus chats','footer.made':'Bubblecast · código abierto, funciona en tu PC','footer.privacy':'Privacidad','promo.text':'Hecho por TrueAlex · Contenido de Nintendo en Twitch','promo.follow':'Seguir','creator.title':'Hecho por TrueAlex','creator.text':'Creo contenido de Nintendo en Twitch y hice Bubblecast para mis propios streams. Pásate a saludar en el chat: puede que salgas en una burbuja.','creator.follow':'Seguir en Twitch'};
+'final.title':'Junta todos tus chats','footer.made':'Bubblecast · código abierto, funciona en tu PC','footer.privacy':'Privacidad','promo.text':'Hecho por TrueAlex · Contenido de Nintendo en Twitch','promo.follow':'Seguir','creator.title':'Hecho por TrueAlex','creator.text':'Creo contenido de Nintendo en Twitch y hice Bubblecast para mis propios streams. Pásate a saludar en el chat: puede que salgas en una burbuja.','creator.follow':'Seguir en Twitch','thanks.title':'¡Saluda a TrueAlex!','thanks.text':'Bubblecast es gratis. Si te ayuda en tus streams, sigue a TrueAlex en Twitch o déjale un gracias en el chat.','thanks.follow':'Seguir en Twitch y descargar','thanks.chat':'Dar las gracias en el chat y descargar','thanks.skip':'No, gracias, solo descargar'};
 const nodes=[...document.querySelectorAll('[data-i18n]')],en=new Map(nodes.map(n=>[n,n.innerHTML])),button=document.getElementById('lang');
 let lang='en';try{lang=localStorage.getItem('lang')||(navigator.language.startsWith('es')?'es':'en');}catch{lang=navigator.language.startsWith('es')?'es':'en';}
 function apply(){document.documentElement.lang=lang;for(const n of nodes)n.innerHTML=lang==='es'&&es[n.dataset.i18n]?es[n.dataset.i18n]:en.get(n);button.textContent=lang==='es'?'EN':'ES';button.setAttribute('aria-label',lang==='es'?'English':'Español');release();}
@@ -276,6 +307,12 @@ fetch('https://api.github.com/repos/alexmario64/bubblecast/releases/latest').the
 apply();
 // Sections pop up the first time they scroll into view.
 document.documentElement.classList.add('js');
+// Download buttons ask once per click to follow or greet TrueAlex; every choice downloads, closing cancels.
+const thanks=document.getElementById('thanks');let pending='';
+for(const link of document.querySelectorAll('a.download'))link.addEventListener('click',e=>{if(typeof thanks.showModal!=='function')return;e.preventDefault();pending=link.href;thanks.showModal();});
+for(const el of thanks.querySelectorAll('[data-thanks-go]'))el.addEventListener('click',()=>{const url=pending;thanks.close();if(url)setTimeout(()=>{location.href=url;},el.tagName==='A'?400:0);});
+thanks.querySelector('[data-thanks-close]').addEventListener('click',()=>thanks.close());
+thanks.addEventListener('click',e=>{if(e.target===thanks)thanks.close();});
 const reveal=[...document.querySelectorAll('.card,.step,figure,details,.section-head')];reveal.forEach((el,i)=>{el.classList.add('reveal');el.style.setProperty('--i',i%6);});
 if('IntersectionObserver' in window){const io=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}},{threshold:.15});reveal.forEach(el=>io.observe(el));}else reveal.forEach(el=>el.classList.add('in'));
 </script>
