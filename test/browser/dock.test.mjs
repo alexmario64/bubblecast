@@ -189,10 +189,12 @@ test('chat reloads are optional troubleshooting actions rather than account cont
  const buttons=[...details.querySelectorAll('button')];assert.deepEqual(buttons.map(b=>b.textContent),['Reload Kick chat','Reload TikTok chat']);assert.equal(f.requests.some(([url])=>url==='/api/collector/control'),false);
  await buttons[0].onclick();const calls=f.requests.filter(([url])=>url==='/api/collector/control');assert.equal(calls.length,1);assert.deepEqual(JSON.parse(calls[0][1].body),{action:'refresh',sourceKey:'kick'});
 });
-test('found YouTube streams show a short title on their chip, with the full title in the tooltip',async t=>{
+test('found YouTube stream chips keep plain names and show the title on hover',async t=>{
  const long='Playing a Long Adventure Game Tonight';const f=await setup(t,[],{status:{bridge:{},collector:{},sources:{enabled:true,urls:{youtube:'u',youtubeShorts:'v'},youtubeFound:[{video:'kkkkkkkkkkk',title:long,slot:'youtube',format:''},{video:'vvvvvvvvvvv',title:'Short one',slot:'youtubeShorts',format:'vertical'}]},youtube:{connected:true}}});
- for(let i=0;i<40&&f.doc.querySelector('[data-feed="youtube"] span:last-child').textContent==='YouTube';i++)await new Promise(r=>setTimeout(r,25));
- const chip=f.doc.querySelector('[data-feed="youtube"]');assert.equal(chip.querySelector('span:last-child').textContent,'Playing a Lon…');assert.equal(chip.title,long);
- assert.equal(f.doc.querySelector('[data-feed="youtubeShorts"] span:last-child').textContent,'Short one');assert.ok(f.doc.querySelector('[data-feed="youtubeShorts"] .feed-icon').classList.contains('shorts'),'a stream marked vertical keeps the Shorts icon');
- assert.ok(!f.doc.body.textContent.includes(long),'the complete title is not shown anywhere on the dock');
+ for(let i=0;i<40&&!f.doc.querySelector('[data-feed="youtube"]').title;i++)await new Promise(r=>setTimeout(r,25));
+ const chip=f.doc.querySelector('[data-feed="youtube"]');assert.equal(chip.querySelector('span:last-child').textContent,'YouTube');assert.equal(chip.title,long);
+ assert.equal(f.doc.querySelector('[data-feed="youtubeShorts"] span:last-child').textContent,'Shorts');assert.ok(f.doc.querySelector('[data-feed="youtubeShorts"] .feed-icon').classList.contains('shorts'),'a stream marked vertical keeps the Shorts icon');
+ f.events.emit('message',message('m1','youtube'));for(let i=0;i<40&&!f.doc.querySelector('.chat-row .origin');i++)await new Promise(r=>setTimeout(r,25));
+ const origin=f.doc.querySelector('.chat-row .origin');assert.equal(origin.textContent,'YouTube');assert.equal(origin.title,long,'the message label shows the stream title on hover');
+ assert.ok(!f.doc.body.textContent.includes(long),'the title is never shown as text in the dock');
 });
