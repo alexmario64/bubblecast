@@ -2,6 +2,7 @@
 // and returned to this local server. Used for account actions only: sending chat, live status and viewer count.
 // Kick delivers chat and events through webhooks, which need a public server, so chat keeps being read from
 // Kick's public chat connection in the helper. Kick polls have no API and stay in the signed-in Kick page.
+import {errorText} from './net-errors.mjs';
 import {randomBytes,createHash} from 'node:crypto';
 import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import {dirname} from 'node:path';
@@ -65,7 +66,7 @@ export class KickOfficial{
    if(own){if(!/^[a-z0-9][a-z0-9_-]{0,49}$/.test(c.slug||''))throw Error('Kick did not return your channel name. Enter a channel manually.');if(Number(c.broadcaster_user_id)!==Number(this.auth.user.id))throw Error('Kick returned a different account channel. Enter a channel manually.');this.auth.channel=c.slug;this.channel=c.slug;await this.save();this.onAuth();if(generation!==this.generation)return;}
 
    this.target=Number(c.broadcaster_user_id)||null;const live=c.stream?.is_live===true;this.viewers={live,viewers:live&&Number.isFinite(Number(c.stream?.viewer_count))?Number(c.stream.viewer_count):null,updatedAt:this.now(),error:null};this.error=null;
-  }catch(error){this.error=String(error.message||error);if(error.status===401)return;}
+  }catch(error){this.error=errorText(error,'Kick');if(error.status===401)return;}
   if(generation===this.generation)this.timer=this.schedule(()=>this.poll(generation),90000+Math.floor(this.random()*20000));
  }
 
@@ -74,7 +75,7 @@ export class KickOfficial{
   if(!this.connected)return {status:'failed',detail:'Connect Kick in Studio to send messages.'};
   if(!this.target)return {status:'failed',detail:'Kick has not found this channel yet. Try again in a moment.'};
   if([...text].length>500)return {status:'failed',detail:'Kick messages can be at most 500 characters.'};
-  try{await this.access();}catch(error){return {status:'failed',detail:String(error.message||error)};}
+  try{await this.access();}catch(error){return {status:'failed',detail:errorText(error,'Kick')};}
   try{const r=await this.api('chat',{method:'POST',body:{type:'user',broadcaster_user_id:this.target,content:text}});return r.data?.is_sent===false?{status:'failed',detail:'Kick did not accept the message.'}:{status:'submitted',detail:'Sent through the Kick API.'};}
   catch(error){return error.status?{status:'failed',detail:String(error.message)}:{status:'unknown',detail:'Kick did not answer. Check chat before sending again.'};}
  }

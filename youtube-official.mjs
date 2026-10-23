@@ -1,6 +1,7 @@
 // Official YouTube connection: Google sign-in for desktop apps (loopback + PKCE) and the YouTube Data API.
 // Reads chat through YouTube's official live chat stream and sends chat, runs polls and reads viewer counts.
 // Custom emojis arrive as :name: text; youtube-merge.mjs adds their images from the signed-out chat page.
+import {errorText} from './net-errors.mjs';
 import {randomBytes,createHash} from 'node:crypto';
 import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import {dirname} from 'node:path';
@@ -66,7 +67,7 @@ export class YouTubeOfficial{
   try{const ids=Object.values(this.videos);const items=(await this.api('videos',{query:{part:'liveStreamingDetails',id:ids.join(',')}})).items||[];
    for(const [key,video] of Object.entries(this.videos)){const d=items.find(i=>i.id===video)?.liveStreamingDetails;const live=!!d?.activeLiveChatId&&!d.actualEndTime;this.chats[key]=live?d.activeLiveChatId:null;this.readChat(key);this.viewers[key]={live,viewers:live&&d.concurrentViewers!=null?Number(d.concurrentViewers):null,updatedAt:this.now(),error:null};}
    this.error=null;
-  }catch(error){this.error=String(error.message||error);}
+  }catch(error){this.error=errorText(error,'YouTube');}
   this.timer('chats',()=>this.pollChats(generation),90000+this.random()*20000);
  }
  // ---- Finding the channel's own streams: liveBroadcasts.list (1 unit each) about every 90-110 s. ----
@@ -82,7 +83,7 @@ export class YouTubeOfficial{
    const receiving=new Set(keys.length?((await this.api('liveStreams',{query:{part:'id,status',id:keys.join(','),maxResults:'25'}})).items||[]).filter(i=>i.status?.streamStatus==='active').map(i=>i.id):[]);
    this.candidates=pickBroadcasts(active,upcoming,this.now(),{receiving,limit:4}).map(c=>({...c,format:this.choices.formats[c.streamKey||c.video]||'',hidden:this.choices.hidden.includes(c.video)}));
    this.assign();
-  }catch(error){this.error=String(error.message||error);}
+  }catch(error){this.error=errorText(error,'YouTube');}
   if(this.finding)this.timer('find',()=>this.findLive(),90000+this.random()*20000);
  }
  // Vertical streams take the second slot, everything else the first; hidden streams take neither.
@@ -109,7 +110,7 @@ export class YouTubeOfficial{
    const parser=new JsonObjects();for await(const chunk of r.body){for(const page of parser.push(chunk)){if(stream.stopped)return;stream.failures=0;this.accept(key,stream,page);}}
    if(stream.stopped)return;this.timer('stream-'+key,()=>this.openStream(key),1000+this.random()*1000);
   }catch(error){
-   if(stream.stopped)return;this.error=String(error.message||error);
+   if(stream.stopped)return;this.error=errorText(error,'YouTube');
    if(['liveChatEnded','liveChatDisabled','liveChatNotFound','forbidden','quotaExceeded','insufficientPermissions'].includes(error.reason)){if(error.reason!=='quotaExceeded')this.chats[key]=null;delete this.streams[key];return;}
    if(error.reason==='pageTokenInvalid')stream.token='';stream.failures++;this.timer('stream-'+key,()=>this.openStream(key),Math.min(60000,2000*2**Math.min(stream.failures,5))+this.random()*1000);
   }
@@ -127,21 +128,21 @@ export class YouTubeOfficial{
  async sendChat(key,text){
   if(!this.connected)return {status:'failed',detail:'Connect YouTube in Studio to send messages.'};
   try{await this.api('liveChat/messages',{method:'POST',query:{part:'snippet'},body:{snippet:{liveChatId:this.chatFor(key),type:'textMessageEvent',textMessageDetails:{messageText:text}}}});return {status:'submitted',detail:'Sent'};}
-  catch(error){return {status:error.reason||/not live|Add this/.test(error.message)?'failed':'unknown',detail:String(error.message||error)+(error.reason?'':' Check chat before sending again.')};}
+  catch(error){return {status:error.reason||/not live|Add this/.test(error.message)?'failed':'unknown',detail:errorText(error,'YouTube')+(error.reason?'':' Check chat before sending again.')};}
  }
  async createPoll(key,{question,choices}){
   if(!this.connected)return {status:'failed',detail:'Connect YouTube in Studio to run polls.'};
   try{const m=await this.api('liveChat/messages',{method:'POST',query:{part:'snippet'},body:{snippet:{liveChatId:this.chatFor(key),type:'pollEvent',pollDetails:{metadata:{questionText:question,options:choices.map(optionText=>({optionText}))}}}}});
    if(!m.id)return {status:'unknown',detail:'YouTube did not confirm the poll. Check the chat before trying again.'};this.polls[key]=m.id;
    this.onPoll({platform:'youtube',sourceKey:key,id:m.id,question,status:'active',choices:choices.map((text,i)=>({id:String(i),text,votes:null,percent:null}))});return {status:'submitted',detail:'Poll started'};}
-  catch(error){return {status:error.reason||/not live|Add this/.test(error.message)?'failed':'unknown',detail:String(error.message||error)};}
+  catch(error){return {status:error.reason||/not live|Add this/.test(error.message)?'failed':'unknown',detail:errorText(error,'YouTube')};}
  }
  // Ends the poll this app started; YouTube identifies polls by their chat message id.
  async endPoll(key,pollId){
   if(!this.connected)return {status:'failed',detail:'Connect YouTube in Studio to end polls.'};
   const id=this.polls[key]||pollId;if(!id)return {status:'failed',detail:'Bubblecast did not start this poll. End it on YouTube.'};
   try{await this.api('liveChat/messages/transition',{method:'POST',query:{id,status:'closed',part:'snippet'}});delete this.polls[key];return {status:'submitted',detail:'Poll ended'};}
-  catch(error){return {status:error.reason?'failed':'unknown',detail:String(error.message||error)+(error.reason?'':' Check the chat before trying again.')};}
+  catch(error){return {status:error.reason?'failed':'unknown',detail:errorText(error,'YouTube')+(error.reason?'':' Check the chat before trying again.')};}
  }
 }
 
