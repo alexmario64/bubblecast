@@ -29,7 +29,7 @@ html,body{margin:0;background:transparent!important;width:100%;height:100%;overf
 .platform.twitch,.platform.youtube{text-shadow:none;color:#536d80;font:700 10px/1 sans-serif}
 .platform img{display:block;width:95%;height:95%;object-fit:contain;filter:drop-shadow(0 1px 1px #ffffff73)}
 .platform.youtube img{width:90%;height:82%;filter:none}
-.platform.twitch img,.platform.kick img{filter:brightness(0) invert(1)}
+
 
 /* Message bubble with a glossy top highlight. */
 .body{position:relative;padding:17px 18px 15px;background:linear-gradient(155deg,#ffffffd9,var(--bubble) 56%);color:var(--text);font:400 var(--size)/1.65 var(--font,'Komika Axis'),'Arial Rounded MT Bold',sans-serif;border:1px solid #ffffffeb;border-radius:25px;white-space:pre-wrap;overflow-wrap:anywhere;min-width:105px;box-shadow:inset 0 2px 2px #fff,inset 0 -3px 4px #91a8af29,0 0 0 1px #bdcfd04d}

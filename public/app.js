@@ -1,7 +1,7 @@
 import {initConnections} from '/connections.js';
 import {knownBots} from '/core.mjs';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],form=$('#settings');
-const platforms=['twitch','youtube','tiktok','kick'],names={twitch:'Twitch',youtube:'YouTube',tiktok:'TikTok LIVE',kick:'Kick'},logos={twitch:'/logos/twitch.png',youtube:'/logos/youtube.png',tiktok:'/logos/tiktok.svg',kick:'/logos/kick.svg'};
+const platforms=['twitch','youtube','tiktok','kick'],names={twitch:'Twitch',youtube:'YouTube',tiktok:'TikTok LIVE',kick:'Kick'},logos={twitch:'/logos/twitch.png',youtube:'/logos/youtube.png',tiktok:'/logos/tiktok-on-dark.svg',kick:'/logos/kick.svg'};
 const sourceIds=['twitchChannel','youtubeVideo','youtubeShortsVideo','tiktokChannel','kickChannel'];
 let token='',state={},loaded=false,saveTimer=null,demoTimer=null,index=0,sourceFieldsLoaded=false,lastStatus=null;
 const store={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};

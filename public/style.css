@@ -203,7 +203,7 @@ input.switch:checked{background:var(--accent)}input.switch:checked::after{transf
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 /* TikTok's logo is white with color fringes; it needs its usual dark tile. */
-img[src$="tiktok.svg"]{background:#161823!important;border-radius:7px;padding:3px!important}.nav-platform img[src$="tiktok.svg"]{border-radius:4px;padding:1.5px!important}
+img[src$="tiktok-on-dark.svg"]{background:#161823!important;border-radius:7px;padding:3px!important}.nav-platform img[src$="tiktok-on-dark.svg"]{border-radius:4px;padding:1.5px!important}
 .font-preview{gap:8px}.font-sample{font-size:26px;line-height:1.3;color:var(--text);padding:10px 14px;border-radius:12px;background:var(--surface-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .font-status{font-size:11.5px;color:var(--good)}.font-status[data-state=missing]{color:var(--warn)}.font-status:empty{display:none}#browseFonts{align-self:flex-start}
 /* On the red backdrop, header actions read better as white buttons. */
