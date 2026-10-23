@@ -1,0 +1,1 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><defs><path id="note" d="M25 3h7a10 10 0 0 0 10 10v7c-3.74 0-7.2-1.2-10-3.25V31a13 13 0 1 1-11-12.85v7.2A5.99 5.99 0 1 0 25 31V3Z"/></defs><use href="#note" fill="#25f4ee" transform="translate(-1 1)"/><use href="#note" fill="#fe2c55" transform="translate(1 -1)"/><use href="#note" fill="#fff"/></svg>

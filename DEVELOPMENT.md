@@ -26,6 +26,9 @@ Streaming and OBS stay on Windows. On a Mac: install Node.js 22+ and pnpm as abo
 `pnpm dist:win` builds `dist/Bubblecast-Setup-<version>.exe` with electron-builder (on Windows; the build config is the `build` key in package.json). The installer is per user and needs no administrator rights or Node.js: the helper runs the server inside itself. An installed copy keeps its data in `%APPDATA%\Bubblecast\.local`, `settings.json` and `sources.json` (the helper sets `BUBBLECAST_DATA`); a checkout keeps using the repository folder. On its first launch it starts with Windows, adds the dock to OBS through `obs-dock.mjs` (only while OBS is closed, since OBS rewrites its config on exit) and opens Studio.
 
 The Windows installer workflow builds the `.exe` on every pull request; download it from the run's artifacts to test. To release, merge the version bump, then tag main with `v<version>` (for example `git tag v1.25.0 && git push origin v1.25.0`). The workflow checks the tag matches package.json and attaches the installer to that GitHub release, as `Bubblecast-Setup-<version>.exe` and as `Bubblecast-Setup.exe`, which the README's download link points to through `releases/latest/download`. The installer is unsigned, so SmartScreen warns on first run.
+## Website
+
+`site/` is the public landing page (plain HTML, no build step), published to GitHub Pages by the Website workflow when `site/` changes on main. Its download buttons point to `releases/latest/download/Bubblecast-Setup.exe`, so a new release needs no site change. The images in `site/img` come from `pnpm screenshots` (overlay showcase and dock preview, which use made-up names) cropped with `cwebp`; never publish screenshots showing real channels or chat. Spanish text lives in the page's own script.
 
 ## Workflow
 
