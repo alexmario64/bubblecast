@@ -7,7 +7,7 @@
 <meta name="description" content="How Bubblecast handles data: everything stays on the streamer's own computer.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap">
 <style>
 /* Same tokens as the landing page. */
 :root{color-scheme:light;--bg:#fbf3ee;--surface:#fffaf6;--text:#43344a;--text-2:#7d6380;--line:#8c6b8424;--accent:#2a9e9c;--hero:radial-gradient(ellipse at 95% 85%,#f3c58299 0,transparent 55%),radial-gradient(ellipse at 0 0,#e2adbdaa 0,transparent 55%),linear-gradient(135deg,#a173b1,#d39a9e 62%,#bc91a8);--hero-text:#fff8f1}
@@ -20,9 +20,11 @@ a{color:var(--accent)}
 header{background:var(--hero);color:var(--hero-text);padding-block:calc(18px + env(safe-area-inset-top,0px)) 44px}
 nav a{display:inline-flex;align-items:center;gap:10px;color:inherit;text-decoration:none;font-weight:800;font-size:20px}
 nav img{width:34px;height:34px}
-h1,h2{font-family:Bangers,"Komika Axis","Comic Sans MS",cursive;font-weight:400;letter-spacing:.02em;line-height:1.05;text-wrap:balance}
-h1{font-size:clamp(44px,8vw,68px);margin:34px 0 6px}
-h2{font-size:30px;margin:38px 0 8px}
+/* Komika Axis (Apostrophic Labs, freeware), the overlay font, for every headline. */
+@font-face{font-family:'Komika Axis';src:local('Komika Axis'),url('fonts/komika-axis.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+h1,h2{font-family:"Komika Axis","Comic Sans MS",cursive;font-weight:400;letter-spacing:0;line-height:1.15;text-wrap:balance}
+h1{font-size:clamp(32px,6vw,50px);margin:34px 0 6px}
+h2{font-size:23px;margin:38px 0 8px}
 header p{margin:0;opacity:.9}
 main{padding-block:20px 70px}
 main p,main li{color:var(--text-2)}
