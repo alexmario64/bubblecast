@@ -19,7 +19,7 @@ Bubblecast targets Windows for streaming. The simplest way in is the installer:
 
 1. Download the installer with the link above (or any version from Releases) and run it. Windows SmartScreen warns about unsigned apps; choose More info → Run anyway.
 2. The installer adds Bubblecast to the Start menu and desktop, starts it with Windows, adds the chat dock to OBS (when OBS is closed) and opens Studio. Opening the shortcut again brings Studio back.
-3. Add your channels under Connections. Follow [docs/own-apps.md](docs/own-apps.md) once if you sign in to YouTube or Kick.
+3. Add your channels under Connections. YouTube chat is read only while OBS is streaming (the overlays and dock tell Bubblecast), so offline hours use none of your YouTube API quota. Follow [docs/own-apps.md](docs/own-apps.md) once if you sign in to YouTube or Kick.
 4. In Studio → OBS setup, add the overlays to OBS. If OBS was open during the install, close it and press Add dock.
 
 Settings and sign-ins live in `%APPDATA%\Bubblecast` and survive updates. To update, run the newer installer. To remove it, use Uninstall Bubblecast in the Start menu or the tray icon's menu, or Windows Settings → Apps.
