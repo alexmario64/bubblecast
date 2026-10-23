@@ -1,0 +1,36 @@
+name: Windows installer
+# Builds Bubblecast-Setup-<version>.exe on every pull request (downloadable from the run's artifacts) and
+# attaches it to a GitHub release when a v<version> tag is pushed.
+on:
+  pull_request:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Check the tag matches the app version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - run: pnpm dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bubblecast-Setup
+          path: dist/Bubblecast-Setup-*.exe
+          if-no-files-found: error
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "Bubblecast $GITHUB_REF_NAME" --generate-notes; gh release upload "$GITHUB_REF_NAME" dist/Bubblecast-Setup-*.exe --clobber
