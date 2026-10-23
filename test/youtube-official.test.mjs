@@ -98,9 +98,9 @@ test('with no links entered, live streams are found first and fill the YouTube s
  assert.equal(timers.at(-1).ms,90000);yt.autoFind(false);assert.deepEqual(found.at(-1),[]);
 });
 test('before going live, the broadcast OBS is already sending to wins over YouTube’s always-ready placeholder',async t=>{
- const {yt,g,timers}=await signedIn(t),b=broadcasts(g,{upcoming:[bc('p','ready',{title:'TrueAlex Live Stream'},'default-key'),bc('k','created',{title:'Kingdom Hearts',scheduledStartTime:new Date(Date.now()+3600000).toISOString()},'main-key')],sending:['main-key']});yt.request=b.request;
+ const {yt,g,timers}=await signedIn(t),b=broadcasts(g,{upcoming:[bc('p','ready',{title:'Channel Live Stream'},'default-key'),bc('k','created',{title:'Evening Stream',scheduledStartTime:new Date(Date.now()+3600000).toISOString()},'main-key')],sending:['main-key']});yt.request=b.request;
  yt.autoFind(true);await find(yt,timers);assert.deepEqual(b.asked,['active','upcoming','streams:default-key,main-key']);
- assert.deepEqual(yt.found.map(f=>[f.title,f.slot]),[['Kingdom Hearts','youtube'],['TrueAlex Live Stream','youtubeShorts']]);
+ assert.deepEqual(yt.found.map(f=>[f.title,f.slot]),[['Evening Stream','youtube'],['Channel Live Stream','youtubeShorts']]);
 });
 test('a vertical choice is remembered per stream key, hiding is per broadcast, and both survive a restart',async t=>{
  const {yt,g,timers,dir}=await signedIn(t),file=join(dir,'youtube-streams.json');yt.choicesFile=file;const b=broadcasts(g,{upcoming:[bc('p','ready',{title:'Placeholder'},'default-key'),bc('k','ready',{title:'Main'},'main-key'),bc('s','ready',{title:'Vertical'},'phone-key')]});yt.request=b.request;
@@ -120,7 +120,7 @@ test('slots follow the chosen format and never guess Shorts',async()=>{
 });
 test('found streams fill only empty YouTube links and leave other platforms alone',async()=>{
  const {sourceConfig,withFoundVideos}=await import('../source-config.mjs');const found=[{video:'aaaaaaaaaaa',title:'Main',slot:'youtube'},{video:'bbbbbbbbbbb',title:'Vertical',slot:'youtubeShorts'}];
- const auto=withFoundVideos(sourceConfig({kickChannel:'truealex'}),found);assert.match(auto.urls.youtube,/v=aaaaaaaaaaa/);assert.match(auto.urls.youtubeShorts,/v=bbbbbbbbbbb/);assert.match(auto.urls.kick,/truealex/);assert.equal(auto.youtubeVideo,'');
+ const auto=withFoundVideos(sourceConfig({kickChannel:'samplestreamer'}),found);assert.match(auto.urls.youtube,/v=aaaaaaaaaaa/);assert.match(auto.urls.youtubeShorts,/v=bbbbbbbbbbb/);assert.match(auto.urls.kick,/samplestreamer/);assert.equal(auto.youtubeVideo,'');
  assert.equal(withFoundVideos(sourceConfig({}),[found[1]]).urls.youtube,'','a lone vertical stream leaves the main slot empty');
  const typed=withFoundVideos(sourceConfig({youtubeVideo:'ccccccccccc'}),found);assert.match(typed.urls.youtube,/v=ccccccccccc/);assert.equal(typed.urls.youtubeShorts,'');
  assert.equal(withFoundVideos(sourceConfig({enabled:false}),found).urls.youtube,'');

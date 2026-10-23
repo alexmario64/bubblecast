@@ -15,8 +15,8 @@ for(const file of ['index.html','dock.html'])test(file+' has a Spanish translati
 test('text the page adds later is translated, chat stays as written, and English comes back',async t=>{
  const w=await page(t,'index.html'),label=w.document.querySelector('#account-youtube');w.bubblecastI18n.setLanguage('es');
  label.textContent='Connected as Live';await flush(w);assert.equal(label.textContent,'Conectado como Live');
- label.textContent='Sending as TrueAlex · finding channel';await flush(w);assert.equal(label.textContent,'Enviando como TrueAlex · buscando el canal');
+ label.textContent='Sending as SampleStreamer · finding channel';await flush(w);assert.equal(label.textContent,'Enviando como SampleStreamer · buscando el canal');
  const input=w.document.querySelector('#youtubeVideo');assert.equal(input.placeholder,'Se encuentra solo');
- w.bubblecastI18n.setLanguage('en');assert.equal(label.textContent,'Sending as TrueAlex · finding channel');assert.equal(input.placeholder,'Found automatically');
+ w.bubblecastI18n.setLanguage('en');assert.equal(label.textContent,'Sending as SampleStreamer · finding channel');assert.equal(input.placeholder,'Found automatically');
  const dock=await page(t,'dock.html');dock.bubblecastI18n.setLanguage('es');const row=dock.document.createElement('div');row.className='chat-row';row.textContent='Send';dock.document.querySelector('#messages').append(row);await flush(dock);assert.equal(row.textContent,'Send','a viewer typing "Send" is not translated');
 });
