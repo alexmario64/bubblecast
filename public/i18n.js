@@ -52,6 +52,7 @@ const patterns=[
  [/^(.+) on stream$/,'$1 en el stream'],[/^(.+) in dock$/,'$1 en el dock'],[/^(.+) — add stream$/,'$1 — agrega el stream'],[/^(.+) Text kept\. No automatic retry\.$/,'$1 Se conservó el texto. No se reintenta solo.'],
  [/^Copied (.+)\.?$/,'Se copió $1'],
  [/^Format for (.+)$/,'Formato de $1'],
+ [/^Could not reach (.+)\. Check your internet connection; Bubblecast keeps retrying\.$/,'No se pudo conectar con $1. Revisa tu conexión a internet; Bubblecast sigue reintentando.'],[/^(.+) did not answer in time\. Bubblecast keeps retrying\.$/,'$1 no respondió a tiempo. Bubblecast sigue reintentando.'],
  [/^Added (.+) to scene “(.+)”\.$/,'Se agregó $1 a la escena “$2”.'],
  [/^(.+) viewers?$/,(m,who)=>who+' espectadores'],
 ];

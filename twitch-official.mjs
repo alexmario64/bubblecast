@@ -1,5 +1,6 @@
 // Official Twitch connection: Device Code sign-in, EventSub WebSocket and Helix.
 // Runs in the local server. No secret is needed: the app is a Public Twitch client.
+import {errorText} from './net-errors.mjs';
 import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import {dirname} from 'node:path';
 export const TWITCH_CLIENT_ID='yxei290g7kg2xheueg1esf32moozc0';
@@ -82,7 +83,7 @@ export class TwitchOfficial{
  configure(channel){channel=String(channel||'').toLowerCase();if(!/^[a-z0-9_]{1,25}$/.test(channel))channel='';if(channel===this.channel)return;this.channel=channel;this.reconnect();}
  // Stops the event connection only; sign-in and hourly validation keep their own timers.
  stop(){this.generation++;for(const name of ['keepalive','retry','viewers'])this.cancel(this.timers[name]);const socket=this.socket;this.socket=null;this.session=null;socket?.close();this.broadcaster=null;this.viewers=null;}
- reconnect(){this.stop();if(this.connected&&this.channel)this.start(this.generation).catch(error=>{this.error=String(error.message||error);this.timer('retry',()=>this.reconnect(),60000);});}
+ reconnect(){this.stop();if(this.connected&&this.channel)this.start(this.generation).catch(error=>{this.error=errorText(error,'Twitch');this.timer('retry',()=>this.reconnect(),60000);});}
  async start(generation){
   const user=(await this.helix('/users?login='+encodeURIComponent(this.channel))).data?.[0];if(generation!==this.generation)return;
   if(!user)throw Error('Twitch channel '+this.channel+' was not found.');this.broadcaster={id:user.id,login:user.login};this.error=null;
@@ -114,22 +115,22 @@ export class TwitchOfficial{
   else if(type.startsWith('channel.poll.')){const p=poll(e,type);if(p)this.onPoll(p);}
  }
  // Viewer count from Helix, about every 90-110 s.
- async refreshViewers(generation){if(generation!==this.generation||!this.broadcaster)return;try{const s=(await this.helix('/streams?user_id='+this.broadcaster.id)).data?.[0];this.viewers={live:!!s,viewers:s?s.viewer_count:null,updatedAt:this.now(),error:null};}catch(error){this.viewers={live:null,viewers:null,updatedAt:this.now(),error:String(error.message||error).slice(0,120)};}this.timer('viewers',()=>this.refreshViewers(generation),90000+this.random()*20000);}
+ async refreshViewers(generation){if(generation!==this.generation||!this.broadcaster)return;try{const s=(await this.helix('/streams?user_id='+this.broadcaster.id)).data?.[0];this.viewers={live:!!s,viewers:s?s.viewer_count:null,updatedAt:this.now(),error:null};}catch(error){this.viewers={live:null,viewers:null,updatedAt:this.now(),error:errorText(error,'Twitch').slice(0,120)};}this.timer('viewers',()=>this.refreshViewers(generation),90000+this.random()*20000);}
 
  // ---- Actions (official endpoints only) ----
  async sendChat(text){
   if(!this.ready)return {status:'failed',detail:'Connect Twitch in Studio to send messages.'};
   try{const r=(await this.helix('/chat/messages',{method:'POST',body:{broadcaster_id:this.broadcaster.id,sender_id:this.auth.user_id,message:text}})).data?.[0];return r?.is_sent?{status:'submitted',detail:'Sent'}:{status:'failed',detail:r?.drop_reason?.message||'Twitch did not accept the message.'};}
-  catch(error){return {status:'unknown',detail:String(error.message||error)+' Check chat before sending again.'};}
+  catch(error){return {status:'unknown',detail:errorText(error,'Twitch')+' Check chat before sending again.'};}
  }
  async createPoll({question,choices,duration}){
   if(!this.ready)return {status:'failed',detail:'Connect Twitch in Studio to run polls.'};if(!this.isBroadcaster)return {status:'failed',detail:'Only the channel owner can run Twitch polls.'};
   try{const p=(await this.helix('/polls',{method:'POST',body:{broadcaster_id:this.broadcaster.id,title:question,choices:choices.map(title=>({title})),duration}})).data?.[0];if(!p)return {status:'unknown',detail:'Twitch did not confirm the poll. Check the channel before trying again.'};const mapped=poll(p,'channel.poll.begin');if(mapped)this.onPoll(mapped);return {status:'submitted',detail:'Poll started'};}
-  catch(error){return {status:/affiliate|partner/i.test(String(error.message))?'failed':'unknown',detail:String(error.message||error)};}
+  catch(error){return {status:/affiliate|partner/i.test(String(error.message))?'failed':'unknown',detail:errorText(error,'Twitch')};}
  }
  async endPoll(id){
   if(!this.ready||!this.isBroadcaster)return {status:'failed',detail:'Connect Twitch as the channel owner to end polls.'};
   try{await this.helix('/polls',{method:'PATCH',body:{broadcaster_id:this.broadcaster.id,id,status:'TERMINATED'}});return {status:'submitted',detail:'Poll ended'};}
-  catch(error){return {status:'unknown',detail:String(error.message||error)+' Check the channel before trying again.'};}
+  catch(error){return {status:'unknown',detail:errorText(error,'Twitch')+' Check the channel before trying again.'};}
  }
 }
