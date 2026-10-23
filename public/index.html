@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bubblecast Studio</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/style.css"></head>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bubblecast Studio</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/setup-guide.css"></head>
 <body data-theme="rose">
 <div class="app">
 <aside class="sidebar">
@@ -22,6 +22,7 @@
   <a href="#connections" class="nav-platform" id="nav-tiktok"><img src="/logos/tiktok.svg" alt=""><span>TikTok</span><i></i></a>
   <a href="#connections" class="nav-platform" id="nav-kick"><img src="/logos/kick.svg" alt=""><span>Kick</span><i></i></a>
  </div>
+ <a class="open-guide" href="#" data-open-guide="welcome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.9"/><path d="M12 17h.01"/></svg>Setup guide</a>
  <a class="open-dock" href="/dock" target="_blank" rel="noopener">Open chat dock<span aria-hidden="true">↗</span></a>
 </aside>
 
@@ -72,7 +73,7 @@
    <div class="account-line"><span id="account-youtube">Not connected</span><button type="button" class="button" id="youtubeConnect">Connect YouTube</button></div>
    <p class="hint">Leave both links empty and Bubblecast finds your live streams on its own once YouTube is connected.</p>
    <ul class="found-streams" id="youtubeStreams" aria-label="Streams found on your channel" hidden></ul>
-   <details class="inline-advanced app-keys" data-app="youtube"><summary>Your Google app</summary><p class="hint">YouTube uses your own Google app, so the daily quota is yours. <a href="https://github.com/alexmario64/bubblecast/blob/main/docs/own-apps.md#youtube" target="_blank" rel="noopener">Setup guide</a></p><label class="field">Client ID<input name="clientId" placeholder="….apps.googleusercontent.com" spellcheck="false" autocomplete="off"></label><label class="field">Client secret<input name="clientSecret" type="password" placeholder="Paste the client secret" spellcheck="false" autocomplete="off"></label><button type="button" class="button" data-save-app="youtube">Save Google app</button></details>
+   <details class="inline-advanced app-keys" data-app="youtube"><summary>Your Google app</summary><p class="hint">YouTube uses your own Google app, so the daily quota is yours. <a href="#" data-open-guide="youtube">Setup guide</a></p><label class="field">Client ID<input name="clientId" placeholder="….apps.googleusercontent.com" spellcheck="false" autocomplete="off"></label><label class="field">Client secret<input name="clientSecret" type="password" placeholder="Paste the client secret" spellcheck="false" autocomplete="off"></label><button type="button" class="button" data-save-app="youtube">Save Google app</button></details>
   </article>
   <article class="card platform-card" data-platform="tiktok"><div class="platform-head"><img src="/logos/tiktok.svg" alt=""><h2>TikTok LIVE</h2><span class="pill" id="tiktokStatus">Not connected</span></div>
    <label class="field">Creator<input id="tiktokChannel" placeholder="@handle or LIVE link" spellcheck="false"></label>
@@ -81,7 +82,7 @@
   <article class="card platform-card" data-platform="kick"><div class="platform-head"><img src="/logos/kick.svg" alt=""><h2>Kick</h2><span class="pill" id="kickStatus">Not connected</span></div>
    <div class="account-line kick-connection"><span id="account-kick-api">Not connected</span><button type="button" class="button" id="kickConnect">Connect Kick</button><button type="button" class="button" id="kickDisconnect" hidden>Disconnect</button></div>
    <div class="account-line"><span id="account-kick">Connect Kick for chat and polls.</span></div>
-   <details class="inline-advanced app-keys" data-app="kick"><summary>Your Kick app</summary><p class="hint">Kick uses your own Kick app. Set its redirect URL to <code>http://localhost:3927/oauth/kick/callback</code>. <a href="https://github.com/alexmario64/bubblecast/blob/main/docs/own-apps.md#kick" target="_blank" rel="noopener">Setup guide</a></p><label class="field">Client ID<input name="clientId" placeholder="Client ID" spellcheck="false" autocomplete="off"></label><label class="field">Client secret<input name="clientSecret" type="password" placeholder="Paste the client secret" spellcheck="false" autocomplete="off"></label><button type="button" class="button" data-save-app="kick">Save Kick app</button></details>
+   <details class="inline-advanced app-keys" data-app="kick"><summary>Your Kick app</summary><p class="hint">Kick uses your own Kick app. Set its redirect URL to <code>http://localhost:3927/oauth/kick/callback</code>. <a href="#" data-open-guide="kick">Setup guide</a></p><label class="field">Client ID<input name="clientId" placeholder="Client ID" spellcheck="false" autocomplete="off"></label><label class="field">Client secret<input name="clientSecret" type="password" placeholder="Paste the client secret" spellcheck="false" autocomplete="off"></label><button type="button" class="button" data-save-app="kick">Save Kick app</button></details>
   </article>
  </div>
  <details class="card connection-overrides"><summary>Optional channel overrides</summary><p class="hint">Only fill these in to watch a different channel.</p><div class="connection-grid">
@@ -253,5 +254,5 @@
 </div>
 <form id="previewOnly" hidden></form>
 <div class="toasts" id="toasts" aria-live="polite"></div>
-<script src="/i18n.js"></script><script src="/tooltip.js"></script><script type="module" src="/app.js"></script>
+<script src="/i18n.js"></script><script src="/tooltip.js"></script><script src="/setup-guide.js"></script><script type="module" src="/app.js"></script>
 </body></html>
