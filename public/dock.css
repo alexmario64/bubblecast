@@ -39,7 +39,7 @@ nav{margin-top:10px}
 .feeds button.unconfigured{opacity:.55}.feeds button.unconfigured.selected{opacity:1}
 .feed-icon{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);font-size:13px;line-height:1;position:relative;flex-shrink:0}
 .feed-icon.all{color:var(--accent)}
-.feed-icon:not(.all)::before{content:'';width:14px;height:14px;background:currentColor;mask:var(--logo) center/contain no-repeat;-webkit-mask:var(--logo) center/contain no-repeat}
+.feed-icon:not(.all)::before{content:'';width:14px;height:14px;background:var(--logo) center/contain no-repeat}
 .feed-icon.twitch{--logo:url('/logos/twitch.png');color:#9146ff}
 .feed-icon.youtube{--logo:url('/logos/youtube.svg');color:#ff2a2a}
 .feed-icon.shorts{--logo:url('/logos/youtube.svg');color:#e2457a}
@@ -87,7 +87,8 @@ header:not(:has(+.layout-tools)){border-bottom:1px solid var(--border);border-ra
 .chat-row:last-child{border-bottom:0}
 .meta{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-bottom:4px}
 .origin{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:650;line-height:1.7;padding:0 6px;border-radius:6px;color:var(--text-2);background:var(--surface-2)}
-.origin-logo{display:inline-block;width:11px;height:11px;flex-shrink:0;background:currentColor;mask:var(--origin-logo) center/contain no-repeat;-webkit-mask:var(--origin-logo) center/contain no-repeat}
+.origin-logo{display:inline-block;width:11px;height:11px;flex-shrink:0;background:var(--origin-logo) center/contain no-repeat}
+body[data-theme=midnight] .feed-icon.tiktok{--logo:url('/logos/tiktok-on-dark.svg')}body[data-theme=midnight] .origin.tiktok{--origin-logo:url('/logos/tiktok-on-dark.svg')}
 .origin.twitch{color:#7d3ff2;background:#9146ff17;--origin-logo:url('/logos/twitch.png')}
 .origin.youtube{color:var(--live);background:#ff2a2a14;--origin-logo:url('/logos/youtube.svg')}
 .origin.tiktok{color:#1f6f6d;background:#25f4ee1f;--origin-logo:url('/logos/tiktok.svg')}
@@ -241,7 +242,8 @@ html:has(body.dock-pane){background:transparent}
 
 /* Platform marks */
 .panel-platforms{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;vertical-align:middle}
-.platform-mark{display:block;width:16px;height:16px;background:currentColor;mask:var(--platform-logo) center/contain no-repeat;-webkit-mask:var(--platform-logo) center/contain no-repeat}
+.platform-mark{display:block;width:16px;height:16px;background:var(--platform-logo) center/contain no-repeat}
+body[data-theme=midnight] .platform-mark.tiktok{--platform-logo:url('/logos/tiktok-on-dark.svg')}
 .platform-mark.twitch{color:#9146ff;--platform-logo:url('/logos/twitch.png')}
 .platform-mark.youtube{color:#ff2a2a;--platform-logo:url('/logos/youtube.svg')}
 .platform-mark.tiktok{color:var(--tiktok);--platform-logo:url('/logos/tiktok.svg')}

@@ -33,7 +33,7 @@ const kickRedirect='http://localhost:3927/oauth/kick/callback',home='https://ale
 const chapters=[
  {id:'welcome',title:'Welcome',logo:'/favicon.svg',steps:[
   {title:'Let’s set up Bubblecast',text:['This guide connects your platforms and adds Bubblecast to OBS. It takes about 20 minutes, and you only do it once.','Skip any platform you don’t stream on. You can close the guide any time and come back from Setup guide in the sidebar.'],
-   picture:`<div class="sg-hero"><img src="/logos/twitch.png" alt=""><img src="/logos/youtube.png" alt=""><img src="/logos/tiktok.svg" alt=""><img src="/logos/kick.svg" alt=""><span class="sg-bubble">One chat for every platform</span></div>`}]},
+   picture:`<div class="sg-hero"><img src="/logos/twitch.png" alt=""><img src="/logos/youtube.png" alt=""><img src="/logos/tiktok-on-dark.svg" alt=""><img src="/logos/kick.svg" alt=""><span class="sg-bubble">One chat for every platform</span></div>`}]},
  {id:'twitch',title:'Twitch',logo:'/logos/twitch.png',done:()=>connected('#account-twitch'),steps:[
   {title:'Connect Twitch',text:['Click Connect Twitch below. Bubblecast shows a short code.','Open twitch.tv/activate, type the code, then click Activate and Authorize. Bubblecast connects on its own a few seconds later.'],
    picture:win('twitch.tv/activate',h('Activate your device')+type('Enter the code shown in Bubblecast','KQXW-BHTP')+row(click('Activate',{primary:true,key:'act'}))+box(h('Bubblecast wants to access your account')+row(click('Authorize',{primary:true})),{reveal:'act'}),'sg-twitch'),
@@ -74,9 +74,9 @@ const chapters=[
   {title:'Paste the Kick keys and connect',text:['Copy the Client ID and Client secret from your new Kick app, paste them below and click Save.','Click Connect Kick. Sign in to Kick in the window that opens if asked, then allow access.'],
    picture:win('id.kick.com',h('Bubblecast wants to')+tick('Read user information',{on:true,static:true})+tick('Read channel information',{on:true,static:true})+tick('Write to Chat feed',{on:true,static:true})+row(click('Allow access',{primary:true})),'sg-dark sg-kick'),
    action:'kick'}]},
- {id:'tiktok',title:'TikTok LIVE',logo:'/logos/tiktok.svg',done:()=>!!$('#tiktokChannel')?.value.trim(),steps:[
+ {id:'tiktok',title:'TikTok LIVE',logo:'/logos/tiktok-on-dark.svg',done:()=>!!$('#tiktokChannel')?.value.trim(),steps:[
   {title:'Add your TikTok handle',text:['TikTok has no app to set up. Type your @handle below and click Save, and Bubblecast reads your LIVE chat.','To send messages to TikTok from the dock, also click Sign in and log in to TikTok in the window that opens.'],
-   picture:app('Bubblecast Studio',`<div class="sg-card">${row('<img src="/logos/tiktok.svg" alt="">',h('TikTok LIVE'))+type('Creator','@yourhandle')+row(click('Save',{primary:true}),plain('Sign in'))}</div>`),
+   picture:app('Bubblecast Studio',`<div class="sg-card">${row('<img src="/logos/tiktok-on-dark.svg" alt="">',h('TikTok LIVE'))+type('Creator','@yourhandle')+row(click('Save',{primary:true}),plain('Sign in'))}</div>`),
    action:'tiktok'}]},
  {id:'obs',title:'OBS',logo:'/logo-glyph.svg',done:()=>store.get('bubblecast-guide-obs')==='done',steps:[
   {title:'Add the chat dock',text:['Close OBS, then click Add dock below. Bubblecast adds itself to OBS’s Docks menu.','Open OBS again and turn on Bubblecast under Docks if it isn’t showing.'],
