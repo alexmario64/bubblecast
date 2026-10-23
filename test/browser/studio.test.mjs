@@ -71,9 +71,9 @@ test('Connect Kick queues one helper flow without opening a separate browser or 
  await doc.querySelector('#kickConnect').onclick();assert.equal(calls.filter(([url])=>url==='/api/kick/connect').length,1);assert.equal(opened,0);assert.equal(doc.querySelector('[data-setup-signin="kick"]'),null);assert.equal(doc.querySelector('#kickDisconnect').hidden,true);
 });
 test('found YouTube streams are listed by title and a format choice is sent once',async t=>{
- const saved=status.youtube;status.youtube={...saved,candidates:[{video:'kkkkkkkkkkk',title:'Kingdom Hearts',live:false,receiving:true,format:'',hidden:false},{video:'ppppppppppp',title:'TrueAlex Live Stream',live:false,receiving:false,format:'',hidden:true}]};t.after(()=>{status.youtube=saved;});
+ const saved=status.youtube;status.youtube={...saved,candidates:[{video:'kkkkkkkkkkk',title:'Evening Stream',live:false,receiving:true,format:'',hidden:false},{video:'ppppppppppp',title:'Channel Live Stream',live:false,receiving:false,format:'',hidden:true}]};t.after(()=>{status.youtube=saved;});
  const {w,doc,calls}=await studio(t);await wait(20);const list=doc.querySelector('#youtubeStreams');
- assert.equal(list.hidden,false);const rows=[...list.querySelectorAll('li')];assert.equal(rows.length,2);assert.equal(rows[0].querySelector('.stream-title').textContent,'Kingdom Hearts');assert.equal(rows[0].querySelector('.stream-state').textContent,'Receiving video');assert.equal(rows[1].querySelector('select').value,'hide');
+ assert.equal(list.hidden,false);const rows=[...list.querySelectorAll('li')];assert.equal(rows.length,2);assert.equal(rows[0].querySelector('.stream-title').textContent,'Evening Stream');assert.equal(rows[0].querySelector('.stream-state').textContent,'Receiving video');assert.equal(rows[1].querySelector('select').value,'hide');
  const select=rows[0].querySelector('select');select.value='vertical';select.dispatchEvent(new w.Event('change'));await wait(20);
  const sent=calls.filter(([url,o])=>url==='/api/youtube/stream'&&o?.method==='POST');assert.equal(sent.length,1);assert.deepEqual(JSON.parse(sent[0][1].body),{video:'kkkkkkkkkkk',choice:'vertical'});
 });
