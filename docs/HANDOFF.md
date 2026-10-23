@@ -37,7 +37,7 @@ Lessons from this session:
 - **Twitch:** official API (Device Code sign-in, Helix, EventSub) plus Twitch's official IRC chat. The helper never opens Twitch.
 - **YouTube:** official API on the streamer's own Google app (`.local/app-keys.json`), giving each install its own 10,000-unit daily quota.
   - Chat is read from `liveChat/messages/stream`. Sending and polls also use the API.
-  - With both stream links empty, `liveBroadcasts.list` finds the channel's live streams about every 90–110 s and fills two slots (YouTube and Shorts).
+  - With both stream links empty, `liveBroadcasts.list` finds the channel's live streams, and upcoming ones that are ready or start within 12 hours, about every 90–110 s and fills two slots (YouTube and Shorts).
   - The helper's signed-out YouTube page is kept only to add member badges, Super Sticker images and member-only emojis to API messages (`youtube-merge.mjs`). It never adds rows or polls.
   - Standard emoji characters become YouTube's Noto images. `scripts/import-youtube-emojis.mjs` imports custom emojis from a saved live_chat page.
 - **Kick:** sending chat, live status and viewer count go through the official API on the streamer's own Kick app (`kick-official.mjs`, OAuth 2.1 with PKCE, redirect `http://localhost:3927/oauth/kick/callback`). Chat and events are still read from Kick's public chat socket in the helper, because the API only offers webhooks and there's no server. Kick polls still run in the signed-in Kick page, because there's no poll API.

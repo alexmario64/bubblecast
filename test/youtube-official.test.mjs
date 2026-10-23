@@ -91,3 +91,17 @@ test('found streams fill only empty YouTube links and leave other platforms alon
  const typed=withFoundVideos(sourceConfig({youtubeVideo:'ccccccccccc'}),found);assert.match(typed.urls.youtube,/v=ccccccccccc/);assert.equal(typed.urls.youtubeShorts,'');
  assert.equal(withFoundVideos(sourceConfig({enabled:false}),found).urls.youtube,'','disconnected sources stay off');
 });
+test('a stream that is not live yet is found when it is ready or starts soon, and live streams come first',async()=>{
+ const {pickBroadcasts}=await import('../youtube-official.mjs'),now=Date.parse('2026-10-22T18:00:00Z'),b=(id,state,extra={})=>({id:id.repeat(11).slice(0,11),snippet:{title:id,...extra},status:{lifeCycleStatus:state}});
+ assert.deepEqual(pickBroadcasts([],[b('r','ready',{scheduledStartTime:'2026-10-01T00:00:00Z'})],now).map(f=>f.title),['r'],'a stream ready on the encoder counts even with an old schedule');
+ assert.deepEqual(pickBroadcasts([],[b('s','created',{scheduledStartTime:'2026-10-22T20:00:00Z'})],now).map(f=>f.title),['s'],'scheduled within 12 hours');
+ assert.deepEqual(pickBroadcasts([],[b('f','created',{scheduledStartTime:'2026-10-25T20:00:00Z'}),b('o','created',{scheduledStartTime:'2026-10-20T20:00:00Z'})],now),[],'another day, or long overdue, does not take a slot');
+ assert.deepEqual(pickBroadcasts([b('l','live',{actualStartTime:'2026-10-22T17:00:00Z'})],[b('s','created',{scheduledStartTime:'2026-10-22T19:00:00Z'}),b('r','ready')],now).map(f=>f.title),['l','r'],'live first, then ready before merely scheduled');
+ assert.deepEqual(pickBroadcasts([b('l','live')],[b('l','live')],now).length,1,'the same stream is never listed twice');
+});
+test('the finder asks for upcoming streams only while fewer than two are live',async t=>{
+ const {yt,g,timers}=await signedIn(t);const asked=[];const original=g.request;
+ yt.request=async(url,options)=>{const u=new URL(url);if(u.pathname.endsWith('/liveBroadcasts')){asked.push(u.searchParams.get('broadcastStatus'));return {ok:true,status:200,json:async()=>({items:u.searchParams.get('broadcastStatus')==='upcoming'?[{id:'ccccccccccc',snippet:{title:'Soon'},status:{lifeCycleStatus:'ready'}}]:[]})};}return original(url,options);};
+ const found=[];yt.onFound=f=>found.push(f);yt.autoFind(true);const find=timers.find(h=>!h.cancelled&&h.ms===1000&&!h.ran);find.ran=true;await find.fn();
+ assert.deepEqual(asked,['active','upcoming']);assert.deepEqual(found.at(-1),[{video:'ccccccccccc',title:'Soon'}]);
+});

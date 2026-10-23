@@ -69,13 +69,15 @@ export class YouTubeOfficial{
   }catch(error){this.error=String(error.message||error);}
   this.timer('chats',()=>this.pollChats(generation),90000+this.random()*20000);
  }
- // ---- Finding the channel's own live streams: one liveBroadcasts.list call (1 unit) about every 90-110 s. ----
- // Used when no stream links are entered. Up to two streams at once fill the YouTube and Shorts slots, oldest first.
+ // ---- Finding the channel's own streams: liveBroadcasts.list (1 unit each) about every 90-110 s. ----
+ // Used when no stream links are entered. Live streams come first; while fewer than two are live, upcoming
+ // streams that are ready or about to start fill the rest, because YouTube opens their chat before going live.
  autoFind(on){on=!!on&&this.connected;if(on===this.finding)return;this.finding=on;this.cancel(this.timers.find);if(on)this.timer('find',()=>this.findLive(),1000);else if(this.found.length){this.found=[];this.onFound([]);}}
  async findLive(){
   if(!this.finding||!this.connected)return;
-  try{const items=(await this.api('liveBroadcasts',{query:{part:'id,snippet',broadcastStatus:'active',broadcastType:'all',maxResults:'5'}})).items||[];
-   const found=items.filter(i=>/^[\w-]{11}$/.test(i.id||'')).sort((a,b)=>Date.parse(a.snippet?.actualStartTime||0)-Date.parse(b.snippet?.actualStartTime||0)).slice(0,2).map(i=>({video:i.id,title:String(i.snippet?.title||'').slice(0,120)}));
+  try{const list=async status=>(await this.api('liveBroadcasts',{query:{part:'id,snippet,status',broadcastStatus:status,broadcastType:'all',maxResults:'25'}})).items||[];
+   const active=await list('active'),upcoming=active.length>=2?[]:await list('upcoming');
+   const found=pickBroadcasts(active,upcoming,this.now());
    if(JSON.stringify(found)!==JSON.stringify(this.found)){this.found=found;this.onFound(found);}
   }catch(error){this.error=String(error.message||error);}
   if(this.finding)this.timer('find',()=>this.findLive(),90000+this.random()*20000);
@@ -163,4 +165,13 @@ export function youtubePoll(item,sourceKey='youtube'){
  const d=item?.snippet?.pollDetails,m=d?.metadata;if(!item?.id||!m?.questionText||!Array.isArray(m.options))return null;
  const votes=m.options.map(o=>o.tally==null?null:Number(o.tally)),total=votes.every(Number.isFinite)?votes.reduce((a,b)=>a+b,0):null;
  return {platform:'youtube',sourceKey,id:item.id,question:m.questionText,status:d.status==='closed'?'closed':'active',choices:m.options.map((o,i)=>({id:String(i),text:o.optionText,votes:votes[i],percent:total?votes[i]/total*100:null}))};
+}
+// Up to two of the channel's streams: live ones oldest first, then upcoming ones that are ready on the encoder
+// or scheduled to start soon. Streams scheduled for another day don't take a slot.
+export function pickBroadcasts(active=[],upcoming=[],now=Date.now()){
+ const valid=i=>/^[\w-]{11}$/.test(i?.id||''),time=v=>{const t=Date.parse(v||'');return Number.isFinite(t)?t:null;};
+ const live=active.filter(i=>valid(i)&&i.status?.lifeCycleStatus!=='complete').sort((a,b)=>(time(a.snippet?.actualStartTime)??0)-(time(b.snippet?.actualStartTime)??0));
+ const soon=upcoming.filter(i=>{if(!valid(i))return false;const state=i.status?.lifeCycleStatus;if(['complete','revoked'].includes(state))return false;if(['ready','testStarting','liveStarting','testing'].includes(state))return true;const start=time(i.snippet?.scheduledStartTime);return start===null||start-now<=12*3600000&&now-start<=24*3600000;})
+  .sort((a,b)=>{const ready=i=>i.status?.lifeCycleStatus==='created'?1:0;return ready(a)-ready(b)||Math.abs((time(a.snippet?.scheduledStartTime)??now)-now)-Math.abs((time(b.snippet?.scheduledStartTime)??now)-now);});
+ const seen=new Set();return [...live,...soon].filter(i=>!seen.has(i.id)&&seen.add(i.id)).slice(0,2).map(i=>({video:i.id,title:String(i.snippet?.title||'').slice(0,120)}));
 }

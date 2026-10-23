@@ -33,7 +33,7 @@ test('Device Code sign-in waits for approval, validates, saves the token private
  const device=f.calls.find(c=>c.path==='/device');assert.equal(device.body.get('client_id'),TWITCH_CLIENT_ID);assert.ok(!device.body.has('client_secret'));
  await f.run(h=>h.ms===5000);assert.equal(twitch.connected,false,'still pending');await f.run(h=>h.ms===5000);
  assert.equal(twitch.connected,true);assert.equal(twitch.auth.login,'streamer');if(process.platform!=='win32')assert.equal((await stat(file)).mode&0o777,0o600);assert.equal(JSON.parse(await readFile(file,'utf8')).refresh_token,'rt');
- for(let i=0;i<50&&!f.socket;i++)await new Promise(r=>setImmediate(r));assert.match(f.socket.url,/eventsub\.wss\.twitch\.tv/);
+ for(const until=Date.now()+2000;!f.socket&&Date.now()<until;)await new Promise(r=>setImmediate(r));assert.match(f.socket.url,/eventsub\.wss\.twitch\.tv/);
  await f.socket.emit({metadata:{message_type:'session_welcome'},payload:{session:{id:'s1',keepalive_timeout_seconds:10}}});
  const subs=f.calls.filter(c=>c.path==='/eventsub/subscriptions').map(c=>JSON.parse(c.body).type);assert.deepEqual(subs,['channel.channel_points_custom_reward_redemption.add','channel.poll.begin','channel.poll.progress','channel.poll.end'],'chat comes from the chat connection, EventSub only adds redemptions and polls');assert.equal(JSON.parse(f.calls.find(c=>c.path==='/eventsub/subscriptions').body).transport.session_id,'s1');
  const note={metadata:{message_type:'notification',message_id:'x1'},payload:{subscription:{type:'channel.channel_points_custom_reward_redemption.add'},event:{id:'r9',user_name:'Viewer',user_input:'',reward:{id:'w1',title:'Hydrate!',cost:300}}}};
@@ -48,7 +48,9 @@ test('Device Code sign-in waits for approval, validates, saves the token private
 test('moderators can send chat but get no owner-only events or polls, and expired tokens refresh once',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'bubblecast-'));t.after(()=>rm(dir,{recursive:true,force:true}));
  const f=fake(t,{owner:false,tokens:[]}),twitch=new TwitchOfficial({file:join(dir,'a.json'),request:f.request,Socket:f.Socket,schedule:f.schedule,cancel:f.cancel,random:()=>0});
- twitch.auth={access_token:'old',refresh_token:'rt',expires_at:Date.now()+1000,user_id:'200',login:'mod'};twitch.configure('streamer');for(let i=0;i<50&&!twitch.broadcaster;i++)await new Promise(r=>setImmediate(r));
+ twitch.auth={access_token:'old',refresh_token:'rt',expires_at:Date.now()+1000,user_id:'200',login:'mod'};twitch.configure('streamer');
+ // A moderator never becomes the broadcaster, so wait for readiness itself (slow CI machines need more turns).
+ for(const until=Date.now()+2000;!twitch.ready&&Date.now()<until;)await new Promise(r=>setImmediate(r));
  assert.ok(f.calls.some(c=>c.path==='/token'&&c.body.get('grant_type')==='refresh_token'),'a token about to expire is refreshed before use');
  assert.equal(f.socket,undefined,'a moderator needs no EventSub connection');assert.equal(twitch.ready,true,'moderators can still send chat');
  assert.equal((await twitch.createPoll({question:'Q?',choices:['A','B'],duration:120})).status,'failed');twitch.stop();
