@@ -3,7 +3,10 @@ const {join}=require('node:path');
 const {readFile,writeFile,mkdir,appendFile}=require('node:fs/promises');
 const {pathToFileURL}=require('node:url');
 const {silenceContents}=require('./silent-contents.cjs');
-app.on('web-contents-created',(_event,contents)=>silenceContents(contents));
+// Pages only get public addresses for WebRTC, so Chromium needs no mDNS listener on port 5353, which made
+// Windows and macOS ask whether Bubblecast may accept incoming connections.
+app.commandLine.appendSwitch('disable-features','WebRtcHideLocalIpsWithMdns');
+app.on('web-contents-created',(_event,contents)=>{silenceContents(contents);contents.setWebRTCIPHandlingPolicy('default_public_interface_only');});
 const root=join(__dirname,'..'),appIcon=join(__dirname,'..','logos','icon-256.png'),local=join(app.isPackaged?join(app.getPath('appData'),'Bubblecast'):root,'.local'),base='http://127.0.0.1:3927',windows=new Map(),signins=new Map();
 // YouTube chat is read signed out, in a session that keeps no cookies; account actions use YouTube's official API.
 const partitionFor=platform=>platform==='youtube'?'bubblecast-youtube-reader':'persist:bubblecast-'+platform;
