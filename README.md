@@ -22,7 +22,7 @@ Bubblecast targets Windows for streaming. The simplest way in is the installer:
 3. Add your channels under Connections. Follow [docs/own-apps.md](docs/own-apps.md) once if you sign in to YouTube or Kick.
 4. In Studio → OBS setup, add the overlays to OBS. If OBS was open during the install, close it and press Add dock.
 
-Settings and sign-ins live in `%APPDATA%\Bubblecast` and survive updates. To update, run the newer installer.
+Settings and sign-ins live in `%APPDATA%\Bubblecast` and survive updates. To update, run the newer installer. To remove it, use Uninstall Bubblecast in the Start menu or the tray icon's menu, or Windows Settings → Apps.
 
 To run from source instead (see [DEVELOPMENT.md](DEVELOPMENT.md), including macOS for development):
 

@@ -57,7 +57,7 @@ test('your own app keys are saved per platform and the secret is never shown bac
  box.querySelector('[name=clientId]').value='01KICKAPP';box.querySelector('[name=clientSecret]').value='kick-secret';box.querySelector('[data-save-app]').click();await wait(20);
  const sent=calls.find(([url,o])=>url==='/api/apps'&&o?.method==='POST');assert.deepEqual(JSON.parse(sent[1].body),{platform:'kick',clientId:'01KICKAPP',clientSecret:'kick-secret'});
  assert.equal(box.querySelector('[name=clientSecret]').value,'','the secret field is cleared after saving');
- assert.equal(doc.querySelector('#kickConnect').disabled,true,'Connect Kick waits for a Kick app');assert.match(doc.querySelector('#account-kick-api').textContent,/Add your Kick app/);assert.equal(doc.querySelector('#account-kick').textContent,'Connect Kick for chat and polls.');
+ const connect=doc.querySelector('#kickConnect');assert.equal(connect.textContent,'Add Kick app','without a Kick app, Connect leads to its keys');box.open=false;connect.click();await wait(5);assert.equal(box.open,true,'the Kick app section opens');assert.ok(!calls.some(([url])=>url==='/api/kick/connect'),'no sign-in starts without keys');assert.match(doc.querySelector('#account-kick-api').textContent,/Add your Kick app/);assert.equal(doc.querySelector('#account-kick').textContent,'Connect Kick for chat and polls.');
 });
 
 test('Studio keeps automatic channels out of manual fields and saves blank overrides',async t=>{
