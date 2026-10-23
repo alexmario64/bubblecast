@@ -2,6 +2,8 @@
 
 A local streaming workspace for Twitch, YouTube (including a second Shorts stream), TikTok LIVE and Kick. It combines every chat into one OBS dock, puts chat, polls and stream events on transparent OBS overlays in a comic bubble style, and runs native polls across platforms. Everything runs on your own computer; there is no Bubblecast cloud service.
 
+Made by **TrueAlex**, who makes Nintendo content on Twitch. Come say hi: **[twitch.tv/truealexlive](https://www.twitch.tv/truealexlive)**
+
 **[⬇ Download Bubblecast for Windows](https://github.com/alexmario64/bubblecast/releases/latest/download/Bubblecast-Setup.exe)** · [All versions](https://github.com/alexmario64/bubblecast/releases)
 
 ## What it does
