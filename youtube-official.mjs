@@ -12,17 +12,17 @@ const reasons={quotaExceeded:'The YouTube API daily quota is used up. It resets 
 export const sourceKeys=['youtube','youtubeShorts'];
 
 export class YouTubeOfficial{
- constructor({file,clientId='',clientSecret='',request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{},onMessage=()=>{},onFound=()=>{}}){
-  Object.assign(this,{file,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth,onMessage,onFound});this.found=[];this.finding=false;
+ constructor({file,clientId='',clientSecret='',request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{},onMessage=()=>{},onFound=()=>{},choicesFile=''}){
+  Object.assign(this,{file,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth,onMessage,onFound,choicesFile});this.found=[];this.candidates=[];this.choices={formats:{},hidden:[]};this.finding=false;
   this.auth=null;this.pending=null;this.videos={};this.chats={};this.viewers={};this.polls={};this.error=null;this.timers={};this.generation=0;this.streams={};
  }
  setApp(app={}){const clientId=String(app.clientId||''),changed=clientId!==this.clientId;Object.assign(this,{clientId,clientSecret:String(app.clientSecret||'')});return changed;}
  get configured(){return !!(this.clientId&&this.clientSecret);}
  get connected(){return !!this.auth?.refresh_token;}
- async load(){try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}if(this.auth&&this.auth.client_id!==this.clientId)this.auth=null;}
+ async load(){if(this.choicesFile)try{const c=JSON.parse(await readFile(this.choicesFile,'utf8'));this.choices={formats:c.formats&&typeof c.formats==='object'?c.formats:{},hidden:Array.isArray(c.hidden)?c.hidden.slice(-50):[]};}catch{}try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}if(this.auth&&this.auth.client_id!==this.clientId)this.auth=null;}
  async save(){await mkdir(dirname(this.file),{recursive:true});await writeFile(this.file,JSON.stringify(this.auth),{mode:0o600});}
  timer(name,fn,ms){this.cancel(this.timers[name]);this.timers[name]=this.schedule(()=>{this.timers[name]=null;return fn();},ms);}
- status(){return {configured:this.configured,connected:this.connected,channel:this.auth?.channel||null,ready:this.connected,error:this.error,found:this.finding?this.found:null,chats:Object.fromEntries(sourceKeys.map(k=>[k,{video:this.videos[k]||'',live:!!this.chats[k]}]))};}
+ status(){return {configured:this.configured,connected:this.connected,channel:this.auth?.channel||null,ready:this.connected,error:this.error,found:this.finding?this.found:null,candidates:this.finding?this.candidates:null,chats:Object.fromEntries(sourceKeys.map(k=>[k,{video:this.videos[k]||'',live:!!this.chats[k]}]))};}
 
  // ---- Sign-in: Google opens in the default browser and returns to this local server. ----
  startSignIn(){
@@ -75,12 +75,26 @@ export class YouTubeOfficial{
  autoFind(on){on=!!on&&this.connected;if(on===this.finding)return;this.finding=on;this.cancel(this.timers.find);if(on)this.timer('find',()=>this.findLive(),1000);else if(this.found.length){this.found=[];this.onFound([]);}}
  async findLive(){
   if(!this.finding||!this.connected)return;
-  try{const list=async status=>(await this.api('liveBroadcasts',{query:{part:'id,snippet,status',broadcastStatus:status,broadcastType:'all',maxResults:'25'}})).items||[];
+  try{const list=async status=>(await this.api('liveBroadcasts',{query:{part:'id,snippet,status,contentDetails',broadcastStatus:status,broadcastType:'all',maxResults:'25'}})).items||[];
    const active=await list('active'),upcoming=active.length>=2?[]:await list('upcoming');
-   const found=pickBroadcasts(active,upcoming,this.now());
-   if(JSON.stringify(found)!==JSON.stringify(this.found)){this.found=found;this.onFound(found);}
+   // A stream key that is already receiving video from OBS marks the real broadcast before it goes live (1 unit).
+   const keys=[...new Set(upcoming.map(i=>i.contentDetails?.boundStreamId).filter(id=>/^[\w-]{1,100}$/.test(id||'')))].slice(0,25);
+   const receiving=new Set(keys.length?((await this.api('liveStreams',{query:{part:'id,status',id:keys.join(','),maxResults:'25'}})).items||[]).filter(i=>i.status?.streamStatus==='active').map(i=>i.id):[]);
+   this.candidates=pickBroadcasts(active,upcoming,this.now(),{receiving,limit:4}).map(c=>({...c,format:this.choices.formats[c.streamKey||c.video]||'',hidden:this.choices.hidden.includes(c.video)}));
+   this.assign();
   }catch(error){this.error=String(error.message||error);}
   if(this.finding)this.timer('find',()=>this.findLive(),90000+this.random()*20000);
+ }
+ // Vertical streams take the second slot, everything else the first; hidden streams take neither.
+ assign(){const found=assignSlots(this.candidates);if(JSON.stringify(found)!==JSON.stringify(this.found)){this.found=found;this.onFound(found);}}
+ // The streamer's choice for a found stream: its format is remembered per stream key, hiding per broadcast.
+ async choose(video,choice){
+  const c=this.candidates.find(c=>c.video===video);if(!c)throw Error('That stream is no longer listed. Refresh and try again.');
+  if(!['horizontal','vertical','hide','auto'].includes(choice))throw Error('Unknown choice.');
+  const key=c.streamKey||c.video,{formats}=this.choices;let hidden=this.choices.hidden.filter(v=>v!==video);
+  if(choice==='hide')hidden=[...hidden,video].slice(-50);else if(choice==='auto')delete formats[key];else formats[key]=choice;
+  this.choices={formats,hidden};if(this.choicesFile){await mkdir(dirname(this.choicesFile),{recursive:true});await writeFile(this.choicesFile,JSON.stringify(this.choices));}
+  this.candidates=this.candidates.map(x=>({...x,format:formats[x.streamKey||x.video]||'',hidden:hidden.includes(x.video)}));this.assign();
  }
  // ---- Reading chat: YouTube's official server-streaming endpoint (5 units per connection, not per message). ----
  reading(key){return !!this.streams[key];}
@@ -166,12 +180,17 @@ export function youtubePoll(item,sourceKey='youtube'){
  const votes=m.options.map(o=>o.tally==null?null:Number(o.tally)),total=votes.every(Number.isFinite)?votes.reduce((a,b)=>a+b,0):null;
  return {platform:'youtube',sourceKey,id:item.id,question:m.questionText,status:d.status==='closed'?'closed':'active',choices:m.options.map((o,i)=>({id:String(i),text:o.optionText,votes:votes[i],percent:total?votes[i]/total*100:null}))};
 }
-// Up to two of the channel's streams: live ones oldest first, then upcoming ones that are ready on the encoder
-// or scheduled to start soon. Streams scheduled for another day don't take a slot.
-export function pickBroadcasts(active=[],upcoming=[],now=Date.now()){
- const valid=i=>/^[\w-]{11}$/.test(i?.id||''),time=v=>{const t=Date.parse(v||'');return Number.isFinite(t)?t:null;};
+// The channel's streams in priority order: live ones oldest first, then upcoming ones whose stream key OBS is
+// already sending to, then ones ready on the encoder, then ones scheduled to start soon. Streams scheduled for
+// another day are left out. Format isn't knowable from the API, so it comes only from the streamer's choice.
+export function pickBroadcasts(active=[],upcoming=[],now=Date.now(),{receiving=new Set(),limit=2}={}){
+ const valid=i=>/^[\w-]{11}$/.test(i?.id||''),time=v=>{const t=Date.parse(v||'');return Number.isFinite(t)?t:null;},key=i=>i.contentDetails?.boundStreamId||'';
  const live=active.filter(i=>valid(i)&&i.status?.lifeCycleStatus!=='complete').sort((a,b)=>(time(a.snippet?.actualStartTime)??0)-(time(b.snippet?.actualStartTime)??0));
- const soon=upcoming.filter(i=>{if(!valid(i))return false;const state=i.status?.lifeCycleStatus;if(['complete','revoked'].includes(state))return false;if(['ready','testStarting','liveStarting','testing'].includes(state))return true;const start=time(i.snippet?.scheduledStartTime);return start===null||start-now<=12*3600000&&now-start<=24*3600000;})
-  .sort((a,b)=>{const ready=i=>i.status?.lifeCycleStatus==='created'?1:0;return ready(a)-ready(b)||Math.abs((time(a.snippet?.scheduledStartTime)??now)-now)-Math.abs((time(b.snippet?.scheduledStartTime)??now)-now);});
- const seen=new Set();return [...live,...soon].filter(i=>!seen.has(i.id)&&seen.add(i.id)).slice(0,2).map(i=>({video:i.id,title:String(i.snippet?.title||'').slice(0,120)}));
+ const soon=upcoming.filter(i=>{if(!valid(i))return false;const state=i.status?.lifeCycleStatus;if(['complete','revoked'].includes(state))return false;if(receiving.has(key(i))||['ready','testStarting','liveStarting','testing'].includes(state))return true;const start=time(i.snippet?.scheduledStartTime);return start===null||start-now<=12*3600000&&now-start<=24*3600000;})
+  .sort((a,b)=>{const rank=i=>receiving.has(key(i))?0:i.status?.lifeCycleStatus==='created'?2:1;return rank(a)-rank(b)||Math.abs((time(a.snippet?.scheduledStartTime)??now)-now)-Math.abs((time(b.snippet?.scheduledStartTime)??now)-now);});
+ const seen=new Set();return [...live,...soon].filter(i=>!seen.has(i.id)&&seen.add(i.id)).slice(0,limit).map(i=>({video:i.id,title:String(i.snippet?.title||'').slice(0,120),streamKey:key(i),live:live.includes(i),receiving:receiving.has(key(i))}));
+}
+export function assignSlots(candidates=[]){
+ const slots={};for(const c of candidates){if(c.hidden)continue;const want=c.format==='vertical'?['youtubeShorts']:c.format==='horizontal'?['youtube']:['youtube','youtubeShorts'];const slot=want.find(s=>!slots[s]);if(slot)slots[slot]=c;}
+ return ['youtube','youtubeShorts'].filter(s=>slots[s]).map(slot=>({video:slots[slot].video,title:slots[slot].title,slot,format:slots[slot].format||''}));
 }

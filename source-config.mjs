@@ -12,9 +12,9 @@ export function sourceConfig(input={}){
  return {configured:true,enabled,twitchChannel,youtubeVideo,youtubeShortsVideo,tiktokChannel,kickChannel,urls:{kick:enabled&&kickChannel?'https://kick.com/'+kickChannel:'',twitch:enabled&&twitchChannel?'https://www.twitch.tv/popout/'+twitchChannel+'/chat?popout=':'',youtube:enabled&&youtubeVideo?'https://www.youtube.com/live_chat?v='+youtubeVideo+'&is_popout=1':'',youtubeShorts:enabled&&youtubeShortsVideo&&youtubeShortsVideo!==youtubeVideo?'https://www.youtube.com/live_chat?v='+youtubeShortsVideo+'&is_popout=1':'',tiktok:enabled&&tiktokChannel?'https://www.tiktok.com/@'+tiktokChannel+'/live':''}};
 }
 
-// With no YouTube links entered, the streams found on the connected channel fill the YouTube slots.
-export function withFoundVideos(saved,found){if(!saved.enabled||saved.youtubeVideo||saved.youtubeShortsVideo||!found?.length)return {...saved,youtubeFound:[]};const [first,second]=found;
- return {...saved,configured:true,youtubeFound:found,urls:{...saved.urls,youtube:'https://www.youtube.com/live_chat?v='+first.video+'&is_popout=1',youtubeShorts:second?'https://www.youtube.com/live_chat?v='+second.video+'&is_popout=1':''}};}
+// With no YouTube links entered, the streams found on the connected channel fill their assigned YouTube slots.
+export function withFoundVideos(saved,found){if(!saved.enabled||saved.youtubeVideo||saved.youtubeShortsVideo||!found?.length)return {...saved,youtubeFound:[]};const url=slot=>{const f=found.find(f=>f.slot===slot);return f?'https://www.youtube.com/live_chat?v='+f.video+'&is_popout=1':'';};
+ return {...saved,configured:true,youtubeFound:found,urls:{...saved.urls,youtube:url('youtube'),youtubeShorts:url('youtubeShorts')}};}
 
 // Account channels are runtime defaults. Never save them as manual overrides.
 export function withAccountChannels(saved,{twitch='',kick=''}={}){
