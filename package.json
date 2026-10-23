@@ -1,7 +1,10 @@
 {
   "name": "bubblecast",
-  "version": "1.24.3",
+  "version": "1.25.0",
   "private": true,
+  "description": "Combined Twitch, YouTube, TikTok and Kick chat for OBS",
+  "author": "Bubblecast",
+  "main": "desktop/main.cjs",
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
@@ -9,14 +12,51 @@
     "test:relay": "node test/relay.integration.mjs",
     "install:background": "node desktop/install.mjs",
     "start:background": "node desktop/start.mjs",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "dist:win": "electron-builder --win nsis --publish never"
   },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
+    "electron-builder": "26.17.0",
     "happy-dom": "21.0.3",
     "playwright": "1.63.0"
   },
-  "packageManager": "pnpm@11.25.0"
+  "packageManager": "pnpm@11.25.0",
+  "build": {
+    "appId": "app.bubblecast.helper",
+    "productName": "Bubblecast",
+    "electronVersion": "44.9.0",
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "*.mjs",
+      "public/**",
+      "desktop/**",
+      "!desktop/install.mjs",
+      "!desktop/start.mjs",
+      "extension/**",
+      "logos/**",
+      "package.json",
+      "!node_modules/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "logos/icon-256.png",
+      "artifactName": "Bubblecast-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Bubblecast",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "include": "desktop/installer.nsh"
+    }
+  }
 }
