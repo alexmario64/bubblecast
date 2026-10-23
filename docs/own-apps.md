@@ -29,31 +29,47 @@ You need a Google account. It doesn't have to be the one that owns your YouTube 
 1. Open **APIs & Services → Library**.
 2. Search for **YouTube Data API v3**, open it and click **Enable**.
 
-### 3. Set up the consent screen
+### 3. Start Google's sign-in setup
 
-1. Open **APIs & Services → OAuth consent screen** (on newer consoles: **Google Auth Platform → Branding**).
-2. Choose **External** as the user type.
-3. Fill in an app name (for example `Bubblecast for <your channel>`), your email as the support email, and your email again as the developer contact. You can leave the logo and links empty.
-4. Under **Data access** or **Scopes**, add `https://www.googleapis.com/auth/youtube.force-ssl`.
-5. Under **Audience** or **Test users**, add the Google account that owns your YouTube channel.
-6. Click **Publish app** so the app is **In production**. If you leave it in Testing, Google signs you out every 7 days. You don't need Google's verification for your own use. When you sign in, Google shows "Google hasn't verified this app": click **Advanced**, then **Go to … (unsafe)**. It's your own app, so that's expected.
+1. Open [Google Auth Platform](https://console.cloud.google.com/auth/overview/create) and click **Get started**.
+2. Fill in an app name (`Bubblecast`) and pick your email as the support email.
+3. Choose **External** as the audience, add your email as the contact, agree to the policy and click **Create**.
 
-### 4. Create the client
+### 4. Add the home page and privacy policy
 
-1. Open [Google Cloud Credentials](https://console.cloud.google.com/apis/credentials) (or **Google Auth Platform → Clients**) with your project selected.
-2. Click **Create credentials → OAuth client ID**.
-3. Choose **Desktop app** as the application type, give it a name and click **Create**.
-4. Copy the **Client ID** (it ends in `.apps.googleusercontent.com`) and the **Client secret**.
+Google won't let you publish the app without them, and Bubblecast's own pages work for every streamer.
+
+1. Open **Branding** (Información de marca).
+2. Under **App domain**, set:
+   - **Application home page**: `https://alexmario64.github.io/bubblecast/`
+   - **Application privacy policy link**: `https://alexmario64.github.io/bubblecast/privacy.html`
+3. Leave the logo empty: uploading one sends the app to Google for verification. Click **Save**.
+
+### 5. Let your account in, then publish
+
+1. Open **Audience** (Público).
+2. Under **Test users**, click **Add users** and add the Google account that owns your YouTube channel. Without this, Google answers "Bubblecast has not completed the Google verification process… can only be accessed by developer-approved testers".
+3. Click **Publish app** and confirm. While the app stays in Testing, Google signs you out every 7 days. You don't need Google's verification for your own use.
+
+No scopes need to be added in Data access; Bubblecast asks for the YouTube permission when you connect.
+
+### 6. Create the client
+
+1. Open **Clients** and click **Create client** (or [create one directly](https://console.cloud.google.com/auth/clients/create)).
+2. Choose **Desktop app**, name it `Bubblecast` and click **Create**.
+3. Copy the **Client ID** (it ends in `.apps.googleusercontent.com`) and the **Client secret** right away. Google only shows the secret once; if you lose it, add a new secret to the same client.
 
 ### Replacing an existing secret
 
 If you already have a Desktop app client, you can keep its client ID. Use that client's secret-management controls to replace a compromised secret and retire the exposed one, then save the new secret in Bubblecast. Creating a new OAuth client gives you a new client ID as well. Do not create another project merely to work around an exhausted quota.
 
-### 5. Connect in Bubblecast
+### 7. Connect in Bubblecast
 
 1. Open Bubblecast Studio at http://127.0.0.1:3927 and go to **Connections**.
 2. In the YouTube card, open **Your Google app**, paste the client ID and client secret, and click **Save Google app**.
-3. Click **Connect YouTube**, sign in with your channel's Google account and allow access.
+3. Click **Connect YouTube** and sign in with your channel's Google account. On "Google hasn't verified this app", click **Advanced → Go to Bubblecast (unsafe)**, tick the YouTube access box and click **Continue**.
+
+Studio's **Setup guide** shows these same steps with pictures.
 
 ## Kick
 
@@ -130,7 +146,7 @@ After saving keys, click **Connect YouTube** or **Connect Kick** and complete au
 
 - **"Add your … app first"**: the keys aren't saved yet. Paste both the client ID and the client secret, then click Save.
 - **YouTube: "Google hasn't verified this app"**: expected for your own app. Click **Advanced → Go to … (unsafe)**.
-- **YouTube: "access_denied" or "not a test user"**: add your channel's Google account as a test user, or publish the app (step 3.6).
+- **YouTube: "access_denied" or "not a test user"**: add your channel's Google account as a test user, or publish the app (step 5).
 - **YouTube: signed out after a week**: the consent screen is still in Testing. Publish it.
 - **YouTube: "quota is used up"**: your project's daily 10,000 units ran out. It resets at midnight Pacific time, and Bubblecast makes no YouTube calls until then. Bubblecast only reads YouTube while OBS is streaming, so offline hours cost nothing; while live, finding streams and checking viewers costs a few units every couple of minutes, and sending a chat message costs 20 units, so heavy sending uses it fastest. Each copy of Bubblecast that uses the same Google app shares this quota, so don't leave a second copy (for example a development checkout) connected.
 - **Kick: sign-in stops at an error page about the redirect**: the redirect URL in your Kick app must match `http://localhost:3927/oauth/kick/callback` exactly, with no trailing slash.

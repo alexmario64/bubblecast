@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bubblecast Privacy Policy</title>
+<meta name="description" content="How Bubblecast handles data: everything stays on the streamer's own computer.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Same tokens as the landing page. */
+:root{color-scheme:light;--bg:#fbf3ee;--surface:#fffaf6;--text:#43344a;--text-2:#7d6380;--line:#8c6b8424;--accent:#2a9e9c;--hero:radial-gradient(ellipse at 95% 85%,#f3c58299 0,transparent 55%),radial-gradient(ellipse at 0 0,#e2adbdaa 0,transparent 55%),linear-gradient(135deg,#a173b1,#d39a9e 62%,#bc91a8);--hero-text:#fff8f1}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#17141d;--surface:#24202d;--text:#eeeaf3;--text-2:#b5abc2;--line:#ffffff17;--accent:#5fd3cc;--hero:radial-gradient(ellipse at 95% 85%,#c4885a66 0,transparent 55%),radial-gradient(ellipse at 0 0,#a0607a88 0,transparent 55%),linear-gradient(135deg,#5b3d6b,#7e5466 62%,#6a4a5e)}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#17141d;--surface:#24202d;--text:#eeeaf3;--text-2:#b5abc2;--line:#ffffff17;--accent:#5fd3cc;--hero:radial-gradient(ellipse at 95% 85%,#c4885a66 0,transparent 55%),radial-gradient(ellipse at 0 0,#a0607a88 0,transparent 55%),linear-gradient(135deg,#5b3d6b,#7e5466 62%,#6a4a5e)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:500 17px/1.65 Nunito,"Segoe UI",system-ui,sans-serif}
+a{color:var(--accent)}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+header{background:var(--hero);color:var(--hero-text);padding-block:calc(18px + env(safe-area-inset-top,0px)) 44px}
+nav a{display:inline-flex;align-items:center;gap:10px;color:inherit;text-decoration:none;font-weight:800;font-size:20px}
+nav img{width:34px;height:34px}
+h1,h2{font-family:Bangers,"Komika Axis","Comic Sans MS",cursive;font-weight:400;letter-spacing:.02em;line-height:1.05;text-wrap:balance}
+h1{font-size:clamp(44px,8vw,68px);margin:34px 0 6px}
+h2{font-size:30px;margin:38px 0 8px}
+header p{margin:0;opacity:.9}
+main{padding-block:20px 70px}
+main p,main li{color:var(--text-2)}
+main strong{color:var(--text)}
+ul{padding-left:22px}
+li{margin-bottom:6px}
+code{font-size:15px;padding:1px 6px;border-radius:6px;background:var(--surface);border:1px solid var(--line)}
+footer{padding-block:24px calc(24px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);font-size:14px;color:var(--text-2)}
+</style>
+</head>
+<body>
+<header><div class="wrap"><nav><a href="./"><img src="favicon.svg" alt="">Bubblecast</a></nav><h1>Privacy policy</h1><p>Last updated: October 23, 2026</p></div></header>
+<main class="wrap">
+<p>Bubblecast is a free desktop app that runs entirely on the streamer’s own computer. It combines live chat from Twitch, YouTube, TikTok and Kick into an OBS dock and overlay. There is no Bubblecast server or cloud service, and the developer receives no data from the app.</p>
+<p>Each streamer connects YouTube and Kick through their own free developer app. This policy covers Bubblecast as used through any of those apps.</p>
+
+<h2>What Bubblecast accesses</h2>
+<ul>
+<li><strong>Twitch.</strong> When you connect Twitch, Bubblecast uses the official Twitch API. It sends chat messages you write, runs polls you start, and reads your stream’s viewer count, chat badges and channel point redemptions.</li>
+<li><strong>YouTube.</strong> When you connect YouTube, Bubblecast uses the official YouTube Data API through Google sign-in with the <code>youtube.force-ssl</code> permission. It finds your live streams, reads their chat and viewer count while you are live, sends chat messages you write, and starts and ends polls you create. It does not upload, edit or delete videos, and it does not read your email, contacts or other Google data.</li>
+<li><strong>Kick.</strong> When you connect Kick, Bubblecast uses the official Kick API with the <code>user:read</code>, <code>channel:read</code> and <code>chat:write</code> permissions. It reads your user name, finds your channel’s live status and viewer count, and sends chat messages you write.</li>
+<li><strong>Live chat.</strong> Public live chat is read so it can be shown in the dock and on your stream.</li>
+</ul>
+
+<h2>Where data is stored</h2>
+<p>Everything stays on your computer, in Bubblecast’s data folder (<code>%APPDATA%\Bubblecast</code> on Windows):</p>
+<ul>
+<li>Sign-in tokens for Twitch, YouTube and Kick, and your own app keys, are stored in files readable only by your user account.</li>
+<li>Your settings and stream links are stored locally.</li>
+<li>Recent chat messages are kept in memory and in a short local history so the dock can reload.</li>
+</ul>
+<p>Bubblecast never sends this data to the developer or to anyone other than the platform you are using (Twitch, Google/YouTube, TikTok or Kick), and only to perform the action you asked for.</p>
+
+<h2>Google user data</h2>
+<p>Bubblecast’s use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements. Google user data is used only to provide the features described above, is not transferred to anyone, is not used for advertising, and is not read by people.</p>
+
+<h2>Removing access</h2>
+<ul>
+<li>In Bubblecast, click <strong>Disconnect</strong> for Twitch, YouTube or Kick. This deletes the stored token and revokes it with the platform.</li>
+<li>You can also remove access at any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a> (Google) or <a href="https://www.twitch.tv/settings/connections">twitch.tv/settings/connections</a> (Twitch).</li>
+<li>Uninstalling Bubblecast and deleting its data folder removes all local data.</li>
+</ul>
+
+<h2>YouTube</h2>
+<p>By connecting YouTube you also agree to the <a href="https://www.youtube.com/t/terms">YouTube Terms of Service</a> and the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</p>
+
+<h2>Contact</h2>
+<p>Questions: alexmario2008@gmail.com, or open an issue at <a href="https://github.com/alexmario64/bubblecast/issues">github.com/alexmario64/bubblecast</a>.</p>
+</main>
+<footer><div class="wrap"><a href="./">Bubblecast</a> · open source, runs on your PC</div></footer>
+</body>
+</html>

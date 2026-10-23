@@ -1,19 +1,21 @@
 # Bubblecast privacy policy
 
-Last updated: October 21, 2026
+Last updated: October 23, 2026
+
+This policy is also published at https://alexmario64.github.io/bubblecast/privacy.html.
 
 Bubblecast is a desktop app that runs entirely on the streamer's own computer. It combines live chat from Twitch, YouTube, TikTok and Kick into an OBS dock and overlay. There is no Bubblecast server or cloud service, and the developer receives no data from the app.
 
 ## What Bubblecast accesses
 
 - **Twitch.** When you connect Twitch, Bubblecast uses the official Twitch API. It sends chat messages you write, runs polls you start, and reads your stream's viewer count, chat badges and channel point redemptions.
-- **YouTube.** When you connect YouTube, Bubblecast uses the official YouTube Data API through Google sign-in with the `youtube.force-ssl` permission. It reads your live stream's chat ID and viewer count, sends chat messages you write, and starts and ends polls you create. It does not upload, edit or delete videos, and it does not read your email, contacts or other Google data.
+- **YouTube.** When you connect YouTube, Bubblecast uses the official YouTube Data API through Google sign-in with the `youtube.force-ssl` permission. It finds your live streams and reads their chat and viewer count while you are live, sends chat messages you write, and starts and ends polls you create. It does not upload, edit or delete videos, and it does not read your email, contacts or other Google data.
 - **Kick.** When you connect Kick, Bubblecast uses the official Kick API through your own Kick app with the `user:read`, `channel:read` and `chat:write` permissions. It reads your user name, finds your channel's live status and viewer count, and sends chat messages you write.
 - **Live chat.** Public live chat is read so it can be shown in the dock and on your stream.
 
 ## Where data is stored
 
-Everything stays on your computer, in the app's local folder:
+Everything stays on your computer, in Bubblecast's data folder (`%APPDATA%\Bubblecast` on Windows):
 
 - Sign-in tokens for Twitch, YouTube and Kick, and your own app keys, are stored in files readable only by your user account.
 - Your settings and stream links are stored locally.

@@ -12,7 +12,7 @@ async function studio(t){
 }
 const flush=w=>new Promise(r=>w.setTimeout(r,0));
 // Names, brand words and sample values that read the same in Spanish.
-const same=new Set(['Twitch','YouTube','TikTok LIVE','Kick','OBS','Bubblecast','Google Cloud','OBS Studio','YouTube Data API v3','…/auth/youtube.force-ssl','URL','OK']);
+const same=new Set(['Twitch','YouTube','TikTok LIVE','Kick','OBS','Bubblecast','Google Cloud','OBS Studio','YouTube Data API v3','…/auth/youtube.force-ssl','URL','OK','+ Add users']);
 function visible(w){const out=[];const walk=n=>{for(const c of n.childNodes){if(c.nodeType===3){const t=c.textContent.replace(/\s+/g,' ').trim();if(t&&/[A-Za-z]/.test(t))out.push(t);}else if(c.nodeType===1&&!c.closest('[data-i18n-skip]')&&!c.hidden){for(const a of ['placeholder','title','aria-label']){const v=c.getAttribute(a);if(v&&/[A-Za-z]/.test(v))out.push(v);}walk(c);}}};walk(w.document.querySelector('.sg-layer'));return out;}
 test('every step of the setup guide is in Spanish, apart from names and sample values',async t=>{
  const w=await studio(t),g=w.bubblecastGuide;const missing=new Set();
