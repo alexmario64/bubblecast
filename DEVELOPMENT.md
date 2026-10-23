@@ -21,6 +21,10 @@ Browser sign-ins, recent chat, the helper runtime and personal settings live in 
 
 Streaming and OBS stay on Windows. On a Mac: install Node.js 22+ and pnpm as above, then `pnpm test`, `pnpm start` (server) and optionally `pnpm install:background` + `pnpm start:background` (helper; quit it from the menu bar icon). Komika Axis is found in `~/Library/Fonts` or `/Library/Fonts`. The `.cmd`, `.vbs` and OBS Lua launchers are Windows-only.
 
+## Website
+
+`site/` is the public landing page (plain HTML, no build step), published to GitHub Pages by the Website workflow when `site/` changes on main. Its download buttons point to `releases/latest/download/Bubblecast-Setup.exe`, so a new release needs no site change. The images in `site/img` come from `pnpm screenshots` (overlay showcase and dock preview, which use made-up names) cropped with `cwebp`; never publish screenshots showing real channels or chat. Spanish text lives in the page's own script.
+
 ## Workflow
 
 1. `git checkout main && git pull --ff-only`, then create a branch (`feature/…` or `fix/…`).
