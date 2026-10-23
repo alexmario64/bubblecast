@@ -132,7 +132,7 @@ After saving keys, click **Connect YouTube** or **Connect Kick** and complete au
 - **YouTube: "Google hasn't verified this app"**: expected for your own app. Click **Advanced → Go to … (unsafe)**.
 - **YouTube: "access_denied" or "not a test user"**: add your channel's Google account as a test user, or publish the app (step 3.6).
 - **YouTube: signed out after a week**: the consent screen is still in Testing. Publish it.
-- **YouTube: "quota is used up"**: your project's daily 10,000 units ran out. It resets at midnight Pacific time. Sending a chat message costs 20 units, so heavy sending uses it fastest.
+- **YouTube: "quota is used up"**: your project's daily 10,000 units ran out. It resets at midnight Pacific time, and Bubblecast makes no YouTube calls until then. Bubblecast only reads YouTube while OBS is streaming, so offline hours cost nothing; while live, finding streams and checking viewers costs a few units every couple of minutes, and sending a chat message costs 20 units, so heavy sending uses it fastest. Each copy of Bubblecast that uses the same Google app shares this quota, so don't leave a second copy (for example a development checkout) connected.
 - **Kick: sign-in stops at an error page about the redirect**: the redirect URL in your Kick app must match `http://localhost:3927/oauth/kick/callback` exactly, with no trailing slash.
 - **Switching to a different app**: save the new keys. Bubblecast signs you out of the old app automatically, so connect again afterwards.
 - **Removing access**: click **Disconnect** in Studio. You can also delete the app in Google Cloud or in Kick's developer settings.

@@ -2,8 +2,9 @@ import {defaults,fontStack} from '/core.mjs';
 import {overlayLayout} from '/layouts.mjs';
 import {patchElement} from '/render-patch.mjs';
 import {groupPollResults,pollOverlayCard} from '/poll-overlay-view.mjs';
+import {reportObsStreaming} from '/obs-live.mjs';
 const root=document.querySelector('#pollOverlay'),surface=document.querySelector('#surface'),query=new URLSearchParams(location.search),records=new Map(),cards=new Map(),timers=new Map(),preview=query.has('preview');let settings={...defaults};
-const resultMs=()=>settings.pollResultSeconds*1000;
+const resultMs=()=>settings.pollResultSeconds*1000;if(!preview)reportObsStreaming();
 // The poll card can borrow the chat overlay's colors or use its own.
 function pollStyle(s){const own=s.pollColors==='custom';return {accent:own?s.pollAccent:s.accent,bubble:own?s.pollBubble:s.bubble,text:own?s.pollText:s.text,bar:own?s.pollBar:s.accent};}
 function cardOptions(){return {showVotes:settings.pollShowVotes,showPercent:settings.pollShowPercent,showPlatforms:settings.pollShowPlatforms,showFooter:settings.pollShowFooter,highlightLeader:settings.pollHighlightLeader,liveLabel:settings.pollLiveLabel,finalLabel:settings.pollFinalLabel};}

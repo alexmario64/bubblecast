@@ -20,4 +20,6 @@ test('an installed server saves channels and settings in its data folder',async 
  assert.match(await readFile(join(dir,'sources.json'),'utf8'),/samplestreamer/);
  const settings=await (await fetch(base+'/api/settings')).json();await post('/api/settings',settings);
  await readFile(join(dir,'settings.json'),'utf8');
+ assert.equal((await (await fetch(base+'/api/status')).json()).youtube.live,false,'YouTube waits for OBS');
+ assert.equal((await post('/api/obs/streaming',{streaming:true})).live,true);assert.equal((await (await fetch(base+'/api/status')).json()).youtube.live,true);
 });

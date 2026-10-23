@@ -4,7 +4,7 @@ import {mkdtemp,rm,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
-import {YouTubeOfficial,YOUTUBE_SCOPE,youtubeRedirectUri,JsonObjects,chatMessage,youtubePoll} from '../youtube-official.mjs';
+import {YouTubeOfficial,YOUTUBE_SCOPE,youtubeRedirectUri,JsonObjects,chatMessage,youtubePoll,nextPacificMidnight} from '../youtube-official.mjs';
 // A scripted Google: OAuth token endpoint and the YouTube Data API.
 function google({scope=YOUTUBE_SCOPE,refresh='refresh-1',live=true,errors={},streams=[]}={}){
  const calls=[];
@@ -52,9 +52,11 @@ test('sending, creating and ending polls use the official live chat endpoints',a
  assert.equal((await yt.sendChat('youtubeShorts','hi')).status,'failed','a stream that is not configured cannot be sent to');
 });
 test('quota and permission errors explain themselves; expired access refreshes before calls',async t=>{
- const {yt,timers}=await signedIn(t,{errors:{'liveChat/messages':'quotaExceeded'}});yt.configure({youtube:'aaaaaaaaaaa'});{const h=chatTimer(timers);h.ran=true;await h.fn();}
+ const {yt,g,timers}=await signedIn(t,{errors:{'liveChat/messages':'quotaExceeded'}});yt.configure({youtube:'aaaaaaaaaaa'});{const h=chatTimer(timers);h.ran=true;await h.fn();}
  const r=await yt.sendChat('youtube','hello');assert.equal(r.status,'failed');assert.match(r.detail,/quota/i);
- yt.auth.expires_at=Date.now();await yt.api('channels',{query:{part:'id',mine:'true'}});assert.equal(yt.auth.access_token,'access-2');
+ assert.ok(yt.status().quotaUntil>Date.now(),'the reset time is remembered');const before=g.calls.length;
+ await assert.rejects(yt.api('channels',{query:{part:'id',mine:'true'}}),/quota/);assert.equal(g.calls.length,before,'no calls until the quota resets');
+ yt.quotaUntil=0;yt.auth.expires_at=Date.now();await yt.api('channels',{query:{part:'id',mine:'true'}});assert.equal(yt.auth.access_token,'access-2');
 });
 test('chat is read from the official stream, skipping history and resuming from the last page token',async t=>{
  const now=Date.now(),at=ms=>new Date(now+ms).toISOString(),author={displayName:'Viewer',channelId:'UCv'};
@@ -124,4 +126,15 @@ test('found streams fill only empty YouTube links and leave other platforms alon
  assert.equal(withFoundVideos(sourceConfig({}),[found[1]]).urls.youtube,'','a lone vertical stream leaves the main slot empty');
  const typed=withFoundVideos(sourceConfig({youtubeVideo:'ccccccccccc'}),found);assert.match(typed.urls.youtube,/v=ccccccccccc/);assert.equal(typed.urls.youtubeShorts,'');
  assert.equal(withFoundVideos(sourceConfig({enabled:false}),found).urls.youtube,'');
+});
+test('nothing is read from YouTube while OBS is offline, and reading resumes when it goes live',async t=>{
+ const {yt,g,timers}=await signedIn(t);yt.setLive(false);const before=g.calls.length;
+ yt.configure({youtube:'aaaaaaaaaaa'});yt.autoFind(true);assert.ok(!timers.some(h=>!h.cancelled&&!h.ran),'no reads are scheduled offline');
+ assert.equal(g.calls.length,before);assert.equal(yt.status().live,false);
+ yt.setLive(true);const pending=timers.filter(h=>!h.cancelled&&!h.ran);assert.ok(pending.length>=2,'chat and stream finding start when live');
+ yt.setLive(false);assert.ok(pending.every(h=>h.cancelled),'going offline cancels them');
+});
+test('the quota resets at midnight Pacific time, in summer and winter',()=>{
+ assert.equal(new Date(nextPacificMidnight(Date.parse('2026-10-23T20:00:00.500Z'))).toISOString(),'2026-10-24T07:00:00.000Z');
+ assert.equal(new Date(nextPacificMidnight(Date.parse('2026-01-10T12:00:00Z'))).toISOString(),'2026-01-11T08:00:00.000Z');
 });

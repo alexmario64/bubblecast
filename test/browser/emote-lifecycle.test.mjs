@@ -8,7 +8,7 @@ import {defaults,normalize,isIgnoredUser,fontStack,eventLabels,viewerColor} from
 import {overlayLayout} from '../../public/layouts.mjs';
 import {MessageRelay} from '../../relay.mjs';
 const capture=await readFile(new URL('../../extension/capture.js',import.meta.url),'utf8');
-const renderer=(await readFile(new URL('../../public/overlay.js',import.meta.url),'utf8')).replace(/^import[^\n]+\n/gm,'');
+const renderer=(await readFile(new URL('../../public/overlay.js',import.meta.url),'utf8')).replace(/^import[^\n]+\n/gm,'').replace(/^/,'const reportObsStreaming=()=>false;\n');
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const row=(id,body)=>`<div class="chat-line__message" ${id?'enhancer-message-handled="'+id+'"':''}><span data-a-target="chat-message-username">DemoStreamer</span><span data-a-target="chat-line-message-body">${body}</span></div>`;
 test('expired BTTV bubble stays gone when the old row reverts to text and a new message arrives',async t=>{
