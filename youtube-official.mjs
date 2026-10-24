@@ -173,7 +173,8 @@ export function chatMessage(item,sourceKey='youtube'){
  const s=item?.snippet||{},a=item?.authorDetails||{},type=s.type;
  if(type==='messageDeletedEvent')return {platform:'youtube',sourceKey,action:'delete',id:s.messageDeletedDetails?.deletedMessageId||''};
  if(type==='userBannedEvent')return {platform:'youtube',sourceKey,action:'delete',id:'',userId:s.userBannedDetails?.bannedUserDetails?.channelId||''};
- const base={id:item.id,sourceId:item.id,platform:'youtube',sourceKey,user:a.displayName||'YouTube viewer',userId:a.channelId||s.authorChannelId||'',parts:[],badges:[],sourceTime:Date.parse(s.publishedAt)||Date.now()};
+ const roles=[a.isChatOwner&&'broadcaster',a.isChatModerator&&'moderator',a.isChatSponsor&&'subscriber'].filter(Boolean);
+ const base={id:item.id,sourceId:item.id,platform:'youtube',sourceKey,user:a.displayName||'YouTube viewer',userId:a.channelId||s.authorChannelId||'',parts:[],badges:[],...(roles.length?{roles}:{}),sourceTime:Date.parse(s.publishedAt)||Date.now()};
  if(!item?.id)return null;
  if(type==='textMessageEvent')return {...base,parts:text(s.textMessageDetails?.messageText??s.displayMessage)};
  if(type==='superChatEvent')return {...base,parts:s.superChatDetails?.userComment?text(s.superChatDetails.userComment):[],event:{kind:'superchat',title:s.superChatDetails?.amountDisplayString||'Super Chat'}};

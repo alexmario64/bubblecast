@@ -17,6 +17,7 @@ import {settings,normalize} from './core.mjs';
 import {setupObs} from './obs.mjs';
 import {addObsDock} from './obs-dock.mjs';
 import {Updates} from './updates.mjs';
+import {Speech} from './tts.mjs';
 import {MessageRelay} from './relay.mjs';
 import {sourceConfig,withFoundVideos,withAccountChannels} from './source-config.mjs';
 import {DockHistory} from './dock-history.mjs';
@@ -28,6 +29,8 @@ let state=settings();try{state=settings(JSON.parse(await readFile(join(dataDir,'
 let sources={configured:false,enabled:true,twitchChannel:'',youtubeVideo:'',youtubeShortsVideo:'',tiktokChannel:'',kickChannel:'',urls:{twitch:'',youtube:'',youtubeShorts:'',tiktok:'',kick:''}},sourceStatus={version:null,twitch:false,youtube:false,youtubeShorts:false,tiktok:false,kick:false,updatedAt:0};// savedSources is what the streamer entered; sources adds account channels and discovered YouTube streams.
 let savedSources=sources;try{sources=savedSources=sourceConfig(JSON.parse(await readFile(join(dataDir,'sources.json'),'utf8')));}catch{}
 const token=randomBytes(24).toString('hex'),clients=new Set(),relay=new MessageRelay(),dockHistory=new DockHistory();
+// Text to speech: spoken chat goes only to the /tts pages, not into the dock history.
+const speech=new Speech({emit:(type,data)=>{const frame=`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;for(const r of clients)r.write(frame);}});
 const outbox=new Outbox(),pollJobs=new PollJobs(),pollEndJobs=new PollEndJobs();let collectorWaiter=null;
 function queueCollector(command){if(collectorCommands.length>=64)throw Error('Capture command queue is busy.');collectorCommands.push(command);collectorWaiter?.();}
 let collector={updatedAt:0,version:null,errors:{}},collectorCommands=[];
@@ -39,7 +42,7 @@ const renderTiming={overlay:{},vertical:{},webcam:{},dock:{}};
 const collectorActive=()=>Date.now()-collector.updatedAt<15000;
 let bridge={twitch:0,youtube:0,tiktok:0,kick:0},catalog={},catalogAt=0,catalogErrors=[];
 const traffic={kick:{received:0,displayed:0,lastMessageAt:0,bridgeVersion:'unknown',lastRelayMs:null},tiktok:{received:0,displayed:0,lastMessageAt:0,bridgeVersion:'unknown',lastRelayMs:null},twitch:{received:0,displayed:0,lastMessageAt:0,bridgeVersion:'unknown',lastRelayMs:null},youtube:{received:0,displayed:0,lastMessageAt:0,bridgeVersion:'unknown',lastRelayMs:null}};
-function emit(type,data){dockHistory.accept(type,data);const frame=`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;for(const r of clients)r.write(frame);}
+function emit(type,data){if(type==='message'&&state.ttsEnabled){const m=normalize(data,state);if(m)speech.consider(m,state);}dockHistory.accept(type,data);const frame=`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;for(const r of clients)r.write(frame);}
 async function emotes(){if(Date.now()-catalogAt<300000)return {emotes:catalog,errors:catalogErrors};const result={};let errors=[];
  for(const url of ['https://api.betterttv.net/3/cached/emotes/global',...(state.twitchId?[`https://api.betterttv.net/3/cached/users/twitch/${state.twitchId}`]:[])]){try{const r=await fetch(url,{signal:AbortSignal.timeout(7000)});if(!r.ok)throw Error(String(r.status));const j=await r.json();for(const e of Array.isArray(j)?j:[...(j.channelEmotes||[]),...(j.sharedEmotes||[])])result[e.code]=`https://cdn.betterttv.net/emote/${e.id}/3x`;}catch(e){errors.push(e.message);}}
  catalog=result;catalogErrors=errors;catalogAt=Date.now();return {emotes:result,errors};}
@@ -58,11 +61,13 @@ const server=http.createServer(async(req,res)=>{
  }
  if(u.pathname==='/api/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Connection':'keep-alive'});res.write(`event: settings\ndata: ${JSON.stringify(state)}\n\n`);res.write('event: polls\ndata: '+JSON.stringify(polls.snapshot())+'\n\n');clients.add(res);req.on('close',()=>clients.delete(res));return;}
  if(u.pathname==='/api/polls'&&req.method==='GET')return json({polls:polls.snapshot()});
- if(u.pathname==='/api/status')return json({bridge,traffic,settings:state,sources,sourceStatus,renderTiming,twitch:twitch.status(),youtube:youtube.status(),kick:kick.status(),update:updates.status(),collector:{...collector,active:collectorActive(),viewers:{...collector.viewers,...youtube.viewers,...(twitch.viewers?{twitch:twitch.viewers}:{}),...(kick.viewers?{kick:kick.viewers}:{})}}});
+ if(u.pathname==='/api/status')return json({bridge,traffic,settings:state,sources,sourceStatus,renderTiming,twitch:twitch.status(),youtube:youtube.status(),kick:kick.status(),update:updates.status(),tts:{error:speech.error,queued:speech.queue.length},collector:{...collector,active:collectorActive(),viewers:{...collector.viewers,...youtube.viewers,...(twitch.viewers?{twitch:twitch.viewers}:{}),...(kick.viewers?{kick:kick.viewers}:{})}}});
  if(u.pathname==='/api/collector/commands'&&req.method==='GET'){if(req.headers['x-bubblecast-token']!==token)return json({error:'Pair the capture app.'},401);const deliver=()=>{const commands=collectorCommands.map(c=>c.action==='send'?{action:'send',job:forHelper(outbox.claim(c.id),'send')}:c.action==='create-poll'?{action:'create-poll',job:forHelper(pollJobs.claim(c.id))}:c.action==='end-poll'?{action:'end-poll',job:forHelper(pollEndJobs.claim(c.id))}:c).filter(c=>!['send','create-poll','end-poll'].includes(c.action)||c.job);collectorCommands=[];json({commands});};if(collectorCommands.length||u.searchParams.get('wait')!=='1'){deliver();return;}if(collectorWaiter)return json({error:'Collector already listening'},409);const done=()=>{if(collectorWaiter!==done)return;collectorWaiter=null;clearTimeout(timer);deliver();};const timer=setTimeout(done,25000);collectorWaiter=done;res.on('close',()=>{if(collectorWaiter===done){collectorWaiter=null;clearTimeout(timer);}});return;}
  if(u.pathname==='/api/chat/history'&&req.method==='GET')return json({messages:dockHistory.snapshot(state)});
  if(u.pathname==='/api/sources'&&req.method==='GET')return json({...sources,urls:{...sources.urls,twitch:''},captureMode:collectorActive()?'desktop':'chrome'});
  if(u.pathname==='/api/pair'&&req.method==='GET')return json({token});
+ if(u.pathname==='/api/tts/voices'&&req.method==='GET')return json({voices:await speech.voices(),error:speech.error});
+ if(u.pathname.startsWith('/api/tts/audio/')&&req.method==='GET'){const file=speech.file(u.pathname.slice(15));if(!file)return json({error:'Gone'},404);try{const audio=await readFile(file);res.writeHead(200,{'Content-Type':'audio/wav','Content-Length':audio.length});return res.end(audio);}catch{return json({error:'Gone'},404);}}
  if(u.pathname==='/api/apps'&&req.method==='GET')return json(appKeys.public());
  if(u.pathname==='/api/emotes')return json(await emotes());
  if(req.method==='POST'){
@@ -92,6 +97,8 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/collector/control'){if(!['show','signin','refresh','setup','quit','poll-editor','poll-check'].includes(data.action))return json({error:'Unknown capture action'},400);if(['show','signin','refresh','poll-editor','poll-check'].includes(data.action)&&!['twitch','youtube','youtubeShorts','tiktok','kick'].includes(data.sourceKey))return json({error:'Unknown source'},400);queueCollector({action:data.action,sourceKey:data.sourceKey,...(data.action==='setup'&&data.page==='connections'?{page:'connections'}:{})});return json({ok:true});}
  if(u.pathname==='/api/sources/status'){if(collectorActive()&&data.mode!=='desktop')return json({ok:true,ignored:true});sourceStatus={version:/^\d+\.\d+\.\d+$/.test(data.version||'')?data.version:null,mode:data.mode==='desktop'?'desktop':'chrome',twitch:data.twitch===true,youtube:data.youtube===true,youtubeShorts:data.youtubeShorts===true,tiktok:data.tiktok===true,kick:data.kick===true,updatedAt:Date.now()};return json({ok:true});}
  if(u.pathname==='/api/obs/setup')return json(await setupObs({resolution:state.resolution}));
+ if(u.pathname==='/api/tts/test'){speech.test(state);return json({ok:true});}
+ if(u.pathname==='/api/tts/skip'){speech.skip();return json({ok:true});}
  if(u.pathname==='/api/update/check')return json(await updates.check(true));
  if(u.pathname==='/api/update/install'){const job=updates.job();if(!job)return json({error:updates.status().packaged?'No update to install.':'This copy runs from source. Update it with git pull.'},409);if(!collectorActive())return json({error:'Start Bubblecast to install the update.'},409);updates.report('downloading');queueCollector({action:'update',...job});return json(updates.status());}
  if(u.pathname==='/api/update/progress'){updates.report(String(data.stage||''),data.detail);return json({ok:true});}
@@ -114,7 +121,7 @@ const server=http.createServer(async(req,res)=>{
  const event=relay.ingest(data,state);if(event){emit(event.type,event.message);if(event.type==='message'&&u.pathname==='/api/bridge')traffic[event.message.platform].displayed++;}return json({ok:true,displayed:!!event});}
  return json({error:'Unknown action'},404);
  }
- const files={'/i18n.js':'i18n.js','/tooltip.js':'tooltip.js','/setup-guide.js':'setup-guide.js','/setup-guide.css':'setup-guide.css','/logos/kick.svg':'kick.svg','/dock-layout.mjs':'dock-layout.mjs','/render-timing.mjs':'render-timing.mjs','/obs-live.mjs':'obs-live.mjs','/render-patch.mjs':'render-patch.mjs','/dock':'dock.html','/dock.js':'dock.js','/poll-compose.mjs':'poll-compose.mjs','/poll-board.mjs':'poll-board.mjs','/poll-overlay':'poll-overlay.html','/poll-overlay.js':'poll-overlay.js','/poll-overlay.css':'poll-overlay.css','/poll-overlay-view.mjs':'poll-overlay-view.mjs','/dock.css':'dock.css','/logos/youtube.svg':'youtube.svg','/logos/tiktok.svg':'tiktok.svg','/logos/tiktok-on-dark.svg':'tiktok-on-dark.svg','/logos/twitch.png':'../logos/twitch-purple-logo-png-transparent.png','/logos/youtube.png':'../logos/Youtube_logo.png','/':'index.html','/overlay':'overlay.html','/app.js':'app.js','/connections.js':'connections.js','/overlay.js':'overlay.js','/layouts.mjs':'layouts.mjs','/overlay.css':'overlay.css','/style.css':'style.css','/theme.css':'theme.css','/logo-glyph.svg':'logo-glyph.svg','/favicon.svg':'favicon.svg','/core.mjs':'../core.mjs'};
+ const files={'/i18n.js':'i18n.js','/tooltip.js':'tooltip.js','/tts':'tts.html','/tts.js':'tts.js','/setup-guide.js':'setup-guide.js','/setup-guide.css':'setup-guide.css','/logos/kick.svg':'kick.svg','/dock-layout.mjs':'dock-layout.mjs','/render-timing.mjs':'render-timing.mjs','/obs-live.mjs':'obs-live.mjs','/render-patch.mjs':'render-patch.mjs','/dock':'dock.html','/dock.js':'dock.js','/poll-compose.mjs':'poll-compose.mjs','/poll-board.mjs':'poll-board.mjs','/poll-overlay':'poll-overlay.html','/poll-overlay.js':'poll-overlay.js','/poll-overlay.css':'poll-overlay.css','/poll-overlay-view.mjs':'poll-overlay-view.mjs','/dock.css':'dock.css','/logos/youtube.svg':'youtube.svg','/logos/tiktok.svg':'tiktok.svg','/logos/tiktok-on-dark.svg':'tiktok-on-dark.svg','/logos/twitch.png':'../logos/twitch-purple-logo-png-transparent.png','/logos/youtube.png':'../logos/Youtube_logo.png','/':'index.html','/overlay':'overlay.html','/app.js':'app.js','/connections.js':'connections.js','/overlay.js':'overlay.js','/layouts.mjs':'layouts.mjs','/overlay.css':'overlay.css','/style.css':'style.css','/theme.css':'theme.css','/logo-glyph.svg':'logo-glyph.svg','/favicon.svg':'favicon.svg','/core.mjs':'../core.mjs'};
  if(!files[u.pathname])return json({error:'Not found'},404);
  const file=files[u.pathname];res.writeHead(200,{'Content-Type':({'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.png':'image/png','.svg':'image/svg+xml'})[extname(file)]});res.end(await readFile(join(root,'public',file)));
  }catch(e){if(!res.headersSent)json({error:e.message},400);else res.end();}

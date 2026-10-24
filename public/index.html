@@ -11,6 +11,7 @@
   <span class="nav-label">Overlays</span>
   <a href="#chat" data-page-link="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12.5h5"/></svg>Chat overlay</a>
   <a href="#polls" data-page-link="polls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Poll overlay</a>
+  <a href="#tts" data-page-link="tts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>Text to speech</a>
   <span class="nav-label">Workspace</span>
   <a href="#dock" data-page-link="dock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M14 4v16"/></svg>Chat dock</a>
   <a href="#obs" data-page-link="obs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3v5.5M4.2 16.5l4.8-2.8M19.8 16.5 15 13.7"/></svg>OBS setup</a>
@@ -212,6 +213,49 @@
     <label class="row"><span>After it ends</span><input name="pollFinalLabel" maxlength="24" placeholder="Final results"></label>
    </fieldset>
   </div>
+ </div>
+</section>
+
+<section class="page" data-page="tts" id="page-tts" hidden>
+ <header class="page-header"><div><h1>Text to speech</h1><p>Read chat aloud on stream with your computer’s own voices.</p></div><span class="save-state" aria-live="polite"></span></header>
+ <div class="groups tts-page">
+  <fieldset class="group"><legend>Text to speech</legend>
+   <label class="row"><span>Read chat aloud</span><input type="checkbox" name="ttsEnabled" class="switch"></label>
+   <label class="row"><span>Twitch</span><input type="checkbox" name="ttsTwitch" class="switch"></label>
+   <label class="row"><span>YouTube</span><input type="checkbox" name="ttsYoutube" class="switch"></label>
+   <label class="row"><span>TikTok LIVE</span><input type="checkbox" name="ttsTiktok" class="switch"></label>
+   <label class="row"><span>Kick</span><input type="checkbox" name="ttsKick" class="switch"></label>
+  </fieldset>
+  <fieldset class="group"><legend>What gets read</legend>
+   <label class="row"><span>Chat command</span><input type="checkbox" name="ttsCommandOn" class="switch"></label>
+   <label class="row"><span>Command</span><input name="ttsCommand" placeholder="!tts" spellcheck="false" autocomplete="off"></label>
+   <p class="footnote">Viewers type the command and their message, for example “!tts hello everyone”. It works on Twitch, YouTube, TikTok and Kick.</p>
+   <label class="row"><span>Read every message from allowed viewers</span><input type="checkbox" name="ttsReadAll" class="switch"></label>
+   <label class="row"><span>Twitch channel point reward</span><input name="ttsReward" placeholder="Reward name, for example TTS" spellcheck="false" autocomplete="off"></label>
+   <p class="footnote">Make a Twitch reward that asks viewers for text and type its name here. Bubblecast reads what they write. Kick doesn’t share channel point rewards with Bubblecast yet.</p>
+   <label class="row"><span>Read subs, raids and other events</span><input type="checkbox" name="ttsEvents" class="switch"></label>
+  </fieldset>
+  <fieldset class="group"><legend>Who can use the command</legend>
+   <label class="row"><span>Everyone</span><input type="checkbox" name="ttsEveryone" class="switch"></label>
+   <label class="row"><span>Subscribers and members</span><input type="checkbox" name="ttsSubscribers" class="switch"></label>
+   <label class="row"><span>VIPs</span><input type="checkbox" name="ttsVips" class="switch"></label>
+   <label class="row"><span>Moderators</span><input type="checkbox" name="ttsMods" class="switch"></label>
+   <p class="footnote">You can always use it. Each platform’s own moderators, VIPs, subscribers and members are recognized from their badges.</p>
+  </fieldset>
+  <fieldset class="group"><legend>Voice</legend>
+   <label class="row"><span>Voice</span><select name="ttsVoice" id="ttsVoice"><option value="">System default</option></select></label>
+   <label class="row slider"><span>Speed</span><input type="range" name="ttsRate" min="-10" max="10"><output data-for="ttsRate"></output></label>
+   <label class="row slider"><span>Volume</span><input type="range" name="ttsVolume" min="0" max="100"><output data-for="ttsVolume" data-unit="%"></output></label>
+   <label class="row"><span>Say the viewer’s name</span><input type="checkbox" name="ttsReadName" class="switch"></label>
+   <label class="row slider"><span>Longest message</span><input type="range" name="ttsMaxLength" min="20" max="500" step="10"><output data-for="ttsMaxLength"></output></label>
+   <label class="row slider"><span>Wait between messages from one viewer</span><input type="range" name="ttsCooldown" min="0" max="120" step="5"><output data-for="ttsCooldown" data-unit=" s"></output></label>
+   <div class="row tts-actions"><button type="button" class="button" id="ttsTest">Test voice</button><button type="button" class="button" id="ttsSkip">Skip current message</button></div>
+   <p class="footnote tts-error" id="ttsError" hidden></p>
+  </fieldset>
+  <fieldset class="group"><legend>Add the voice to OBS</legend>
+   <div class="row url-row"><code>/tts</code><button type="button" class="button" data-copy="/tts">Copy URL</button></div>
+   <p class="footnote">In OBS, add a Browser source with this URL and tick “Control audio via OBS”. It shows nothing on screen and gets its own volume slider.</p>
+  </fieldset>
  </div>
 </section>
 
