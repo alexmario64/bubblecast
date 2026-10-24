@@ -18,6 +18,7 @@ import {setupObs} from './obs.mjs';
 import {addObsDock} from './obs-dock.mjs';
 import {Updates} from './updates.mjs';
 import {Speech} from './tts.mjs';
+import {NaturalVoices} from './natural-voices.mjs';
 import {MessageRelay} from './relay.mjs';
 import {sourceConfig,withFoundVideos,withAccountChannels} from './source-config.mjs';
 import {DockHistory} from './dock-history.mjs';
@@ -30,7 +31,8 @@ let sources={configured:false,enabled:true,twitchChannel:'',youtubeVideo:'',yout
 let savedSources=sources;try{sources=savedSources=sourceConfig(JSON.parse(await readFile(join(dataDir,'sources.json'),'utf8')));}catch{}
 const token=randomBytes(24).toString('hex'),clients=new Set(),relay=new MessageRelay(),dockHistory=new DockHistory();
 // Text to speech: spoken chat goes only to the /tts pages, not into the dock history.
-const speech=new Speech({emit:(type,data)=>{const frame=`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;for(const r of clients)r.write(frame);}});
+const natural=new NaturalVoices({dir:join(dataDir,'.local','piper')});
+const speech=new Speech({natural,emit:(type,data)=>{const frame=`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;for(const r of clients)r.write(frame);}});
 const outbox=new Outbox(),pollJobs=new PollJobs(),pollEndJobs=new PollEndJobs();let collectorWaiter=null;
 function queueCollector(command){if(collectorCommands.length>=64)throw Error('Capture command queue is busy.');collectorCommands.push(command);collectorWaiter?.();}
 let collector={updatedAt:0,version:null,errors:{}},collectorCommands=[];
@@ -66,6 +68,7 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/chat/history'&&req.method==='GET')return json({messages:dockHistory.snapshot(state)});
  if(u.pathname==='/api/sources'&&req.method==='GET')return json({...sources,urls:{...sources.urls,twitch:''},captureMode:collectorActive()?'desktop':'chrome'});
  if(u.pathname==='/api/pair'&&req.method==='GET')return json({token});
+ if(u.pathname==='/api/tts/natural'&&req.method==='GET')return json({supported:natural.supported,voices:await natural.list()});
  if(u.pathname==='/api/tts/voices'&&req.method==='GET')return json({voices:await speech.voices(),error:speech.error});
  if(u.pathname.startsWith('/api/tts/audio/')&&req.method==='GET'){const file=speech.file(u.pathname.slice(15));if(!file)return json({error:'Gone'},404);try{const audio=await readFile(file);res.writeHead(200,{'Content-Type':'audio/wav','Content-Length':audio.length});return res.end(audio);}catch{return json({error:'Gone'},404);}}
  if(u.pathname==='/api/apps'&&req.method==='GET')return json(appKeys.public());
@@ -98,6 +101,8 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/sources/status'){if(collectorActive()&&data.mode!=='desktop')return json({ok:true,ignored:true});sourceStatus={version:/^\d+\.\d+\.\d+$/.test(data.version||'')?data.version:null,mode:data.mode==='desktop'?'desktop':'chrome',twitch:data.twitch===true,youtube:data.youtube===true,youtubeShorts:data.youtubeShorts===true,tiktok:data.tiktok===true,kick:data.kick===true,updatedAt:Date.now()};return json({ok:true});}
  if(u.pathname==='/api/obs/setup')return json(await setupObs({resolution:state.resolution}));
  if(u.pathname==='/api/tts/test'){try{return json(await speech.test(state));}catch(e){return json({error:e.message},500);}}
+ if(u.pathname==='/api/tts/natural/install'){try{natural.install(String(data.id||''));return json({ok:true});}catch(e){return json({error:e.message},400);}}
+ if(u.pathname==='/api/tts/natural/remove'){try{await natural.remove(String(data.id||''));return json({ok:true});}catch(e){return json({error:e.message},400);}}
  if(u.pathname==='/api/tts/skip'){speech.skip();return json({ok:true});}
  if(u.pathname==='/api/update/check')return json(await updates.check(true));
  if(u.pathname==='/api/update/install'){const job=updates.job();if(!job)return json({error:updates.status().packaged?'No update to install.':'This copy runs from source. Update it with git pull.'},409);if(!collectorActive())return json({error:'Start Bubblecast to install the update.'},409);updates.report('downloading');queueCollector({action:'update',...job});return json(updates.status());}

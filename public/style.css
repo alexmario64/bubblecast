@@ -46,6 +46,12 @@ nav a svg{width:17px;height:17px;opacity:.9}
 main{min-width:0;padding:30px clamp(20px,3.4vw,52px) 60px}
 #settings{max-width:1320px;margin:0 auto}
 .tts-page{max-width:880px}
+.natural-voices{display:grid;gap:6px;width:100%}
+.natural-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:4px 12px;padding:8px 12px;border-radius:10px;background:var(--surface-2)}
+.natural-name{font-weight:600}
+.natural-meta{font-size:12px;color:var(--text-2)}
+.natural-row .button{padding:5px 12px;font-size:12px}
+.natural-credit{grid-column:1/-1;font-size:11px;color:var(--text-3)}
 .tts-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start}
 .tts-error{color:var(--bad)}
 .banner.update-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 40%,transparent);color:var(--text)}

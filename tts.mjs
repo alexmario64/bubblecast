@@ -6,6 +6,7 @@ import {mkdir,writeFile,rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {randomUUID} from 'node:crypto';
+import {VOICES} from './natural-voices.mjs';
 
 const platformKey={twitch:'ttsTwitch',youtube:'ttsYoutube',tiktok:'ttsTiktok',kick:'ttsKick'};
 const same=(a,b)=>String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase();
@@ -59,10 +60,10 @@ export const engines={
 
 // ---- The queue: one message is voiced at a time and handed to the /tts pages. ----
 export class Speech{
- constructor({emit,engine=engines,dir=join(tmpdir(),'bubblecast-tts'),now=Date.now,keepMs=300000}){Object.assign(this,{emit,engine,dir,now,keepMs});this.queue=[];this.busy=false;this.files=new Map();this.recent=new Map();this.voiceList=null;this.error=null;}
+ constructor({emit,engine=engines,natural=null,dir=join(tmpdir(),'bubblecast-tts'),now=Date.now,keepMs=300000}){Object.assign(this,{emit,engine,natural,dir,now,keepMs});this.queue=[];this.busy=false;this.files=new Map();this.recent=new Map();this.voiceList=null;this.error=null;}
  async voices(){if(!this.voiceList)try{this.voiceList=await this.engine.voices();}catch(e){this.error=String(e.message||e);return [];}return this.voiceList;}
  // Spanish voices say "dice", others "says".
- lang(s){const v=this.voiceList?.find(v=>v.name===s.ttsVoice);return (v?.lang||s.language||'en').slice(0,2);}
+ lang(s){const id=String(s.ttsVoice||'').startsWith('natural:')?s.ttsVoice.slice(8):'';const v=id?VOICES.find(v=>v.id===id):this.voiceList?.find(v=>v.name===s.ttsVoice);return (v?.lang||s.language||'en').slice(0,2);}
  consider(m,s){const text=speechText(m,s,this.lang(s));if(!text)return false;
   const key=m.platform+':'+(m.userId||m.user),t=this.now();
   const last=this.recent.get(key);if(!m.event&&!(m.roles||[]).includes('broadcaster')&&s.ttsCooldown&&last!==undefined&&t-last<s.ttsCooldown*1000)return false;
@@ -75,7 +76,9 @@ export class Speech{
  file(id){return this.files.get(id)||null;}
  async pump(){if(this.busy)return;const job=this.queue.shift();if(!job)return;this.busy=true;
   try{await mkdir(this.dir,{recursive:true});const out=join(this.dir,job.id+'.wav'),input=join(this.dir,job.id+'.txt');
-   try{await this.engine.speak({text:job.text,voice:job.voice,rate:job.rate,out,input});}finally{rm(input,{force:true}).catch(()=>{});}
+   // Natural voices ("natural:<id>") use Piper; anything else uses the system voices.
+   if(String(job.voice||'').startsWith('natural:')){if(!this.natural)throw Error('Natural voices are not available.');await this.natural.speak({id:job.voice.slice(8),text:job.text,rate:job.rate,out});}
+   else try{await this.engine.speak({text:job.text,voice:job.voice,rate:job.rate,out,input});}finally{rm(input,{force:true}).catch(()=>{});}
    this.files.set(job.id,out);this.error=null;
    const item={id:job.id,url:'/api/tts/audio/'+job.id,text:job.text,user:job.user,platform:job.platform,volume:job.volume};this.emit('tts',item);job.resolve(item);
    setTimeout(()=>{this.files.delete(job.id);rm(out,{force:true}).catch(()=>{});},this.keepMs).unref?.();

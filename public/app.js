@@ -61,7 +61,7 @@ window.addEventListener('bubblecast-paired',()=>toast('Browser bridge paired.','
 window.addEventListener('bubblecast-bridge-reload-needed',()=>toast('The browser bridge was reloaded. Refresh this page to reconnect.','error'));
 
 // Updates: a banner and the Overview card show new versions; the installed app installs them in one click.
-function paintUpdate(u){if(!u)return;const p=u.progress&&Date.now()-u.progress.at<600000?u.progress:null,busy=!!p&&p.stage!=='failed';
+function paintUpdate(u){if(!u)return;window.bubblecastGuide?.noticeVersion?.(u.current);const p=u.progress&&Date.now()-u.progress.at<600000?u.progress:null,busy=!!p&&p.stage!=='failed';
  $('#versionText').textContent='Version '+u.current+(u.available?' · Update available: '+u.latest:u.checkedAt&&!u.error?' · Up to date':'');
  $('#updateBanner').hidden=!u.available&&!p;
  $('#updateText').textContent=p?.stage==='downloading'?'Downloading the update…':p?.stage==='installing'?'Installing the update. Bubblecast will reopen in a moment.':p?.stage==='failed'?'The update didn’t install: '+p.detail:u.installable?'Bubblecast '+u.latest+' is available.':'Bubblecast '+u.latest+' is available. Update this copy with git pull.';
@@ -71,9 +71,25 @@ $('#installUpdate').onclick=installUpdate;$('#installUpdateCard').onclick=instal
 $('#checkUpdate').onclick=async()=>{const b=$('#checkUpdate');b.disabled=true;try{const u=await api('update/check',{});paintUpdate(u);toast(u.error||(u.available?'Bubblecast '+u.latest+' is available.':'You have the latest version.'),u.error?'error':'success');}catch(e){toast(e.message,'error');}finally{b.disabled=false;}};
 
 // Text to speech: the voice list comes from this computer; Test and Skip act on the /tts browser source.
-async function loadVoices(){try{const {voices}=await(await fetch('/api/tts/voices')).json();const select=$('#ttsVoice');for(const v of voices||[]){const o=document.createElement('option');o.value=v.name;o.textContent=v.lang?v.name+' ('+v.lang+')':v.name;select.append(o);}
- if(state.ttsVoice&&![...select.options].some(o=>o.value===state.ttsVoice)){const o=document.createElement('option');o.value=state.ttsVoice;o.textContent=state.ttsVoice;select.append(o);}select.value=state.ttsVoice||'';}catch{}}
-loadVoices();
+// The voice menu: installed natural voices first, then this computer's own voices.
+let systemVoices=[],naturalVoices=[],naturalTimer=null;const tr=t=>window.bubblecastI18n?.translate?.(t)??t;
+const option=(text,value)=>{const o=document.createElement('option');o.value=value;o.textContent=text;return o;};
+function paintVoiceMenu(){const select=$('#ttsVoice');select.replaceChildren(option(tr('System default'),''));
+ const group=(label,items)=>{if(!items.length)return;const g=document.createElement('optgroup');g.label=tr(label);for(const [value,text] of items)g.append(option(text,value));select.append(g);};
+ group('Natural voices',naturalVoices.filter(v=>v.installed).map(v=>['natural:'+v.id,v.name+' · '+v.label]));
+ group('System voices',systemVoices.map(v=>[v.name,v.lang?v.name+' ('+v.lang+')':v.name]));
+ if(state.ttsVoice&&![...select.options].some(o=>o.value===state.ttsVoice))select.append(option(state.ttsVoice,state.ttsVoice));select.value=state.ttsVoice||'';}
+async function loadVoices(){try{systemVoices=(await(await fetch('/api/tts/voices')).json()).voices||[];}catch{}paintVoiceMenu();}
+// Natural voices download once (Windows app), with their size, progress and any credit their license asks for.
+async function loadNatural(){try{const j=await(await fetch('/api/tts/natural')).json();naturalVoices=j.voices||[];paintNatural(j.supported);paintVoiceMenu();
+ clearTimeout(naturalTimer);if(naturalVoices.some(v=>v.job?.stage==='downloading'))naturalTimer=setTimeout(loadNatural,2000);}catch{}}
+function paintNatural(supported){$('#naturalNote').textContent=supported?'Natural voices sound far more human. Download one once, then pick it under Voice.':'Natural voices are available in the Windows app.';const box=$('#naturalVoices');box.replaceChildren();
+ for(const v of naturalVoices){const row=document.createElement('div');row.className='natural-row';const name=document.createElement('span');name.className='natural-name';name.textContent=v.name+' · '+v.label;
+  const meta=document.createElement('span');meta.className='natural-meta';meta.textContent=v.installed?'Installed':v.job?.stage==='downloading'?'Downloading…':v.job?.stage==='failed'?v.job.detail:Math.round(v.size/1e6)+' MB';
+  const btn=document.createElement('button');btn.type='button';btn.className='button';btn.textContent=v.installed?'Remove':'Download';btn.disabled=!supported||v.job?.stage==='downloading';
+  btn.onclick=async()=>{btn.disabled=true;try{await api(v.installed?'tts/natural/remove':'tts/natural/install',{id:v.id});await loadNatural();}catch(e){toast(e.message,'error');btn.disabled=false;}};
+  row.append(name,meta,btn);if(v.installed&&v.credit){const c=document.createElement('span');c.className='natural-credit';c.textContent=v.credit;row.append(c);}box.append(row);}}
+loadVoices();loadNatural();
 $('#ttsTest').onclick=async()=>{const b=$('#ttsTest');b.disabled=true;try{const item=await api('tts/test',{});const audio=new Audio(item.url);audio.volume=Math.max(0,Math.min(1,(state.ttsVolume??80)/100));await audio.play();toast('Playing the test voice here and on your text-to-speech browser source.','success');}catch(e){toast(e.message,'error');}finally{b.disabled=false;}};
 $('#ttsSkip').onclick=async()=>{try{await api('tts/skip',{});}catch(e){toast(e.message,'error');}};
 function paintTts(t){const el=$('#ttsError');el.hidden=!t?.error;el.textContent=t?.error||'';}
