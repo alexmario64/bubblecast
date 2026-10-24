@@ -67,17 +67,18 @@ export class Speech{
   const key=m.platform+':'+(m.userId||m.user),t=this.now();
   const last=this.recent.get(key);if(!m.event&&!(m.roles||[]).includes('broadcaster')&&s.ttsCooldown&&last!==undefined&&t-last<s.ttsCooldown*1000)return false;
   this.recent.set(key,t);while(this.recent.size>2000)this.recent.delete(this.recent.keys().next().value);
-  this.enqueue(text,m,s);return true;}
- test(s){this.enqueue(this.lang(s)==='es'?'Hola, esta es la voz de Bubblecast.':'Hi, this is the Bubblecast voice.',{user:'Bubblecast',platform:'test'},s);}
- enqueue(text,m,s){if(this.queue.length>=10)this.queue.shift();this.queue.push({id:randomUUID(),text,user:m.user,platform:m.platform,voice:s.ttsVoice,rate:s.ttsRate,volume:s.ttsVolume});this.pump();}
+  this.enqueue(text,m,s).catch(()=>{});return true;}
+// Resolves with what the /tts pages were sent, so Studio can play the test voice too.
+ test(s){return this.enqueue(this.lang(s)==='es'?'Hola, esta es la voz de Bubblecast.':'Hi, this is the Bubblecast voice.',{user:'Bubblecast',platform:'test'},s);}
+ enqueue(text,m,s){return new Promise((resolve,reject)=>{if(this.queue.length>=10)this.queue.shift()?.reject(Error('Too many messages waiting.'));this.queue.push({id:randomUUID(),text,user:m.user,platform:m.platform,voice:s.ttsVoice,rate:s.ttsRate,volume:s.ttsVolume,resolve,reject});this.pump();});}
  skip(){this.emit('tts-skip',{});}
  file(id){return this.files.get(id)||null;}
  async pump(){if(this.busy)return;const job=this.queue.shift();if(!job)return;this.busy=true;
   try{await mkdir(this.dir,{recursive:true});const out=join(this.dir,job.id+'.wav'),input=join(this.dir,job.id+'.txt');
    try{await this.engine.speak({text:job.text,voice:job.voice,rate:job.rate,out,input});}finally{rm(input,{force:true}).catch(()=>{});}
    this.files.set(job.id,out);this.error=null;
-   this.emit('tts',{id:job.id,url:'/api/tts/audio/'+job.id,text:job.text,user:job.user,platform:job.platform,volume:job.volume});
+   const item={id:job.id,url:'/api/tts/audio/'+job.id,text:job.text,user:job.user,platform:job.platform,volume:job.volume};this.emit('tts',item);job.resolve(item);
    setTimeout(()=>{this.files.delete(job.id);rm(out,{force:true}).catch(()=>{});},this.keepMs).unref?.();
-  }catch(e){this.error='Text to speech failed: '+(e.message||e);}
+  }catch(e){this.error='Text to speech failed: '+(e.message||e);job.reject(Error(this.error));}
   finally{this.busy=false;this.pump();}}
 }
