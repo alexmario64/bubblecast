@@ -28,7 +28,7 @@ function fake(t,{owner=true,tokens}={}){
 }
 test('Device Code sign-in waits for approval, validates, saves the token privately and connects',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'bubblecast-')),file=join(dir,'twitch-auth.json');t.after(()=>rm(dir,{recursive:true,force:true}));
- const f=fake(t),messages=[],polls=[],twitch=new TwitchOfficial({file,request:f.request,Socket:f.Socket,schedule:f.schedule,cancel:f.cancel,random:()=>0,onMessage:m=>messages.push(m),onPoll:p=>polls.push(p)});
+ const f=fake(t),messages=[],polls=[],redeemed=[],twitch=new TwitchOfficial({file,request:f.request,Socket:f.Socket,schedule:f.schedule,cancel:f.cancel,random:()=>0,onMessage:m=>messages.push(m),onPoll:p=>polls.push(p),onRedemption:r=>redeemed.push(r)});
  twitch.configure('streamer');const pending=await twitch.startSignIn();assert.equal(pending.userCode,'ABCD1234');assert.match(pending.verificationUri,/twitch\.tv\/activate/);
  const device=f.calls.find(c=>c.path==='/device');assert.equal(device.body.get('client_id'),TWITCH_CLIENT_ID);assert.ok(!device.body.has('client_secret'));
  await f.run(h=>h.ms===5000);assert.equal(twitch.connected,false,'still pending');await f.run(h=>h.ms===5000);
@@ -38,6 +38,8 @@ test('Device Code sign-in waits for approval, validates, saves the token private
  const subs=f.calls.filter(c=>c.path==='/eventsub/subscriptions').map(c=>JSON.parse(c.body).type);assert.deepEqual(subs,['channel.channel_points_custom_reward_redemption.add','channel.poll.begin','channel.poll.progress','channel.poll.end'],'chat comes from the chat connection, EventSub only adds redemptions and polls');assert.equal(JSON.parse(f.calls.find(c=>c.path==='/eventsub/subscriptions').body).transport.session_id,'s1');
  const note={metadata:{message_type:'notification',message_id:'x1'},payload:{subscription:{type:'channel.channel_points_custom_reward_redemption.add'},event:{id:'r9',user_name:'Viewer',user_input:'',reward:{id:'w1',title:'Hydrate!',cost:300}}}};
  await f.socket.emit(note);await f.socket.emit(note);assert.equal(messages.length,1,'duplicate deliveries are dropped');assert.equal(messages[0].event.title,'Hydrate!');assert.equal(messages[0].event.color,'#00C7AC','reward color comes from the reward list');
+ await f.socket.emit({...note,metadata:{message_type:'notification',message_id:'x2'},payload:{...note.payload,event:{id:'r10',user_name:'Viewer',user_id:'7',user_input:'hola chat',reward:{id:'w2',title:'TTS',cost:100}}}});
+ assert.deepEqual(redeemed.map(r=>[r.title,r.text]),[['Hydrate!',''],['TTS','hola chat']],'text to speech hears every redemption with its reward name and text');assert.ok(twitch.redemptionsReady);
  assert.deepEqual(twitch.badgeList('subscriber/12,unknown/1','subscriber/14'),[{src:'https://static-cdn.jtvnw.net/badges/v1/sub/3',alt:'1-Year Subscriber',label:'14'}]);
  assert.deepEqual(await twitch.sendChat('hello'),{status:'submitted',detail:'Sent'});assert.deepEqual(JSON.parse(f.calls.find(c=>c.path==='/chat/messages').body),{broadcaster_id:'100',sender_id:'100',message:'hello'});
  assert.equal((await twitch.createPoll({question:'Q?',choices:['A','B'],duration:120})).status,'submitted');assert.equal(polls[0].status,'active');

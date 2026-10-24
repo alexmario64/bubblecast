@@ -23,8 +23,8 @@ export function poll(e,type){
 
 // ---- Connection ----
 export class TwitchOfficial{
- constructor({file,request=fetch,Socket=WebSocket,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onMessage=()=>{},onPoll=()=>{},onAuth=()=>{}}){
-  Object.assign(this,{file,request,Socket,now,schedule,cancel,random,onMessage,onPoll,onAuth});
+ constructor({file,request=fetch,Socket=WebSocket,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onMessage=()=>{},onPoll=()=>{},onAuth=()=>{},onRedemption=()=>{}}){
+  Object.assign(this,{file,request,Socket,now,schedule,cancel,random,onMessage,onPoll,onAuth,onRedemption});
   this.auth=null;this.pending=null;this.channel='';this.broadcaster=null;this.socket=null;this.session=null;this.subscribed=[];this.failed=[];this.error=null;this.viewers=null;this.badges=new Map();this.rewards=new Map();this.seen=new Set();this.timers={};this.generation=0;
  }
  async load(){try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}this.timer('validate',()=>this.validate(),1000);}
@@ -33,6 +33,8 @@ export class TwitchOfficial{
  get connected(){return !!this.auth?.access_token;}
  get ready(){return !!(this.connected&&this.broadcaster);}
  get isBroadcaster(){return !!(this.broadcaster&&this.auth?.user_id===this.broadcaster.id);}
+ // Whether channel point redemptions reach Bubblecast: the channel owner must be connected.
+ get redemptionsReady(){return this.connected&&!!this.isBroadcaster&&!!this.broadcaster;}
  status(){return {connected:this.connected,login:this.auth?.login||'',channel:this.channel,ready:this.ready,broadcaster:this.isBroadcaster,pending:this.pending&&this.pending.expiresAt>this.now()?{userCode:this.pending.userCode,verificationUri:this.pending.verificationUri,expiresAt:this.pending.expiresAt}:null,missing:this.failed,error:this.error,viewers:this.viewers};}
  async form(path,fields){const r=await this.request(ID+path,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(fields),signal:AbortSignal.timeout(10000)});let body={};try{body=await r.json();}catch{}return {ok:r.ok,status:r.status,body};}
 
@@ -112,7 +114,7 @@ export class TwitchOfficial{
   for(const [type,condition] of types){if(generation!==this.generation)return;try{await this.helix('/eventsub/subscriptions',{method:'POST',body:{type,version:'1',condition,transport:{method:'websocket',session_id:this.session}}});this.subscribed.push(type);}catch{this.failed.push(type);}}
  }
  dispatch(type,e){
-  if(type==='channel.channel_points_custom_reward_redemption.add'){const data=redemption(e,this.rewards);if(data)this.onMessage(data);}
+  if(type==='channel.channel_points_custom_reward_redemption.add'){if(e?.reward?.title)this.onRedemption({id:String(e.id||''),user:e.user_name||e.user_login||'Someone',userId:e.user_id||'',title:e.reward.title,text:String(e.user_input||'')});const data=redemption(e,this.rewards);if(data)this.onMessage(data);}
   else if(type.startsWith('channel.poll.')){const p=poll(e,type);if(p)this.onPoll(p);}
  }
  // Viewer count from Helix, about every 90-110 s.
