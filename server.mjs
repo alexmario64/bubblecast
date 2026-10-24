@@ -107,6 +107,7 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/update/check')return json(await updates.check(true));
  if(u.pathname==='/api/update/install'){const job=updates.job();if(!job)return json({error:updates.status().packaged?'No update to install.':'This copy runs from source. Update it with git pull.'},409);if(!collectorActive())return json({error:'Start Bubblecast to install the update.'},409);updates.report('downloading');queueCollector({action:'update',...job});return json(updates.status());}
  if(u.pathname==='/api/update/progress'){updates.report(String(data.stage||''),data.detail);return json({ok:true});}
+ if(u.pathname==='/api/youtube/page-live'){youtubePageLive=data.live===true;if(youtubePageLive)youtube.setLive(true);return json({ok:true});}
  if(u.pathname==='/api/obs/streaming'){if(data.streaming===true){obsStreamingAt=Date.now();youtube.setLive(true);}return json({ok:true,live:obsLive()});}
  if(u.pathname==='/api/obs/dock')return json(await addObsDock().catch(error=>({status:'failed',detail:error.message})));
  if(u.pathname==='/api/settings'){const before=state;state=settings(data);catalogAt=0;await saveSettings();rewardSync.fromStudio(before).catch(()=>{});return json(state);}
@@ -116,9 +117,10 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/bridge'&&collectorActive()&&data.transport!=='desktop')return json({ok:true,ignored:true});
  if(u.pathname==='/api/bridge'&&['twitch','youtube','tiktok','kick'].includes(data.platform))bridge[data.platform]=Date.now();
  if(u.pathname==='/api/bridge'&&traffic[data.platform]){if(['starting','listening'].includes(data.captureState))traffic[data.platform].captureState=data.captureState;if(/^\d+\.\d+\.\d+$/.test(data.bridgeVersion||''))traffic[data.platform].bridgeVersion=data.bridgeVersion;if(data.action!=='update'&&Number.isFinite(data.observedAt)&&data.observedAt<=Date.now()&&Date.now()-data.observedAt<60000)traffic[data.platform].lastRelayMs=Date.now()-data.observedAt;}
- // While the official stream reads a YouTube chat, the page copy only adds emoji images and badges to its messages.
- // YouTube chat comes only from the official API. The signed-out page copy can only add badges, stickers and emoji images to a message the API delivered.
- if(data.platform==='youtube'&&data.action!=='heartbeat'){if(youtube.reading(data.sourceKey||'youtube')&&!['poll','delete','clear'].includes(data.action))for(const m of youtubeMerge.page(data)){const event=relay.ingest(m,state);if(event)emit(event.type,event.message);}return json({ok:true});}
+ // While the official stream reads a YouTube chat, the signed-out page copy only adds emoji images and badges to its messages.
+ if(data.platform==='youtube'&&data.action!=='heartbeat'){if(youtube.reading(data.sourceKey||'youtube')){if(!['poll','delete','clear'].includes(data.action))for(const m of youtubeMerge.page(data)){const event=relay.ingest(m,state);if(event)emit(event.type,event.message);}return json({ok:true});}
+  // The API isn't reading this chat (quota used up, no Google app, OBS idle): the page is the chat, read-only.
+  if(data.action==='poll')return json({ok:true});}
  if(data.action==='poll'){const poll=polls.accept(data.poll?{...data.poll,platform:data.platform,sourceKey:data.sourceKey}:data);if(poll){emit('poll',poll);await savePolls();}return json({ok:true,displayed:!!poll});}
  if(data.action==='delete'){emit('delete',{id:String(data.id||'').slice(0,200),userId:String(data.userId||'').slice(0,100),platform:data.platform,...(data.sourceKey?{sourceKey:data.sourceKey}:{})});return json({ok:true});}
  if(data.action==='clear'){emit('clear',{});return json({ok:true});}
@@ -187,12 +189,14 @@ const updates=new Updates({current:JSON.parse(await readFile(join(root,'package.
 setTimeout(()=>{updates.check().catch(()=>{});setInterval(()=>updates.check().catch(()=>{}),3600000).unref();},20000).unref();
 // Pages inside OBS report whether it is streaming. YouTube reads only while OBS is live and for two minutes
 // after it stops, so offline hours cost no API quota.
-let obsStreamingAt=0;const obsLive=()=>Date.now()-obsStreamingAt<120000;
-setInterval(()=>youtube.setLive(obsLive()),15000).unref();
+// The helper's signed-out YouTube page also reports when the channel goes live (no quota spent), so chat
+// starts even when OBS isn't the one streaming (Aitum Vertical, another encoder).
+let obsStreamingAt=0,youtubePageLive=false;const obsLive=()=>Date.now()-obsStreamingAt<120000;
+let quotaOut=false;setInterval(()=>{youtube.setLive(obsLive()||youtubePageLive);const out=youtube.quotaUntil>Date.now();if(out!==quotaOut){quotaOut=out;refreshSources();}},15000).unref();
 function configureYouTube(){const found=sources.youtubeFound||[],slot=k=>found.find(f=>f.slot===k)?.video||'';youtube.configure(sources.enabled?{youtube:sources.urls.youtube?sources.youtubeVideo||slot('youtube'):'',youtubeShorts:sources.urls.youtubeShorts?sources.youtubeShortsVideo||slot('youtubeShorts'):''}:{});youtube.autoFind(savedSources.enabled&&!savedSources.youtubeVideo&&!savedSources.youtubeShortsVideo);}
 // A newly found or ended YouTube stream updates the chat sources the same way saving connections does.
 async function youtubeFound(found){const next=resolvedSources(savedSources,found);if(JSON.stringify(next.urls)===JSON.stringify(sources.urls)&&JSON.stringify(next.youtubeFound)===JSON.stringify(sources.youtubeFound))return;const changed=JSON.stringify(next.urls)!==JSON.stringify(sources.urls);sources=next;if(changed)await savePolls();emit('sources',sources);configureYouTube();}
-function resolvedSources(saved=savedSources,found=youtube.found){return withFoundVideos(withAccountChannels(saved,{twitch:twitch.connected?twitch.auth?.login:'',kick:kick.connected?kick.auth?.channel:''}),found);}
+function resolvedSources(saved=savedSources,found=youtube.found){return withFoundVideos(withAccountChannels(saved,{twitch:twitch.connected?twitch.auth?.login:'',kick:kick.connected?kick.auth?.channel:''}),youtube.reading('youtube')||youtube.quotaUntil<=Date.now()?found:[],youtube.connected?youtube.auth?.channel?.id||'':'');}
 function refreshSources(){const next=resolvedSources();const changed=JSON.stringify(next)!==JSON.stringify(sources);sources=next;if(changed)emit('sources',sources);configureTwitch();configureYouTube();configureKick();}
 await appKeys.load();youtube.setApp(appKeys.get('youtube'));kick.setApp(appKeys.get('kick'));await twitch.load();configureTwitch();await youtube.load();await kick.load();configureKick();await youtubeMerge.load();refreshSources();
 server.listen(3927,'127.0.0.1',()=>console.log('Bubblecast ready: http://127.0.0.1:3927 • OBS: http://127.0.0.1:3927/overlay'));

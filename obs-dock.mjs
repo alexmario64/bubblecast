@@ -38,3 +38,19 @@ export async function addObsDock({folder=obsConfigFolder(),running=obsRunning,ti
  const next=withDock(text,{title,url});if(next===null)return {status:'present',detail:'The Bubblecast dock is already in OBS.'};
  await writeFile(file,next,'utf8');return {status:'added',detail:'Added the Bubblecast dock to OBS. Open OBS and find it under Docks.'};
 }
+
+// ---- Start Bubblecast with OBS: a small Lua script, registered in the current scene collection, that runs
+// the installed app in the background. Only written while OBS is closed. A running Bubblecast just ignores it.
+export function launcherScript(exe){const path=String(exe).replace(/\\/g,'\\\\').replace(/"/g,'');
+ return `obs = obslua\nfunction script_description()\n return "Starts Bubblecast in the background when OBS opens."\nend\nfunction script_load(settings)\n os.execute('start "" "${path}" --background')\nend\n`;}
+async function iniValue(folder,section,key){for(const name of ['user.ini','global.ini'])try{const text=await readFile(join(folder,name),'utf8');let inside=false;for(const line of text.split(/\r?\n/)){if(/^\s*\[.*\]\s*$/.test(line))inside=line.trim()==='['+section+']';else if(inside&&line.startsWith(key+'='))return line.slice(key.length+1).trim();}}catch{}return '';}
+export function withLauncher(collection,scriptPath){const data=JSON.parse(collection);const modules=data.modules&&typeof data.modules==='object'?data.modules:(data.modules={});
+ const list=Array.isArray(modules['scripts-tool'])?modules['scripts-tool']:(modules['scripts-tool']=[]);if(list.some(s=>String(s?.path||'').toLowerCase()===scriptPath.toLowerCase()))return null;
+ list.push({path:scriptPath,settings:{}});return JSON.stringify(data,null,4);}
+export async function addObsLauncher({folder=obsConfigFolder(),running=obsRunning,exe,dataDir}={}){
+ if(!exe||!dataDir||!folder||!(await exists(folder)))return {status:'no-obs'};if(await running())return {status:'obs-running'};
+ const name=await iniValue(folder,'Basic','SceneCollectionFile');if(!name)return {status:'no-collection'};const file=join(folder,'basic','scenes',name+'.json');
+ let text;try{text=await readFile(file,'utf8');}catch{return {status:'no-collection'};}
+ const scriptPath=join(dataDir,'bubblecast-obs.lua');await writeFile(scriptPath,launcherScript(exe),'utf8');
+ let next;try{next=withLauncher(text,scriptPath.replace(/\\/g,'/'));}catch{return {status:'unreadable'};}if(next===null)return {status:'present'};
+ await writeFile(file+'.bubblecast-backup',text,'utf8');await writeFile(file,next,'utf8');return {status:'added'};}

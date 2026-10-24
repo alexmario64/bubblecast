@@ -74,3 +74,11 @@ test('listing rewards maps every reward on the channel',async()=>{
  twitch.auth={access_token:'a',refresh_token:'r',user_id:'100',scopes:[]};twitch.broadcaster={id:'100',login:'streamer'};
  assert.deepEqual((await twitch.listRewards()).map(r=>[r.id,r.title,r.cooldown]),[['a','TTS',30],['b','Hydrate',0]]);
 });
+test('renewing the Twitch sign-in happens once at a time, and only a refused token signs you out',async()=>{
+ let calls=0,reply={ok:true,status:200,json:async()=>({access_token:'new',refresh_token:'rt2',expires_in:3600})};
+ const twitch=new TwitchOfficial({file:join(tmpdir(),'bubblecast-twitch-'+Date.now()+'.json'),request:async()=>{calls++;await new Promise(r=>setTimeout(r,5));return reply;}});
+ twitch.auth={access_token:'old',refresh_token:'rt1',user_id:'1',scopes:[]};
+ const [a,b]=await Promise.all([twitch.refresh(),twitch.refresh()]);assert.deepEqual([a,b,calls],[true,true,1],'two at once share one renewal');
+ reply={ok:false,status:503,json:async()=>({})};assert.equal(await twitch.refresh(),false);assert.ok(twitch.connected,'an outage keeps you signed in');
+ reply={ok:false,status:400,json:async()=>({message:'Invalid refresh token'})};assert.equal(await twitch.refresh(),false);assert.equal(twitch.connected,false);
+});
