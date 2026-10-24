@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {randomUUID} from 'node:crypto';
 import {VOICES} from './natural-voices.mjs';
+import {hasBadWords,hasBadPhrase,removeBadWords} from './bad-words.mjs';
 
 const platformKey={twitch:'ttsTwitch',youtube:'ttsYoutube',tiktok:'ttsTiktok',kick:'ttsKick'};
 const same=(a,b)=>String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase();
@@ -15,19 +16,22 @@ export function speechText(m,s,lang='en'){
  if(!s.ttsEnabled||!m||!s[platformKey[m.platform]])return null;
  let text=(m.parts||[]).filter(p=>p.type==='text').map(p=>p.text).join(' ');
  text=text.replace(/https?:\/\/\S+|www\.\S+/gi,' ').replace(/(\S)\1{3,}/g,'$1$1$1').replace(/\s+/g,' ').trim();
- const roles=m.roles||[],named=t=>s.ttsReadName?(lang==='es'?`${m.user} dice: `:`${m.user} says: `)+t:t;
+ const roles=m.roles||[],named=t=>s.ttsReadName?(lang==='es'?`${m.user} dijo: `:`${m.user} said: `)+t:t;
  const cap=t=>t.length>s.ttsMaxLength?t.slice(0,s.ttsMaxLength).replace(/\s+\S*$/,'')+'…':t;
+ // Bad words: skip the message, or remove just those words; a blocked phrase or name always skips it.
+ const clean=t=>{if(s.ttsBadWords==='off')return t;if(hasBadPhrase(t))return '';if(s.ttsBadWords==='remove')return removeBadWords(t,s.ttsBlockedWords);return hasBadWords(t,s.ttsBlockedWords)?'':t;};
+ if(s.ttsBadWords!=='off'&&s.ttsReadName&&hasBadWords(m.user,s.ttsBlockedWords))return null;
  if(m.event){
   // A channel point reward with the chosen name reads what the viewer typed.
-  if(m.event.kind==='redemption'&&s.ttsReward&&same(m.event.title,s.ttsReward))return text?named(cap(text)):null;
-  if(!s.ttsEvents)return null;return cap([m.event.title,text].filter(Boolean).join('. '));
+  if(m.event.kind==='redemption'&&s.ttsReward&&same(m.event.title,s.ttsReward)){text=clean(text);return text?named(cap(text)):null;}
+  if(!s.ttsEvents)return null;const said=clean([m.event.title,text].filter(Boolean).join('. '));return said?cap(said):null;
  }
  const allowed=roles.includes('broadcaster')||s.ttsEveryone||s.ttsSubscribers&&roles.includes('subscriber')||s.ttsVips&&roles.includes('vip')||s.ttsMods&&roles.includes('moderator');
  if(!allowed)return null;
  const command=s.ttsCommand.toLowerCase(),lower=text.toLowerCase();
  if(s.ttsCommandOn&&(lower===command||lower.startsWith(command+' ')))text=text.slice(command.length).trim();
  else if(!s.ttsReadAll)return null;
- return text?named(cap(text)):null;
+ text=clean(text);return text?named(cap(text)):null;
 }
 
 // ---- Voice engines ----
@@ -62,7 +66,7 @@ export const engines={
 export class Speech{
  constructor({emit,engine=engines,natural=null,dir=join(tmpdir(),'bubblecast-tts'),now=Date.now,keepMs=300000}){Object.assign(this,{emit,engine,natural,dir,now,keepMs});this.queue=[];this.busy=false;this.files=new Map();this.recent=new Map();this.voiceList=null;this.error=null;}
  async voices(){if(!this.voiceList)try{this.voiceList=await this.engine.voices();}catch(e){this.error=String(e.message||e);return [];}return this.voiceList;}
- // Spanish voices say "dice", others "says".
+ // Spanish voices say "dijo", others "said".
  lang(s){const id=String(s.ttsVoice||'').startsWith('natural:')?s.ttsVoice.slice(8):'';const v=id?VOICES.find(v=>v.id===id):this.voiceList?.find(v=>v.name===s.ttsVoice);return (v?.lang||s.language||'en').slice(0,2);}
  consider(m,s){const text=speechText(m,s,this.lang(s));if(!text)return false;
   const key=m.platform+':'+(m.userId||m.user),t=this.now();
@@ -70,17 +74,19 @@ export class Speech{
   this.recent.set(key,t);while(this.recent.size>2000)this.recent.delete(this.recent.keys().next().value);
   this.enqueue(text,m,s).catch(()=>{});return true;}
 // Resolves with what the /tts pages were sent, so Studio can play the test voice too.
- test(s){return this.enqueue(this.lang(s)==='es'?'Hola, esta es la voz de Bubblecast.':'Hi, this is the Bubblecast voice.',{user:'Bubblecast',platform:'test'},s);}
- enqueue(text,m,s){return new Promise((resolve,reject)=>{if(this.queue.length>=10)this.queue.shift()?.reject(Error('Too many messages waiting.'));this.queue.push({id:randomUUID(),text,user:m.user,platform:m.platform,voice:s.ttsVoice,rate:s.ttsRate,volume:s.ttsVolume,resolve,reject});this.pump();});}
+ // A preview plays only in Studio; a test also plays on the /tts browser sources.
+ test(s,{preview=false}={}){return this.enqueue(this.lang(s)==='es'?'Hola, esta es la voz de Bubblecast. ¡Bienvenidos al stream!':'Hi, this is the Bubblecast voice. Welcome to the stream!',{user:'Bubblecast',platform:'test'},s,{silent:preview});}
+ enqueue(text,m,s,{silent=false}={}){return new Promise((resolve,reject)=>{if(this.queue.length>=10)this.queue.shift()?.reject(Error('Too many messages waiting.'));this.queue.push({id:randomUUID(),text,user:m.user,platform:m.platform,voice:s.ttsVoice,rate:s.ttsRate,volume:s.ttsVolume,silent,resolve,reject});this.pump();});}
  skip(){this.emit('tts-skip',{});}
  file(id){return this.files.get(id)||null;}
+ async knows(voice){if(!voice)return true;if(voice.startsWith('natural:'))return !!this.natural&&await this.natural.installed(voice.slice(8));return (await this.voices()).some(v=>v.name===voice);}
  async pump(){if(this.busy)return;const job=this.queue.shift();if(!job)return;this.busy=true;
   try{await mkdir(this.dir,{recursive:true});const out=join(this.dir,job.id+'.wav'),input=join(this.dir,job.id+'.txt');
    // Natural voices ("natural:<id>") use Piper; anything else uses the system voices.
    if(String(job.voice||'').startsWith('natural:')){if(!this.natural)throw Error('Natural voices are not available.');await this.natural.speak({id:job.voice.slice(8),text:job.text,rate:job.rate,out});}
    else try{await this.engine.speak({text:job.text,voice:job.voice,rate:job.rate,out,input});}finally{rm(input,{force:true}).catch(()=>{});}
    this.files.set(job.id,out);this.error=null;
-   const item={id:job.id,url:'/api/tts/audio/'+job.id,text:job.text,user:job.user,platform:job.platform,volume:job.volume};this.emit('tts',item);job.resolve(item);
+   const item={id:job.id,url:'/api/tts/audio/'+job.id,text:job.text,user:job.user,platform:job.platform,volume:job.volume};if(!job.silent)this.emit('tts',item);job.resolve(item);
    setTimeout(()=>{this.files.delete(job.id);rm(out,{force:true}).catch(()=>{});},this.keepMs).unref?.();
   }catch(e){this.error='Text to speech failed: '+(e.message||e);job.reject(Error(this.error));}
   finally{this.busy=false;this.pump();}}

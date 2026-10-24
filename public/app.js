@@ -18,7 +18,7 @@ function route(){const page=pages.includes(location.hash.slice(1))?location.hash
 window.addEventListener('hashchange',route);
 
 // Settings: every change previews instantly and saves shortly after.
-function fill(s){state=s;for(const el of form.elements){if(!el.name||!(el.name in s))continue;const v=s[el.name];if(el.type==='checkbox')el.checked=v===true;else if(el.type==='radio')el.checked=el.value===String(v);else el.value=Array.isArray(v)?v.join('\n'):v;}applyTheme(s.uiTheme);window.bubblecastI18n?.setLanguage(s.language);outputs();renderBots();renderEvents();syncPollColors();}
+function fill(s){state=s;for(const el of form.elements){if(!el.name||!(el.name in s))continue;const v=s[el.name];if(el.type==='checkbox')el.checked=v===true;else if(el.type==='radio')el.checked=el.value===String(v);else el.value=Array.isArray(v)?v.join('\n'):v;}applyTheme(s.uiTheme);window.bubblecastI18n?.setLanguage(s.language);outputs();renderBots();renderEvents();syncPollColors();if(typeof paintVoices==='function')paintVoices();}
 function collect(){const data={...state};for(const el of form.elements){if(!el.name)continue;if(el.type==='checkbox')data[el.name]=el.checked;else if(el.type==='radio'){if(el.checked)data[el.name]=el.value;}else if(el.type==='range'||el.type==='number')data[el.name]=Number(el.value);else data[el.name]=el.value;}return data;}
 function applyTheme(theme){document.body.dataset.theme=['red','midnight','white'].includes(theme)?theme:'rose';}
 function outputs(){for(const out of $$('output[data-for]'))out.textContent=form.elements[out.dataset.for].value+(out.dataset.unit||'');for(const range of $$('input[type=range]'))range.style.setProperty('--fill',(range.value-range.min)/(range.max-range.min)*100+'%');const resolution=collect().resolution||'2160',size={'2160':'3840 × 2160','1440':'2560 × 1440','1080':'1920 × 1080'}[resolution];$('#canvasSize').textContent={'2160':'4K · 50%','1440':'1440p · 75%','1080':'1080p · 100%'}[resolution];$('#obsSizeHint').textContent=size+' · transparent';fontStatus();}
@@ -71,24 +71,40 @@ $('#installUpdate').onclick=installUpdate;$('#installUpdateCard').onclick=instal
 $('#checkUpdate').onclick=async()=>{const b=$('#checkUpdate');b.disabled=true;try{const u=await api('update/check',{});paintUpdate(u);toast(u.error||(u.available?'Bubblecast '+u.latest+' is available.':'You have the latest version.'),u.error?'error':'success');}catch(e){toast(e.message,'error');}finally{b.disabled=false;}};
 
 // Text to speech: the voice list comes from this computer; Test and Skip act on the /tts browser source.
-// The voice menu: installed natural voices first, then this computer's own voices.
-let systemVoices=[],naturalVoices=[],naturalTimer=null;const tr=t=>window.bubblecastI18n?.translate?.(t)??t;
+// The voice picker: cards for natural voices (download once, Windows app) and this computer's own voices,
+// filtered by language, each with a preview. A hidden select keeps the setting like any other field.
+let systemVoices=[],naturalVoices=[],naturalSupported=false,naturalTimer=null,voiceLang=null;
+const tr=t=>window.bubblecastI18n?.translate?.(t)??t;
 const option=(text,value)=>{const o=document.createElement('option');o.value=value;o.textContent=text;return o;};
-function paintVoiceMenu(){const select=$('#ttsVoice');select.replaceChildren(option(tr('System default'),''));
- const group=(label,items)=>{if(!items.length)return;const g=document.createElement('optgroup');g.label=tr(label);for(const [value,text] of items)g.append(option(text,value));select.append(g);};
- group('Natural voices',naturalVoices.filter(v=>v.installed).map(v=>['natural:'+v.id,v.name+' · '+v.label]));
- group('System voices',systemVoices.map(v=>[v.name,v.lang?v.name+' ('+v.lang+')':v.name]));
- if(state.ttsVoice&&![...select.options].some(o=>o.value===state.ttsVoice))select.append(option(state.ttsVoice,state.ttsVoice));select.value=state.ttsVoice||'';}
-async function loadVoices(){try{systemVoices=(await(await fetch('/api/tts/voices')).json()).voices||[];}catch{}paintVoiceMenu();}
-// Natural voices download once (Windows app), with their size, progress and any credit their license asks for.
-async function loadNatural(){try{const j=await(await fetch('/api/tts/natural')).json();naturalVoices=j.voices||[];paintNatural(j.supported);paintVoiceMenu();
+// macOS ships novelty voices (Bells, Zarvox…) that aren't useful for reading chat.
+const novelty=/^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Junior|Ralph|Fred|Kathy|Deranged|Hysterical|Pipe Organ)$/;
+const region=code=>{try{return new Intl.DisplayNames([window.bubblecastI18n?.language||'en'],{type:'region'}).of(code)||code;}catch{return code;}};
+function voiceOptions(){const natural=naturalVoices.map(v=>({value:'natural:'+v.id,name:v.name,lang:v.lang,region:v.id.slice(3,5),natural:true,v})),
+ system=systemVoices.filter(v=>!novelty.test(v.name)&&/^[a-z]{2}[-_][A-Z]{2}$/.test(v.lang)).map(v=>({value:v.name,name:v.name.replace(/\s*\((?:Enhanced|Premium|Mejorada|Premium)\)$/,''),lang:v.lang.slice(0,2),region:v.lang.slice(3,5),quality:/\((Enhanced|Premium)\)/.exec(v.name)?.[1]||''}));
+ return [...natural,...system];}
+function paintVoices(){const select=$('#ttsVoice'),lang=voiceLang||(window.bubblecastI18n?.language==='es'?'es':'en'),grid=$('#voiceGrid');
+ for(const b of $$('[data-voice-lang]'))b.setAttribute('aria-pressed',String(b.dataset.voiceLang===lang));
+ const all=voiceOptions();select.replaceChildren(option(tr('System default'),''),...all.map(o=>option(o.name,o.value)));if(state.ttsVoice&&!all.some(o=>o.value===state.ttsVoice))select.append(option(state.ttsVoice,state.ttsVoice));select.value=state.ttsVoice||'';
+ grid.replaceChildren();const shown=[{value:'',name:tr('Default'),lang:'',region:'',system:true},...all.filter(o=>lang==='all'||o.lang===lang)];
+ for(const o of shown){const card=document.createElement('div');card.className='voice-card'+(o.natural?' natural':'')+(select.value===o.value?' selected':'');
+  const pick=document.createElement('button');pick.type='button';pick.className='voice-pick';const name=document.createElement('span');name.className='voice-name';name.textContent=o.name;const meta=document.createElement('span');meta.className='voice-meta';
+  const job=o.v?.job,ready=!o.natural||o.v.installed;
+  meta.textContent=o.system?tr('Your computer’s voice'):[o.region?region(o.region):'',o.natural?tr('Natural'):o.quality?tr(o.quality):''].filter(Boolean).join(' · ');
+  if(o.natural&&!o.v.installed)meta.textContent+=' · '+(job?.stage==='downloading'?tr('Downloading…'):job?.stage==='failed'?job.detail:tr('Download')+' · '+Math.round(o.v.size/1e6)+' MB');
+  pick.append(name,meta);pick.disabled=o.natural&&(!naturalSupported||job?.stage==='downloading');
+  pick.onclick=async()=>{if(!ready){try{await api('tts/natural/install',{id:o.v.id});await loadNatural();}catch(e){toast(e.message,'error');}return;}select.value=o.value;select.dispatchEvent(new Event('change',{bubbles:true}));paintVoices();};
+  card.append(pick);
+  if(ready){const play=document.createElement('button');play.type='button';play.className='voice-play';play.setAttribute('aria-label',tr('Preview')+' '+o.name);play.title=tr('Preview');play.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>';play.onclick=()=>previewVoice(o.value,play);card.append(play);}
+  if(o.natural&&o.v.installed){const remove=document.createElement('button');remove.type='button';remove.className='voice-remove';remove.textContent=tr('Remove');remove.onclick=async()=>{try{await api('tts/natural/remove',{id:o.v.id});if(state.ttsVoice===o.value){select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));}await loadNatural();}catch(e){toast(e.message,'error');}};card.append(remove);}
+  if(o.natural&&o.v.installed&&o.v.credit){const c=document.createElement('span');c.className='voice-credit';c.textContent=o.v.credit;card.append(c);}
+  grid.append(card);}
+ $('#naturalNote').textContent=naturalSupported?tr('Natural voices sound far more human. Download one once, then pick it.'):tr('Natural voices are available in the Windows app.');}
+for(const b of $$('[data-voice-lang]'))b.onclick=()=>{voiceLang=b.dataset.voiceLang;paintVoices();};
+// A preview plays only here in Studio, never on stream.
+async function previewVoice(voice,button){button.disabled=true;try{const item=await api('tts/test',{voice,preview:true});const audio=new Audio(item.url);audio.volume=Math.max(0,Math.min(1,(state.ttsVolume??80)/100));await audio.play();}catch(e){toast(e.message,'error');}finally{button.disabled=false;}}
+async function loadVoices(){try{systemVoices=(await(await fetch('/api/tts/voices')).json()).voices||[];}catch{}paintVoices();}
+async function loadNatural(){try{const j=await(await fetch('/api/tts/natural')).json();naturalVoices=j.voices||[];naturalSupported=!!j.supported;paintVoices();
  clearTimeout(naturalTimer);if(naturalVoices.some(v=>v.job?.stage==='downloading'))naturalTimer=setTimeout(loadNatural,2000);}catch{}}
-function paintNatural(supported){$('#naturalNote').textContent=supported?'Natural voices sound far more human. Download one once, then pick it under Voice.':'Natural voices are available in the Windows app.';const box=$('#naturalVoices');box.replaceChildren();
- for(const v of naturalVoices){const row=document.createElement('div');row.className='natural-row';const name=document.createElement('span');name.className='natural-name';name.textContent=v.name+' · '+v.label;
-  const meta=document.createElement('span');meta.className='natural-meta';meta.textContent=v.installed?'Installed':v.job?.stage==='downloading'?'Downloading…':v.job?.stage==='failed'?v.job.detail:Math.round(v.size/1e6)+' MB';
-  const btn=document.createElement('button');btn.type='button';btn.className='button';btn.textContent=v.installed?'Remove':'Download';btn.disabled=!supported||v.job?.stage==='downloading';
-  btn.onclick=async()=>{btn.disabled=true;try{await api(v.installed?'tts/natural/remove':'tts/natural/install',{id:v.id});await loadNatural();}catch(e){toast(e.message,'error');btn.disabled=false;}};
-  row.append(name,meta,btn);if(v.installed&&v.credit){const c=document.createElement('span');c.className='natural-credit';c.textContent=v.credit;row.append(c);}box.append(row);}}
 loadVoices();loadNatural();
 $('#ttsTest').onclick=async()=>{const b=$('#ttsTest');b.disabled=true;try{const item=await api('tts/test',{});const audio=new Audio(item.url);audio.volume=Math.max(0,Math.min(1,(state.ttsVolume??80)/100));await audio.play();toast('Playing the test voice here and on your text-to-speech browser source.','success');}catch(e){toast(e.message,'error');}finally{b.disabled=false;}};
 $('#ttsSkip').onclick=async()=>{try{await api('tts/skip',{});}catch(e){toast(e.message,'error');}};

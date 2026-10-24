@@ -50,7 +50,7 @@ nav{margin-top:10px}
 .feeds [data-filter=all]{user-select:none;-webkit-user-select:none}
 .feeds [data-filter=all]::after{content:'';width:6px;height:6px;margin:0 1px 3px -1px;border-right:1.5px solid var(--text-3);border-bottom:1.5px solid var(--text-3);transform:rotate(45deg)}
 .feeds [data-filter=all][aria-expanded=true]{box-shadow:0 0 0 2px var(--accent)}
-.chat-tools{display:flex;align-items:center;gap:4px;padding:8px 0 10px;border-top:1px solid var(--line)}
+.chat-tools{display:flex;align-items:center;flex-wrap:wrap;gap:4px;padding:8px 0 10px;border-top:1px solid var(--line)}
 .room-label{margin-right:auto;display:flex;align-items:center;gap:8px;font-size:10.5px;letter-spacing:.6px;font-weight:650;color:var(--text-3);white-space:nowrap}
 .chat-tools button{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:550;color:var(--text-2);white-space:nowrap}
 .chat-tools button:hover{background:var(--accent-soft);color:var(--text)}
