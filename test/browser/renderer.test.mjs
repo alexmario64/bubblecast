@@ -60,3 +60,13 @@ test('the classic chat style keeps logo, badges, colored name and text on one li
  assert.ok(doc.querySelector('.platform img'));assert.equal(doc.querySelectorAll('.badge').length,1);assert.equal(doc.querySelector('.username').style.color,'#00ff7f');assert.equal(doc.querySelector('.body').textContent,'hello');
  events.emit('settings',{...defaults,chatStyle:'bubbles'});assert.ok(!chat.classList.contains('classic'),'switching back restores bubbles');
 });
+test('classic chat glides older lines up as test bubbles and new messages arrive, and old lines fade out',t=>{
+ const {events,doc,w}=setup(t);const moves=[];w.Element.prototype.animate=function(frames,opts){moves.push(opts.duration);return {cancel(){}};};
+ // Lines sit 40px apart counted up from the bottom of the chat, so each new line pushes the others up.
+ w.Element.prototype.getBoundingClientRect=function(){const siblings=[...(this.parentNode?.children||[])];return {top:1000-(siblings.length-siblings.indexOf(this))*40,left:0,width:100,height:30,right:100,bottom:0};};
+ events.emit('settings',{...defaults,chatStyle:'classic',maxMessages:2});
+ for(const id of ['test-1','test-2','test-3'])events.emit('message',{...message,id,user:'Bubblecast',parts:[{type:'text',text:'Test bubble '+id}]});
+ assert.equal(doc.querySelectorAll('.message:not(.leaving)').length,2,'only the newest lines stay');assert.ok(doc.querySelector('.message.leaving'),'the oldest line fades out');
+ assert.match(doc.querySelector('.message:not(.leaving) .body').textContent,/Test bubble test-2/);
+ assert.ok(moves.length>=2&&moves.every(d=>d===220),'older lines glide up when a new one arrives');
+});

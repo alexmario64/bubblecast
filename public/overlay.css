@@ -59,8 +59,9 @@ body[data-layout=webcam] .body .media{height:110px}
 /* Classic style: one line per message like Twitch chat (logo, badges, colored name, then the text),
    with a dark outline so it reads over any game. Emotes stay inline; events keep their colored label. */
 #chat.classic{gap:calc(var(--gap,18px)*.3)}
-.classic .message{width:100%;padding-top:0;animation:classic-enter .18s ease-out both}
-.classic .message.event{animation:classic-enter .18s ease-out both}
+.classic .message{width:100%;padding-top:0;animation:classic-enter .22s cubic-bezier(.2,.8,.3,1) both}
+.classic .message.event{animation:classic-enter .22s cubic-bezier(.2,.8,.3,1) both}
+.classic .message.leaving{animation:classic-leave .45s ease-in both}
 .classic .bubble-group{display:block;filter:none;animation:none!important;font:700 calc(var(--size)*.82)/1.45 var(--classic-font);color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,1px 1px 2px #000,0 0 6px #000a;overflow-wrap:anywhere}
 .classic .pill{display:inline;background:none;border:0;box-shadow:none;padding:0;margin:0;width:auto;max-width:none;font:inherit;text-shadow:inherit}
 .classic .pill>*,.classic .body>*{vertical-align:middle}
@@ -80,7 +81,8 @@ body[data-layout=webcam] .body .media{height:110px}
 .classic .event-line{display:inline-flex;font-size:.82em;margin-right:.4em;vertical-align:middle}
 .classic .event-detail{color:#fff}
 .classic.right{text-align:right}
-@keyframes classic-enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes classic-enter{from{opacity:0;transform:translateY(60%)}to{opacity:1;transform:none}}
+@keyframes classic-leave{to{opacity:0}}
 
 @keyframes enter{from{opacity:0;transform:translateX(var(--slide)) scale(.78)}60%{opacity:1}to{opacity:1;transform:translateX(0) scale(1)}}
 @keyframes leave{to{opacity:0;transform:translateX(var(--slide)) scale(.85)}}
