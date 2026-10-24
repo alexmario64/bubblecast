@@ -122,7 +122,7 @@ async function loadNatural(){try{const j=await(await fetch('/api/tts/natural')).
 loadVoices();loadNatural();
 $('#ttsTest').onclick=async()=>{const b=$('#ttsTest');b.disabled=true;try{const item=await api('tts/test',{});const audio=new Audio(item.url);audio.volume=Math.max(0,Math.min(1,(state.ttsVolume??80)/100));await audio.play();toast('Playing the test voice here and on your text-to-speech browser source.','success');}catch(e){toast(e.message,'error');}finally{b.disabled=false;}};
 $('#ttsSkip').onclick=async()=>{try{await api('tts/skip',{});}catch(e){toast(e.message,'error');}};
-function paintTts(t){const el=$('#ttsError');el.hidden=!t?.error;el.textContent=t?.error||'';}
+function paintTts(t){const el=$('#ttsError');el.hidden=!t?.error;el.textContent=t?.error||'';$('#ttsRewardWarning').hidden=!form.elements.ttsReward.value.trim()||!!t?.rewardsReady;}
 
 // Test bubbles and copying
 const samples=[['DemoStreamer','welcome to the stream!','twitch'],['bubblefan','','twitch',{kind:'sub',title:'bubblefan subscribed at Tier 1.'}],['lunarose','hydrate!!','twitch',{kind:'redemption',title:'Hydrate!',amount:300,color:'#00c7ac'}],['lunarose','hello from YouTube ♡','youtube'],['TikTok friend','hello from TikTok LIVE!','tiktok'],['mossy','FeelsGoodMan','twitch'],['kickfan','hi from Kick!','kick'],['My Complete YouTube Display Name','full names belong in the spotlight ✨','youtube'],['nightowl','check this out https://example.com','twitch'],['peach','💛💛💛','youtube'],['danceparty','SourPls','twitch']];

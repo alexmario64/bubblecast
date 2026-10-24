@@ -23,7 +23,8 @@ export function speechText(m,s,lang='en'){
  if(s.ttsBadWords!=='off'&&s.ttsReadName&&hasBadWords(m.user,s.ttsBlockedWords))return null;
  if(m.event){
   // A channel point reward with the chosen name reads what the viewer typed.
-  if(m.event.kind==='redemption'&&s.ttsReward&&same(m.event.title,s.ttsReward)){text=clean(text);return text?named(cap(text)):null;}
+  // Rewards are read from Twitch's own redemption notice (fromTwitch), not the chat copy, so each is read once.
+  if(m.event.kind==='redemption'){if(!m.fromTwitch||!s.ttsReward||!same(m.event.title,s.ttsReward))return null;text=clean(text);return text?named(cap(text)):null;}
   if(!s.ttsEvents)return null;const said=clean([m.event.title,text].filter(Boolean).join('. '));return said?cap(said):null;
  }
  const allowed=roles.includes('broadcaster')||s.ttsEveryone||s.ttsSubscribers&&roles.includes('subscriber')||s.ttsVips&&roles.includes('vip')||s.ttsMods&&roles.includes('moderator');
@@ -75,6 +76,9 @@ export class Speech{
   this.enqueue(text,m,s).catch(()=>{});return true;}
 // Resolves with what the /tts pages were sent, so Studio can play the test voice too.
  // A preview plays only in Studio; a test also plays on the /tts browser sources.
+ // A Twitch channel point redemption, straight from Twitch with the reward's name and the viewer's text.
+ redeemed(r,s){if(!s.ttsTwitch||this.recent.has('reward:'+r.id))return false;this.recent.set('reward:'+r.id,this.now());
+  return this.consider({platform:'twitch',user:r.user,userId:r.userId,parts:r.text?[{type:'text',text:r.text}]:[],event:{kind:'redemption',title:r.title},fromTwitch:true},s);}
  test(s,{preview=false}={}){return this.enqueue(this.lang(s)==='es'?'Hola, esta es la voz de Bubblecast. ¡Bienvenidos al stream!':'Hi, this is the Bubblecast voice. Welcome to the stream!',{user:'Bubblecast',platform:'test'},s,{silent:preview});}
  enqueue(text,m,s,{silent=false}={}){return new Promise((resolve,reject)=>{if(this.queue.length>=10)this.queue.shift()?.reject(Error('Too many messages waiting.'));this.queue.push({id:randomUUID(),text,user:m.user,platform:m.platform,voice:s.ttsVoice,rate:s.ttsRate,volume:s.ttsVolume,silent,resolve,reject});this.pump();});}
  skip(){this.emit('tts-skip',{});}

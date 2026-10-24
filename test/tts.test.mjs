@@ -25,7 +25,8 @@ test('only the chosen roles can use the command; the broadcaster always can',()=
  assert.ok(speechText(msg('!tts hi',{roles:['subscriber']}),on({ttsEveryone:false,ttsSubscribers:true})));
 });
 test('a Twitch channel point reward with the chosen name reads the viewer’s text',()=>{
- const red=(title,text)=>msg(text,{event:{kind:'redemption',title}});
+ const red=(title,text)=>msg(text,{event:{kind:'redemption',title},fromTwitch:true});
+ assert.equal(speechText(msg('read this',{event:{kind:'redemption',title:'TTS'}}),on({ttsReward:'TTS'})),null,'the chat copy of a redemption is not read twice');
  assert.equal(speechText(red('TTS','read this please'),on({ttsReward:'tts'})),'SampleViewer said: read this please');
  assert.equal(speechText(red('Hydrate','drink water'),on({ttsReward:'TTS'})),null,'other rewards stay quiet');
  assert.equal(speechText(red('TTS','x'),on({ttsReward:''})),null);
@@ -73,4 +74,11 @@ test('bad words are never spoken: the message is skipped, or the words removed, 
  assert.equal(speechText(msg('!tts please kill yourself'),on({ttsBadWords:'remove'})),null,'phrases always skip');
  assert.equal(speechText({...msg('!tts hola'),user:'Pendejo123'},on()),null,'offensive names are not read');
  assert.equal(speechText(msg('!tts what the f*ck'),on({ttsBadWords:'off',ttsReadName:false})),'what the f*ck');
+});
+test('a redemption from Twitch is read once, with the reward matched by name',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'bubblecast-tts-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const spoken=[];const speech=new Speech({emit(){},engine:{voices:async()=>[],speak:async j=>{spoken.push(j.text);}},dir,keepMs:10});const s=on({ttsReward:'Leer mensaje'});
+ const r={id:'r1',user:'SampleViewer',userId:'1',title:'leer MENSAJE',text:'hola chat'};
+ assert.ok(speech.redeemed(r,s));assert.ok(!speech.redeemed(r,s),'the same redemption is read once');assert.ok(!speech.redeemed({...r,id:'r2',title:'Hydrate'},s));
+ await new Promise(r=>setTimeout(r,20));assert.deepEqual(spoken,['SampleViewer said: hola chat']);
 });
