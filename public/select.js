@@ -25,9 +25,11 @@ function show(select,button){close();const menu=document.createElement('div');me
    item.setAttribute('aria-selected',String(o.selected));if(o.disabled)item.setAttribute('aria-disabled','true');item.addEventListener('click',()=>{if(!o.disabled)pick(o.index);});item.addEventListener('mousemove',()=>focus(items.indexOf(item)));menu.append(item);items.push(item);}}
  document.body.append(menu);open={select,button,menu,items,active:-1,typed:'',typedAt:0};button.setAttribute('aria-expanded','true');button.classList.add('open');
  place();focus(Math.max(0,items.findIndex(i=>i.getAttribute('aria-selected')==='true')));requestAnimationFrame(()=>menu.classList.add('shown'));}
-function place(){if(!open)return;const r=open.button.getBoundingClientRect(),m=open.menu,gap=6;m.style.minWidth=r.width+'px';const below=innerHeight-r.bottom-gap,above=r.top-gap,h=Math.min(m.scrollHeight,320);
- const up=below<Math.min(h,200)&&above>below;m.style.maxHeight=Math.max(120,Math.min(320,(up?above:below)-12))+'px';m.classList.toggle('up',up);
- const left=Math.min(Math.max(8,r.left),innerWidth-m.offsetWidth-8);m.style.left=left+'px';m.style.top=(up?r.top-gap-Math.min(m.scrollHeight,parseFloat(m.style.maxHeight)):r.bottom+gap)+'px';}
+function place(){if(!open)return;const r=open.button.getBoundingClientRect(),m=open.menu,gap=6;m.style.minWidth=r.width+'px';
+ // Menus always open downward; when space is short the list scrolls inside.
+ // At the very bottom of a window (the dock's message box) it shifts up only as far as needed to fit.
+ m.style.maxHeight=Math.max(140,Math.min(320,innerHeight-r.bottom-gap-12))+'px';
+ const left=Math.min(Math.max(8,r.left),innerWidth-m.offsetWidth-8);m.style.left=left+'px';m.style.top=Math.max(8,Math.min(r.bottom+gap,innerHeight-m.offsetHeight-8))+'px';}
 function focus(i){if(!open)return;const items=open.items;if(!items.length)return;i=(i+items.length)%items.length;let guard=items.length;while(items[i].getAttribute('aria-disabled')==='true'&&guard--)i=(i+1)%items.length;
  items.forEach((it,k)=>it.classList.toggle('active',k===i));open.active=i;items[i].scrollIntoView({block:'nearest'});}
 function pick(index){const {select,button}=open;close();if(select.selectedIndex!==index){select.selectedIndex=index;select.dispatchEvent(new Event('input',{bubbles:true}));select.dispatchEvent(new Event('change',{bubbles:true}));}button.focus();}
