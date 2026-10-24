@@ -80,10 +80,15 @@ export class TwitchOfficial{
    if(r.ok){const v=await r.json();Object.assign(this.auth,{user_id:v.user_id,login:v.login,scopes:v.scopes||[]});}
   }catch{}this.timer('validate',()=>this.validate(),3600000);return true;
  }
- async refresh(){
+ // One renewal at a time: Twitch accepts each refresh token once, so a second, simultaneous renewal (for
+ // example the hourly check and a chat request after the computer wakes) would be refused and sign you out.
+ refresh(){return this.refreshing??=this.renew().finally(()=>{this.refreshing=null;});}
+ async renew(){
   if(!this.auth?.refresh_token){await this.forget('Twitch sign-in ended. Connect Twitch again.');return false;}
-  const {ok,body}=await this.form('/token',{client_id:TWITCH_CLIENT_ID,grant_type:'refresh_token',refresh_token:this.auth.refresh_token});
-  if(!ok||!body.access_token){await this.forget('Twitch sign-in ended. Connect Twitch again.');return false;}
+  const token=this.auth.refresh_token;let r;try{r=await this.form('/token',{client_id:TWITCH_CLIENT_ID,grant_type:'refresh_token',refresh_token:token});}catch{return false;}
+  const {ok,status,body}=r;
+  // Only Twitch saying the token is no longer valid ends the sign-in; outages and rate limits are retried later.
+  if(!ok||!body.access_token){if(status===400||status===401){if(this.auth?.refresh_token!==token)return true;await this.forget('Twitch sign-in ended. Connect Twitch again.');}return false;}
   Object.assign(this.auth,{access_token:body.access_token,refresh_token:body.refresh_token||this.auth.refresh_token,expires_at:this.now()+(body.expires_in||0)*1000});await this.save();return true;
  }
  async forget(error=null){this.auth=null;this.pending=null;this.error=error;this.stop();for(const name of ['device','validate'])this.cancel(this.timers[name]);await rm(this.file,{force:true});this.onAuth();}

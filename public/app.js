@@ -2,7 +2,7 @@ import {initConnections} from '/connections.js';
 import {knownBots} from '/core.mjs';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],form=$('#settings');
 const platforms=['twitch','youtube','tiktok','kick'],names={twitch:'Twitch',youtube:'YouTube',tiktok:'TikTok LIVE',kick:'Kick'},logos={twitch:'/logos/twitch.png',youtube:'/logos/youtube.png',tiktok:'/logos/tiktok-on-dark.svg',kick:'/logos/kick.svg'};
-const sourceIds=['twitchChannel','youtubeVideo','youtubeShortsVideo','tiktokChannel','kickChannel'];
+const sourceIds=['twitchChannel','youtubeChannel','youtubeVideo','youtubeShortsVideo','tiktokChannel','kickChannel'];
 let token='',state={},loaded=false,saveTimer=null,demoTimer=null,index=0,sourceFieldsLoaded=false,lastStatus=null;
 const store={get(k){try{return localStorage.getItem(k);}catch{return null;}},set(k,v){try{localStorage.setItem(k,v);}catch{}}};
 async function api(path,data){const post=()=>fetch('/api/'+path,{method:'POST',headers:{'Content-Type':'application/json','X-Bubblecast-Token':token},body:JSON.stringify(data)});let r=await post();if(r.status===401){token=(await(await fetch('/api/pair')).json()).token;r=await post();}if(!r.ok)throw Error((await r.json()).error);return r.json();}
@@ -132,6 +132,7 @@ $('#ttsRewardCreate').onclick=async()=>{const b=$('#ttsRewardCreate');b.disabled
 // What's new: the latest features, each linking to its page. Items newer than the version this browser last
 // saw are marked New.
 const whatsNew=[
+ {v:'1.33.0',icon:'chat',page:'connections',title:'YouTube without the Google app',text:'YouTube chat works from its public page when there’s no app or no quota left, and starts with any encoder.'},
  {v:'1.32.0',icon:'sparkles',page:'overview',title:'What’s new',text:'This card: the latest features at a glance, each one a click away.'},
  {v:'1.31.1',icon:'sparkles',page:'chat',title:'Modern style',text:'A third look for chat and text to speech: dark strips with each platform’s color.'},
  {v:'1.31.0',icon:'timer',page:'tts',title:'Shared text-to-speech wait',text:'One cooldown for every platform, with a countdown on stream.'},
@@ -187,7 +188,10 @@ function paintTwitch(t){const label=$('#account-twitch');label.textContent=t.con
  if(t.error&&t.error!==lastTwitchError)toast(t.error,'error');lastTwitchError=t.error;}
 let lastTwitchError=null;
 // YouTube connects with Google's sign-in through the streamer's own Google app, opened in the normal browser.
-function paintYouTube(y){paintYouTubeStreams(y);const label=$('#account-youtube');label.textContent=y.connected?'Connected as '+(y.channel?.title||'your channel')+(y.live===false?' · reads chat while OBS is live':''):y.configured?'Not connected · connect to read chat, send messages, run polls and see viewers':'Add your Google app below to connect';label.classList.toggle('connected',!!y.connected);const button=$('#youtubeConnect');button.textContent=y.connected?'Disconnect':y.configured?'Connect YouTube':'Add Google app';button.dataset.state=y.connected?'connected':y.configured?'idle':'setup';if(y.error&&y.error!==lastYouTubeError)toast(y.error,'error');lastYouTubeError=y.error;}
+function paintYouTube(y){paintYouTubeStreams(y);
+ // Without the Google app, or with the daily quota used up, chat is read from YouTube's public chat page.
+ const slow=$('#youtubeSlow'),quota=!!y.quotaUntil,page=!y.connected||quota;slow.hidden=!page;
+ slow.textContent=quota?tr('The YouTube quota is used up for today, so chat is read from YouTube’s public chat page. It works, but messages arrive a few seconds later and you can’t send to YouTube until the quota resets.'):tr('Without the Google app, chat is read from YouTube’s public chat page. It works, but messages arrive a few seconds later and you can’t send messages or run polls on YouTube. Enter your channel under Optional channel overrides, or add your Google app for instant chat.');const label=$('#account-youtube');label.textContent=y.connected?'Connected as '+(y.channel?.title||'your channel')+(y.live===false?' · reads chat while OBS is live':''):y.configured?'Not connected · connect to read chat, send messages, run polls and see viewers':'Add your Google app below to connect';label.classList.toggle('connected',!!y.connected);const button=$('#youtubeConnect');button.textContent=y.connected?'Disconnect':y.configured?'Connect YouTube':'Add Google app';button.dataset.state=y.connected?'connected':y.configured?'idle':'setup';if(y.error&&y.error!==lastYouTubeError)toast(y.error,'error');lastYouTubeError=y.error;}
 let lastYouTubeError=null;
 // Streams found on the channel, with the streamer's choice of format. YouTube can't tell vertical from horizontal.
 function paintYouTubeStreams(y){const list=$('#youtubeStreams'),streams=y.candidates||[],key=JSON.stringify(streams);if(list.dataset.key===key)return;list.dataset.key=key;list.hidden=!streams.length;list.replaceChildren();

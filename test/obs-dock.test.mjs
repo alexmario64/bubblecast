@@ -36,3 +36,15 @@ test('the dock is only written while OBS is closed, into user.ini when present',
  assert.equal((await addObsDock({folder,running:async()=>false})).status,'added');assert.equal(docks(await readFile(join(folder,'user.ini'),'utf8')).length,1);assert.equal(await readFile(join(folder,'global.ini'),'utf8'),'[General]\n');
  assert.equal((await addObsDock({folder,running:async()=>false})).status,'present');
 });
+test('OBS gets a start script for Bubblecast once, in the current scene collection, only while closed',async t=>{
+ const {addObsLauncher,launcherScript,withLauncher}=await import('../obs-dock.mjs');
+ assert.match(launcherScript('C:\\Program Files\\Bubblecast\\Bubblecast.exe'),/start "" "C:\\\\Program Files\\\\Bubblecast\\\\Bubblecast\.exe" --background/);
+ assert.equal(withLauncher(JSON.stringify({modules:{'scripts-tool':[{path:'C:/x/bubblecast-obs.lua'}]}}),'C:/X/bubblecast-obs.lua'),null,'not added twice');
+ const dir=await mkdtemp(join(tmpdir(),'bubblecast-'));t.after(()=>rm(dir,{recursive:true,force:true}));const folder=join(dir,'obs'),data=join(dir,'data');
+ await mkdir(join(folder,'basic','scenes'),{recursive:true});await mkdir(data);await writeFile(join(folder,'user.ini'),'[Basic]\nSceneCollectionFile=Stream\n');await writeFile(join(folder,'basic','scenes','Stream.json'),JSON.stringify({name:'Stream',sources:[]}));
+ assert.equal((await addObsLauncher({folder,running:async()=>true,exe:'C:/b.exe',dataDir:data})).status,'obs-running');
+ assert.equal((await addObsLauncher({folder,running:async()=>false,exe:'C:/b.exe',dataDir:data})).status,'added');
+ const saved=JSON.parse(await readFile(join(folder,'basic','scenes','Stream.json'),'utf8'));assert.equal(saved.modules['scripts-tool'].length,1);assert.deepEqual(saved.sources,[]);
+ assert.match(await readFile(join(data,'bubblecast-obs.lua'),'utf8'),/--background/);
+ assert.equal((await addObsLauncher({folder,running:async()=>false,exe:'C:/b.exe',dataDir:data})).status,'present');
+});

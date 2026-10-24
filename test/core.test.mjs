@@ -72,3 +72,12 @@ test('the text-to-speech card can be hidden, placed and sized, within limits',()
 test('chat and text-to-speech styles accept bubbles, classic and modern',()=>{
  assert.equal(settings({chatStyle:'modern'}).chatStyle,'modern');assert.equal(settings({ttsCardStyle:'modern'}).ttsCardStyle,'modern');assert.equal(settings({ttsCardStyle:'neon'}).ttsCardStyle,'bubbles');
 });
+test('without found YouTube streams, the channel’s live page is read: the one entered, or the connected account’s',async()=>{
+ const {sourceConfig,withFoundVideos}=await import('../source-config.mjs');
+ assert.equal(sourceConfig({youtubeChannel:'https://www.youtube.com/@TrueAlex/live'}).youtubeChannel,'@TrueAlex');
+ assert.equal(sourceConfig({youtubeChannel:'UCabcdefghijklmnopqrstuv'}).youtubeChannel,'channel/UCabcdefghijklmnopqrstuv');
+ assert.throws(()=>sourceConfig({youtubeChannel:'https://evil.example/@x'}),/youtube\.com/);
+ assert.equal(withFoundVideos(sourceConfig({youtubeChannel:'@truealex'}),[]).urls.youtube,'https://www.youtube.com/@truealex/live');
+ assert.equal(withFoundVideos(sourceConfig({}),[],'UCabcdefghijklmnopqrstuv').urls.youtube,'https://www.youtube.com/channel/UCabcdefghijklmnopqrstuv/live');
+ assert.match(withFoundVideos(sourceConfig({youtubeChannel:'@truealex'}),[{video:'abcdefghijk',slot:'youtube'}]).urls.youtube,/live_chat\?v=abcdefghijk/,'found streams win');
+});
