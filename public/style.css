@@ -275,3 +275,7 @@ body[data-theme=red] .page-actions .button.primary{background:#fff;color:var(--a
 .connection-overrides{margin-top:18px;padding:16px 18px}.connection-overrides summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--text-2)}.connection-overrides .connection-grid{margin-top:4px}
 
 .kick-connection{flex-wrap:wrap}.kick-connection>span{flex-basis:100%}
+
+/* Themed dropdown sizes in Studio rows and fields. */
+.row .bc-select{width:min(58%,220px);flex:none}
+.field .bc-select{margin-top:6px}
