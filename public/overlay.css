@@ -64,21 +64,28 @@ body[data-layout=webcam] .body .media{height:110px}
 .classic .message.leaving{animation:classic-leave .45s ease-in both}
 .classic .bubble-group{display:block;filter:none;animation:none!important;font:700 calc(var(--size)*.82)/1.45 var(--classic-font);color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,1px 1px 2px #000,0 0 6px #000a;overflow-wrap:anywhere}
 .classic .pill{display:inline;background:none;border:0;box-shadow:none;padding:0;margin:0;width:auto;max-width:none;font:inherit;text-shadow:inherit}
-.classic .pill>*,.classic .body>*{vertical-align:middle}
+.classic .platform,.classic .badges,.classic .emote,.classic .media{vertical-align:middle}
 .classic .platform{display:inline-flex;width:calc(var(--size)*.95);height:calc(var(--size)*.95);margin-right:.3em;filter:drop-shadow(0 1px 1px #000c)}
 .classic .platform img{filter:none}
 .classic .badges{display:inline-flex;gap:3px;margin-right:.3em;filter:none}
+.classic .badges:empty{display:none}
 .classic .badge-slot{width:calc(var(--size)*.85);height:calc(var(--size)*.85);background:none;box-shadow:none;border-radius:3px}
+.classic .badge-slot.badge-with-label{width:auto;gap:2px;padding-right:2px}
+.classic .badge-with-label .badge{width:calc(var(--size)*.85);height:calc(var(--size)*.85)}
+.classic .badge-label{font-size:calc(var(--size)*.45)}
 .classic .username{display:inline;padding:0;font-weight:800;line-height:inherit;text-shadow:inherit}
 .classic .username::after{content:':';color:#fff;margin-right:.35em}
 .classic .body{display:inline;padding:0;background:none;border:0;border-radius:0;box-shadow:none;color:#fff;font:inherit}
 .classic .body::after{display:none}
-.classic .emote{height:calc(var(--size)*1.45);max-width:120px;margin:0 2px}
+/* Emotes sit in the line at text height and are never enlarged; GIFs become a small inline thumbnail. */
+.classic .emote,.classic .body.single-emote .emote{display:inline;height:1.5em;width:auto;max-width:5em;margin:0 2px;object-fit:contain}
 .classic .body.single-emote{display:inline;min-width:0}
-.classic .body.single-emote .emote{display:inline;height:calc(var(--size)*1.9);margin:0}
-.classic .media{display:block;margin-top:4px;max-height:140px;border-radius:8px}
+.classic .body .media{display:inline-block;width:auto;height:3.4em;max-width:6.5em;max-height:none;margin:0 3px;border-radius:6px;object-fit:cover}
+/* Events read like Twitch's highlighted messages: a colored bar and tint along the line. */
+.classic .message.event .bubble-group{border-left:4px solid var(--event);padding:2px 0 2px 10px;background:linear-gradient(90deg,color-mix(in srgb,var(--event) 30%,transparent),transparent 85%);border-radius:3px}
 .classic .message.event .body{border:0;box-shadow:none;padding:0}
-.classic .event-line{display:inline-flex;font-size:.82em;margin-right:.4em;vertical-align:middle}
+.classic .event-line{display:inline;font-size:1em;margin-right:.35em}
+.classic .event-chip{display:inline-block;font-size:.62em;vertical-align:.18em;margin-right:.3em}
 .classic .event-detail{color:#fff}
 .classic.right{text-align:right}
 @keyframes classic-enter{from{opacity:0;transform:translateY(60%)}to{opacity:1;transform:none}}
