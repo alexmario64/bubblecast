@@ -61,7 +61,7 @@ window.addEventListener('bubblecast-paired',()=>toast('Browser bridge paired.','
 window.addEventListener('bubblecast-bridge-reload-needed',()=>toast('The browser bridge was reloaded. Refresh this page to reconnect.','error'));
 
 // Updates: a banner and the Overview card show new versions; the installed app installs them in one click.
-function paintUpdate(u){if(!u)return;window.bubblecastGuide?.noticeVersion?.(u.current);const p=u.progress&&Date.now()-u.progress.at<600000?u.progress:null,busy=!!p&&p.stage!=='failed';
+function paintUpdate(u){if(!u)return;paintWhatsNew(u.current);window.bubblecastGuide?.noticeVersion?.(u.current);const p=u.progress&&Date.now()-u.progress.at<600000?u.progress:null,busy=!!p&&p.stage!=='failed';
  $('#versionText').textContent='Version '+u.current+(u.available?' · Update available: '+u.latest:u.checkedAt&&!u.error?' · Up to date':'');
  $('#updateBanner').hidden=!u.available&&!p;
  $('#updateText').textContent=p?.stage==='downloading'?'Downloading the update…':p?.stage==='installing'?'Installing the update. Bubblecast will reopen in a moment.':p?.stage==='failed'?'The update didn’t install: '+p.detail:u.installable?'Bubblecast '+u.latest+' is available.':'Bubblecast '+u.latest+' is available. Update this copy with git pull.';
@@ -128,6 +128,27 @@ function paintTts(t){const el=$('#ttsError');el.hidden=!t?.error;el.textContent=
  status.textContent=r.error?r.error:!t?.rewardsReady?tr('Connect Twitch as the channel owner to use a reward.'):linked&&r.managed?tr('Linked to Twitch · name, cost and cooldown stay in sync both ways.'):linked?tr('Linked to Twitch. It was made on Twitch, so set its cooldown there; create one here to keep it in sync.'):!t?.canManage?tr('Reconnect Twitch to let Bubblecast create and sync the reward.'):tr('Not linked to a Twitch reward.');
  status.classList.toggle('ok',linked&&!!r.managed&&!r.error);create.hidden=linked&&!!r.managed;create.disabled=!t?.canManage;}
 $('#ttsRewardCreate').onclick=async()=>{const b=$('#ttsRewardCreate');b.disabled=true;try{await api('tts/reward/create',{});toast(tr('Reward created on Twitch.'),'success');await status();}catch(e){toast(e.message,'error');}finally{b.disabled=false;}};
+
+// What's new: the latest features, each linking to its page. Items newer than the version this browser last
+// saw are marked New.
+const whatsNew=[
+ {v:'1.32.0',icon:'sparkles',page:'overview',title:'What’s new',text:'This card: the latest features at a glance, each one a click away.'},
+ {v:'1.31.1',icon:'sparkles',page:'chat',title:'Modern style',text:'A third look for chat and text to speech: dark strips with each platform’s color.'},
+ {v:'1.31.0',icon:'timer',page:'tts',title:'Shared text-to-speech wait',text:'One cooldown for every platform, with a countdown on stream.'},
+ {v:'1.31.0',icon:'sync',page:'tts',title:'Twitch reward in sync',text:'Create the TTS reward from Studio; name, cost and cooldown stay in sync both ways.'},
+ {v:'1.30.0',icon:'card',page:'tts',title:'Text-to-speech on stream',text:'A card shows who sent each message, with sound waves and a time-left bar.'},
+ {v:'1.29.0',icon:'voice',page:'tts',title:'Natural voices',text:'Human-sounding Spanish and English voices, a bad-word filter and a voice picker.'},
+ {v:'1.27.0',icon:'chat',page:'chat',title:'Classic chat',text:'A one-line Twitch-style chat overlay as an alternative to bubbles.'}];
+const wnIcons={sparkles:'<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>',timer:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>',sync:'<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/>',card:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 10h6M7 14h10"/>',voice:'<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',chat:'<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12.5h5"/>'};
+function paintWhatsNew(current){const list=$('#wnList');if(!list||list.dataset.version===current)return;list.dataset.version=current||'';
+ let seen=null;try{seen=localStorage.getItem('bubblecast-whatsnew-seen');localStorage.setItem('bubblecast-whatsnew-seen',current||'');}catch{}
+ const newer=(a,b)=>{const x=String(a).split('.').map(Number),y=String(b||'0.0.0').split('.').map(Number);for(let i=0;i<3;i++)if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0);return false;};
+ $('#wnVersion').textContent=current?tr('Version')+' '+current:'';list.replaceChildren();
+ whatsNew.forEach((w,i)=>{const li=document.createElement('li');li.style.setProperty('--i',i);const b=document.createElement('a');b.href='#'+w.page;b.className='wn-item';
+  const icon=document.createElement('span');icon.className='wn-icon';icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+wnIcons[w.icon]+'</svg>';
+  const body=document.createElement('span');body.className='wn-body';const title=document.createElement('strong');title.textContent=w.title;const text=document.createElement('span');text.textContent=w.text;body.append(title,text);
+  const tag=document.createElement('span');tag.className='wn-tag';const fresh=!seen||newer(w.v,seen)&&!newer(w.v,current);tag.textContent=fresh&&seen?tr('New'):w.v;if(fresh&&seen)tag.classList.add('fresh');
+  b.append(icon,body,tag);li.append(b);list.append(li);});}
 
 // Test bubbles and copying
 const samples=[['DemoStreamer','welcome to the stream!','twitch'],['bubblefan','','twitch',{kind:'sub',title:'bubblefan subscribed at Tier 1.'}],['lunarose','hydrate!!','twitch',{kind:'redemption',title:'Hydrate!',amount:300,color:'#00c7ac'}],['lunarose','hello from YouTube ♡','youtube'],['TikTok friend','hello from TikTok LIVE!','tiktok'],['mossy','FeelsGoodMan','twitch'],['kickfan','hi from Kick!','kick'],['My Complete YouTube Display Name','full names belong in the spotlight ✨','youtube'],['nightowl','check this out https://example.com','twitch'],['peach','💛💛💛','youtube'],['danceparty','SourPls','twitch']];
