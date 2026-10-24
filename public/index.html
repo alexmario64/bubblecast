@@ -235,6 +235,11 @@
    <p class="footnote">Make a Twitch reward that asks viewers for text and type its name here. Bubblecast reads what they write. Kick doesn’t share channel point rewards with Bubblecast yet.</p>
    <label class="row"><span>Read subs, raids and other events</span><input type="checkbox" name="ttsEvents" class="switch"></label>
   </fieldset>
+  <fieldset class="group"><legend>Bad words</legend>
+   <label class="row"><span>When a message has bad words</span><select name="ttsBadWords"><option value="skip">Don’t read the message</option><option value="remove">Read it without those words</option><option value="off">Read everything</option></select></label>
+   <label class="row stacked"><span>Also block these words</span><textarea name="ttsBlockedWords" rows="3" placeholder="One per line" spellcheck="false"></textarea></label>
+   <p class="footnote">Common swear words and slurs in English and Spanish are always caught, even with tricks like symbols (f*ck), numbers (sh1t), spaced-out letters or look-alike characters. Offensive usernames aren’t read either.</p>
+  </fieldset>
   <fieldset class="group"><legend>Who can use the command</legend>
    <label class="row"><span>Everyone</span><input type="checkbox" name="ttsEveryone" class="switch"></label>
    <label class="row"><span>Subscribers and members</span><input type="checkbox" name="ttsSubscribers" class="switch"></label>
@@ -243,8 +248,12 @@
    <p class="footnote">You can always use it. Each platform’s own moderators, VIPs, subscribers and members are recognized from their badges.</p>
   </fieldset>
   <fieldset class="group"><legend>Voice</legend>
-   <div class="row stacked"><span>Natural voices</span><p class="footnote" id="naturalNote">Natural voices sound far more human. Download one once, then pick it under Voice.</p><div class="natural-voices" id="naturalVoices"></div></div>
-   <label class="row"><span>Voice</span><select name="ttsVoice" id="ttsVoice"><option value="">System default</option></select></label>
+   <div class="row stacked voice-row"><span>Choose a voice</span>
+    <div class="segmented compact voice-langs" role="group" aria-label="Voice language"><button type="button" data-voice-lang="es">Español</button><button type="button" data-voice-lang="en">English</button><button type="button" data-voice-lang="all">All</button></div>
+    <div class="voice-grid" id="voiceGrid"></div>
+    <p class="footnote" id="naturalNote">Natural voices sound far more human. Download one once, then pick it.</p>
+    <select name="ttsVoice" id="ttsVoice" hidden aria-hidden="true" tabindex="-1"><option value="">System default</option></select>
+   </div>
    <label class="row slider"><span>Speed</span><input type="range" name="ttsRate" min="-10" max="10"><output data-for="ttsRate"></output></label>
    <label class="row slider"><span>Volume</span><input type="range" name="ttsVolume" min="0" max="100"><output data-for="ttsVolume" data-unit="%"></output></label>
    <label class="row"><span>Say the viewer’s name</span><input type="checkbox" name="ttsReadName" class="switch"></label>
