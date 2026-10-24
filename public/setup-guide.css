@@ -48,6 +48,15 @@ html.sg-open{overflow:hidden}
 .sg-dots i{width:7px;height:7px;border-radius:50%;background:var(--field-border);transition:width .3s var(--ease)}
 .sg-dots i.on{width:20px;border-radius:4px;background:var(--accent)}
 
+/* Discover: a classic chat preview and speech waves. */
+.sg-classic{display:grid;gap:6px;padding:12px 14px;border-radius:10px;background:#1b1f2a;color:#fff;font:700 13px/1.4 system-ui,sans-serif;text-shadow:0 1px 2px #000}
+.sg-classic p{margin:0}
+.sg-classic img{width:16px;height:16px;object-fit:contain;vertical-align:-3px;margin-right:6px}
+.sg-dark-panel,.sg-panel.sg-dark-panel,.sg-classic.sg-panel{background:#1b1f2a;border-color:#ffffff1a}
+.sg-waves{display:flex;align-items:center;justify-content:center;gap:6px;height:54px}
+.sg-waves i{width:8px;height:16px;border-radius:4px;background:var(--w-accent);animation:sg-wave .7s ease-in-out infinite alternate}
+.sg-waves i:nth-child(2){animation-delay:.12s}.sg-waves i:nth-child(3){animation-delay:.24s}.sg-waves i:nth-child(4){animation-delay:.36s}.sg-waves i:nth-child(5){animation-delay:.48s}
+@keyframes sg-wave{to{height:46px}}
 /* Pictures */
 .sg-picture{min-width:0}
 .sg-window{--w-bg:#fff;--w-bar:#eef0f3;--w-text:#202124;--w-muted:#5f6368;--w-line:#dadce0;--w-field:#fff;--w-accent:#1a73e8;--w-on:#fff;position:relative;overflow:hidden;border-radius:14px;background:var(--w-bg);color:var(--w-text);border:1px solid #0000001a;box-shadow:0 14px 36px #00000026;font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;user-select:none}

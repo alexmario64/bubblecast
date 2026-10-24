@@ -13,6 +13,8 @@ Made by **TrueAlex**, a Spanish-speaking Nintendo content creator who streams th
 - **Poll overlay** (`/poll-overlay`): one card that combines a poll running on several platforms, with its own position, colors, labels and timing.
 - **Studio** (`/`): setup and customization. Overview with live viewers and channel status, Connections, Appearance (app and dock themes), Chat overlay, Poll overlay, Chat dock and OBS setup. Changes preview live and save automatically.
 
+Text to speech reads chat aloud through a `/tts` browser source with your computer's own voices: viewers use `!tts` on any platform or a Twitch channel point reward, and you choose which roles (everyone, subscribers and members, VIPs, moderators) can use it.
+
 Optional OBS interface themes that match Bubblecast are in `obs-themes/` (install with Install OBS Themes.cmd).
 
 ## Getting started

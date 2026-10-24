@@ -1,4 +1,4 @@
-export const defaults={chatStyle:'bubbles',direction:'left',accent:'#21b8df',bubble:'#f3f7f8',text:'#33464e',fontSize:24,duration:18,maxMessages:7,width:420,badgeSize:24,floatAmount:9,resolution:'2160',floatMotion:true,badges:true,platforms:true,linkMode:'strip',fontFamily:'Komika Axis',bttv:true,twitchId:'',filterBots:true,ignoredBots:[],overlayShownBots:[],dockHiddenBots:[],uiTheme:'rose',language:'en',dockTheme:'app',eventsShown:['redemption','sub','resub','giftsub','giftbomb','raid','gift','watchstreak','superchat','membership','giftmembership'],pollColors:'chat',pollAccent:'#21b8df',pollBubble:'#f3f7f8',pollText:'#33464e',pollBar:'#21b8df',pollPosition:'bottom-left',pollAnimation:'slide',pollWidth:420,pollFontSize:24,pollBarHeight:8,pollResultSeconds:15,pollShowVotes:true,pollShowPercent:true,pollShowPlatforms:true,pollShowFooter:true,pollHighlightLeader:true,pollFloatMotion:true,pollLiveLabel:'Live poll',pollFinalLabel:'Final results'};
+export const defaults={ttsEnabled:false,ttsTwitch:true,ttsYoutube:true,ttsTiktok:true,ttsKick:true,ttsCommandOn:true,ttsCommand:'!tts',ttsReadAll:false,ttsEveryone:true,ttsSubscribers:true,ttsVips:true,ttsMods:true,ttsReward:'',ttsReadName:true,ttsEvents:false,ttsVoice:'',ttsRate:0,ttsVolume:80,ttsMaxLength:200,ttsCooldown:10,chatStyle:'bubbles',direction:'left',accent:'#21b8df',bubble:'#f3f7f8',text:'#33464e',fontSize:24,duration:18,maxMessages:7,width:420,badgeSize:24,floatAmount:9,resolution:'2160',floatMotion:true,badges:true,platforms:true,linkMode:'strip',fontFamily:'Komika Axis',bttv:true,twitchId:'',filterBots:true,ignoredBots:[],overlayShownBots:[],dockHiddenBots:[],uiTheme:'rose',language:'en',dockTheme:'app',eventsShown:['redemption','sub','resub','giftsub','giftbomb','raid','gift','watchstreak','superchat','membership','giftmembership'],pollColors:'chat',pollAccent:'#21b8df',pollBubble:'#f3f7f8',pollText:'#33464e',pollBar:'#21b8df',pollPosition:'bottom-left',pollAnimation:'slide',pollWidth:420,pollFontSize:24,pollBarHeight:8,pollResultSeconds:15,pollShowVotes:true,pollShowPercent:true,pollShowPlatforms:true,pollShowFooter:true,pollHighlightLeader:true,pollFloatMotion:true,pollLiveLabel:'Live poll',pollFinalLabel:'Final results'};
 // CSS family names only: no quotes, commas or markup.
 export function fontFamily(value){const name=typeof value==='string'?value.replace(/["'`]/g,'').replace(/\s+/g,' ').trim():'';return /^[\p{L}\p{N} ._&+-]{1,60}$/u.test(name)?name:'';}
 export const fontStack=name=>'"'+(fontFamily(name)||'Komika Axis')+'"';
@@ -28,6 +28,11 @@ export function settings(input={}) {
  if(['app','rose','red','midnight','white'].includes(input.dockTheme))s.dockTheme=input.dockTheme;
  {const shown=eventList(input.eventsShown);if(shown)s.eventsShown=shown;}
  if(['bubbles','classic'].includes(input.chatStyle))s.chatStyle=input.chatStyle;
+ // Text to speech: who can trigger it and how it sounds.
+ for(const k of ['ttsEnabled','ttsTwitch','ttsYoutube','ttsTiktok','ttsKick','ttsCommandOn','ttsReadAll','ttsEveryone','ttsSubscribers','ttsVips','ttsMods','ttsReadName','ttsEvents']) if(typeof input[k]==='boolean')s[k]=input[k];
+ if(typeof input.ttsCommand==='string'&&/^[!#.\/]?[a-z0-9_-]{1,20}$/i.test(input.ttsCommand.trim()))s.ttsCommand=input.ttsCommand.trim();
+ for(const [k,max] of [['ttsReward',45],['ttsVoice',100]]) if(typeof input[k]==='string'&&!/[\u0000-\u001f]/.test(input[k]))s[k]=input[k].trim().slice(0,max);
+ for(const [k,min,max] of [['ttsRate',-10,10],['ttsVolume',0,100],['ttsMaxLength',20,500],['ttsCooldown',0,300]]) if(input[k]!==''&&input[k]!=null&&Number.isFinite(+input[k]))s[k]=Math.round(Math.max(min,Math.min(max,+input[k])));
  for(const k of ['direction','linkMode']) if((k==='direction'?['left','right']:['strip','drop','show']).includes(input[k])) s[k]=input[k];
  if(['1080','1440','2160'].includes(String(input.resolution)))s.resolution=String(input.resolution);
  for(const k of ['accent','bubble','text']) if(/^#[a-f0-9]{6}$/i.test(input[k])) s[k]=input[k];
@@ -54,6 +59,12 @@ export function sameMediaSource(a,b){
  const key=giphy(a);return key!==null&&key===giphy(b);
 }
 export function badgeMedia(value){const safe=safeMedia(value);if(!safe)return null;const u=new URL(safe);if(u.hostname.endsWith('jtvnw.net')&&u.pathname.includes('/badges/v1/'))u.pathname=u.pathname.replace(/\/[123]$/,'/3');if(/(?:ggpht|googleusercontent)\.com$/.test(u.hostname))u.pathname=u.pathname.replace(/=s\d+/, '=s96');return u.href;}
+// Roles a viewer holds, from the platform's own flags or from its badges: the platforms' own moderator, VIP
+// and subscriber/member lists, read from every message.
+const roleNames=['broadcaster','moderator','vip','subscriber'];
+export function viewerRoles(raw){const out=new Set((Array.isArray(raw?.roles)?raw.roles:[]).filter(r=>roleNames.includes(r)));
+ for(const b of Array.isArray(raw?.badges)?raw.badges:[]){const t=String(b?.alt||'')+' '+String(b?.type||'');if(/broadcaster|streamer|\bowner\b|\bhost\b/i.test(t))out.add('broadcaster');if(/moderat/i.test(t))out.add('moderator');if(/\bvip\b/i.test(t))out.add('vip');if(/subscriber|founder|\bmember\b/i.test(t))out.add('subscriber');}
+ return roleNames.filter(r=>out.has(r));}
 export function normalize(raw,s=defaults){
  if(!['twitch','youtube','tiktok','kick'].includes(raw?.platform)||typeof raw.user!=='string'||!Array.isArray(raw.parts))return null;
  if(isIgnoredUser(raw.user,s))return null;
@@ -65,5 +76,5 @@ export function normalize(raw,s=defaults){
   else if(['image','video'].includes(p.type)){let src=safeMedia(p.src);if(src&&p.type==='image'&&!p.large){const url=new URL(src);if(url.hostname==='static-cdn.jtvnw.net'&&/^\/emoticons\/v2\/[^/]+\/(?:default|static|animated)\/(?:dark|light)\/[123]\.0$/.test(url.pathname)){url.pathname=url.pathname.replace(/\/[123]\.0$/,'/3.0');url.hash='';src=url.href;}}if(src)parts.push({type:p.type,src,alt:String(p.alt||'').slice(0,100),large:!!p.large});}
  }
  if(s.linkMode==='drop'&&hasLink||!event&&!parts.some(p=>p.type!=='text'||p.text.trim()))return null;
- return {id:String(raw.id||crypto.randomUUID()).slice(0,200),platform:raw.platform,sourceKey:raw.platform==='youtube'&&raw.sourceKey==='youtubeShorts'?'youtubeShorts':raw.platform,user:raw.user.slice(0,256),userColor:raw.platform==='twitch'&&/^#[a-f0-9]{6}$/i.test(raw.userColor)?raw.userColor.toLowerCase():'',userId:String(raw.userId||'').slice(0,100),parts,badges:(Array.isArray(raw.badges)?raw.badges:[]).slice(0,20).map(b=>({src:badgeMedia(b.src),fallback:safeMedia(b.fallback||b.src),alt:String(b.alt||'badge').slice(0,80),...(b.label?{label:String(b.label).slice(0,16)}:{})})).filter(b=>b.src),...(event?{event}:{}),time:Date.now()};
+ return {id:String(raw.id||crypto.randomUUID()).slice(0,200),platform:raw.platform,sourceKey:raw.platform==='youtube'&&raw.sourceKey==='youtubeShorts'?'youtubeShorts':raw.platform,user:raw.user.slice(0,256),userColor:raw.platform==='twitch'&&/^#[a-f0-9]{6}$/i.test(raw.userColor)?raw.userColor.toLowerCase():'',userId:String(raw.userId||'').slice(0,100),parts,badges:(Array.isArray(raw.badges)?raw.badges:[]).slice(0,20).map(b=>({src:badgeMedia(b.src),fallback:safeMedia(b.fallback||b.src),alt:String(b.alt||'badge').slice(0,80),...(b.label?{label:String(b.label).slice(0,16)}:{})})).filter(b=>b.src),...(viewerRoles(raw).length?{roles:viewerRoles(raw)}:{}),...(event?{event}:{}),time:Date.now()};
 }

@@ -88,6 +88,17 @@ const chapters=[
   {title:'More overlays',text:['The poll overlay and the vertical chat are Browser sources too. In OBS, click + under Sources, choose Browser, and paste a link below.','Studio → Chat overlay and Poll overlay change how they look.'],
    copy:[['Poll overlay','http://127.0.0.1:3927/poll-overlay'],['Vertical chat','http://127.0.0.1:3927/overlay?layout=vertical']],
    picture:app('OBS Studio',h('Sources')+row(click('+',{key:'plus'}))+box(click('Browser',{key:'br'}),{reveal:'plus',cls:'sg-menu'})+box(type('URL','http://127.0.0.1:3927/poll-overlay')+row(click('OK',{primary:true})),{reveal:'br',cls:'sg-panel'}),'sg-dark'),
+   action:'finish'}]},
+ // Features worth knowing about once set up. After an update the guide opens here once.
+ {id:'discover',title:'Discover',logo:'/favicon.svg',steps:[
+  {title:'Classic Twitch-style chat',text:['Prefer the look of Twitch chat? Switch the overlay from bubbles to Classic: one line per message with the platform logo, badges and the viewer’s colored name.','New lines glide in and old ones fade out, like Twitch.'],
+   picture:app('Bubblecast Studio',`<div class="sg-card">${h('Chat style')+row(plain('Bubbles'),click('Classic',{key:'classic',primary:true}))}</div>`+box(`<div class="sg-classic" data-i18n-skip><p><img src="/logos/twitch.png" alt=""><b style="color:#ff6b6b">PixelPanda</b>: hype!! let’s gooo</p><p><img src="/logos/youtube.svg" alt=""><b style="color:#7ad7ff">LunaRose</b>: hello from YouTube</p><p><img src="/logos/kick.svg" alt=""><b style="color:#9dff7a">KickFan99</b>: W stream</p></div>`,{reveal:'classic',cls:'sg-panel sg-dark-panel'})),
+   action:'go:chat:Open chat overlay settings'},
+  {title:'Text to speech',text:['Let viewers be heard: with “!tts” on any platform, or a Twitch channel point reward, Bubblecast reads messages aloud on stream.','Pick who can use it, a natural voice in Spanish or English, and add the voice to OBS as one more browser source.'],
+   picture:app('Bubblecast Studio',`<div class="sg-classic sg-dark-panel sg-box sg-panel" data-i18n-skip><p><img src="/logos/twitch.png" alt=""><b style="color:#c9a7ff">TrueAlex</b>: !tts ¡hola a todos!</p></div>`+row(click('Test voice',{key:'speak'}))+box(`<div class="sg-waves" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>`,{reveal:'speak'})),
+   action:'go:tts:Set up text to speech'},
+  {title:'Updates in one click',text:['When a new version is out, Studio shows a banner. Click Install update and Bubblecast updates itself and reopens, keeping your settings.','You’ll find your version and Check for updates at the bottom of Quick actions on the Overview page.'],
+   picture:app('Bubblecast Studio',box(row(`<span>Bubblecast 1.30.0 is available.</span>`,click('Install update',{primary:true,key:'upd'})),{cls:'sg-panel'})+box(note('Downloading the update…'),{reveal:'upd'})),
    action:'finish'}]}
 ];
 function connected(sel){return !!$(sel)?.classList.contains('connected');}
@@ -123,6 +134,7 @@ function onClick(e){
  if(t.dataset.press){const target=$(t.dataset.press);if(target&&!target.disabled)target.click();return;}
  if(t.dataset.guideSave==='tiktok'){const input=$('#tiktokChannel'),value=root.querySelector('[data-guide=tiktok]').value.trim();if(input){input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));}$('#saveConnections')?.click();return;}
  if(t.dataset.guideSave){const box=document.querySelector('[data-app="'+t.dataset.guideSave+'"]');if(!box)return;for(const name of ['clientId','clientSecret']){const v=root.querySelector('[data-guide-key="'+name+'"]').value.trim();if(v||name==='clientSecret')box.querySelector('[name='+name+']').value=v;}box.querySelector('[data-save-app]')?.click();root.querySelector('[data-guide-key=clientSecret]').value='';return;}
+ if(t.dataset.guideGo){close();location.hash='#'+t.dataset.guideGo;return;}
  if(t.matches('[data-guide-finish]')){store.set('bubblecast-guide-obs','done');return close();}
 }
 function render(){
@@ -132,7 +144,7 @@ function render(){
  root.querySelector('#sgTitle').textContent=s.title;
  root.querySelector('.sg-text').innerHTML=s.text.map(p=>`<p>${esc(p)}</p>`).join('');
  root.querySelector('.sg-picture').innerHTML=s.picture||'';
- root.querySelector('.sg-extras').innerHTML=(s.open?`<a class="button sg-open" href="${esc(s.open.url)}" target="_blank" rel="noopener">${esc(s.open.label)} <span aria-hidden="true">↗</span></a>`:'')+(s.copy||[]).map(([label,value])=>`<button type="button" class="sg-copy" data-sg-copy><span>${esc(label)}</span><code data-i18n-skip>${esc(value)}</code><b>Copy</b></button>`).join('')+(s.action?actions[s.action]():'');
+ root.querySelector('.sg-extras').innerHTML=(s.open?`<a class="button sg-open" href="${esc(s.open.url)}" target="_blank" rel="noopener">${esc(s.open.label)} <span aria-hidden="true">↗</span></a>`:'')+(s.copy||[]).map(([label,value])=>`<button type="button" class="sg-copy" data-sg-copy><span>${esc(label)}</span><code data-i18n-skip>${esc(value)}</code><b>Copy</b></button>`).join('')+(s.action?(s.action.startsWith('go:')?`<div class="sg-act"><button type="button" class="button primary" data-guide-go="${esc(s.action.split(':')[1])}">${esc(s.action.split(':').slice(2).join(':'))}</button></div>`:actions[s.action]()):'');
  const last=chapter===chapters.length-1&&step===c.steps.length-1;
  root.querySelector('[data-guide-back]').disabled=!chapter&&!step;root.querySelector('[data-guide-next]').textContent=last?'Done':step===c.steps.length-1?'Next: '+chapters[chapter+1].title:'Next';
  root.querySelector('.sg-dots').innerHTML=c.steps.length>1?c.steps.map((_,i)=>`<i class="${i===step?'on':''}"></i>`).join(''):'';
@@ -165,7 +177,9 @@ function animate(stage){
 
 function open(id,options={}){if(!root)build();const i=chapters.findIndex(c=>c.id===id);chapter=i<0?0:i;step=0;root.hidden=false;document.documentElement.classList.add('sg-open');render();clearInterval(timer);timer=setInterval(sync,700);if(options.focus!==false)root.querySelector('[data-guide-next]').focus();}
 function close(){if(!root)return;root.hidden=true;animation++;clearInterval(timer);document.documentElement.classList.remove('sg-open');store.set('bubblecast-guide-seen','1');}
-window.bubblecastGuide={open,close,chapters};
+// After an update (a newer version than this browser last saw), open the Discover chapter once.
+function noticeVersion(version){if(!/^\d+\.\d+\.\d+$/.test(version||''))return;const seen=store.get('bubblecast-seen-version');store.set('bubblecast-seen-version',version);if(seen&&seen!==version&&store.get('bubblecast-guide-seen')&&(!root||root.hidden))open('discover',{focus:false});}
+window.bubblecastGuide={open,close,chapters,noticeVersion};
 for(const link of document.querySelectorAll('[data-open-guide]'))link.addEventListener('click',e=>{e.preventDefault();open(link.dataset.openGuide||'welcome');});
 // First visit: open on its own once Studio knows nothing is connected yet.
 if(!store.get('bubblecast-guide-seen'))setTimeout(()=>{if(store.get('bubblecast-guide-seen')||!$('#studioStatus'))return;const any=['#account-twitch','#account-youtube','#account-kick-api'].some(connected)||!!$('#tiktokChannel')?.value.trim();if(!any)open('welcome',{focus:false});},2500);

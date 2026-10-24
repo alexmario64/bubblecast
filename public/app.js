@@ -13,7 +13,7 @@ for(const old of host.querySelectorAll('.toast:not(.leaving)'))if(old.dataset.te
 function feedback(text){toast(text);}
 
 // Pages
-const pages=['overview','connections','appearance','chat','polls','dock','obs'];
+const pages=['overview','connections','appearance','chat','polls','tts','dock','obs'];
 function route(){const page=pages.includes(location.hash.slice(1))?location.hash.slice(1):'overview';for(const section of $$('[data-page]'))section.hidden=section.dataset.page!==page;for(const link of $$('[data-page-link]')){const current=link.dataset.pageLink===page;link.classList.toggle('current',current);if(current)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');}const lazy=$('#page-'+page+' iframe[data-src]');if(lazy){lazy.src=lazy.dataset.src;lazy.removeAttribute('data-src');}document.title=(page==='overview'?'':$('#page-'+page+' h1').textContent+' · ')+'Bubblecast Studio';$('main')?.scrollTo?.(0,0);}
 window.addEventListener('hashchange',route);
 
@@ -61,7 +61,7 @@ window.addEventListener('bubblecast-paired',()=>toast('Browser bridge paired.','
 window.addEventListener('bubblecast-bridge-reload-needed',()=>toast('The browser bridge was reloaded. Refresh this page to reconnect.','error'));
 
 // Updates: a banner and the Overview card show new versions; the installed app installs them in one click.
-function paintUpdate(u){if(!u)return;const p=u.progress&&Date.now()-u.progress.at<600000?u.progress:null,busy=!!p&&p.stage!=='failed';
+function paintUpdate(u){if(!u)return;window.bubblecastGuide?.noticeVersion?.(u.current);const p=u.progress&&Date.now()-u.progress.at<600000?u.progress:null,busy=!!p&&p.stage!=='failed';
  $('#versionText').textContent='Version '+u.current+(u.available?' · Update available: '+u.latest:u.checkedAt&&!u.error?' · Up to date':'');
  $('#updateBanner').hidden=!u.available&&!p;
  $('#updateText').textContent=p?.stage==='downloading'?'Downloading the update…':p?.stage==='installing'?'Installing the update. Bubblecast will reopen in a moment.':p?.stage==='failed'?'The update didn’t install: '+p.detail:u.installable?'Bubblecast '+u.latest+' is available.':'Bubblecast '+u.latest+' is available. Update this copy with git pull.';
@@ -69,6 +69,30 @@ function paintUpdate(u){if(!u)return;const p=u.progress&&Date.now()-u.progress.a
 async function installUpdate(){try{paintUpdate(await api('update/install',{}));}catch(e){toast(e.message,'error');}}
 $('#installUpdate').onclick=installUpdate;$('#installUpdateCard').onclick=installUpdate;
 $('#checkUpdate').onclick=async()=>{const b=$('#checkUpdate');b.disabled=true;try{const u=await api('update/check',{});paintUpdate(u);toast(u.error||(u.available?'Bubblecast '+u.latest+' is available.':'You have the latest version.'),u.error?'error':'success');}catch(e){toast(e.message,'error');}finally{b.disabled=false;}};
+
+// Text to speech: the voice list comes from this computer; Test and Skip act on the /tts browser source.
+// The voice menu: installed natural voices first, then this computer's own voices.
+let systemVoices=[],naturalVoices=[],naturalTimer=null;const tr=t=>window.bubblecastI18n?.translate?.(t)??t;
+const option=(text,value)=>{const o=document.createElement('option');o.value=value;o.textContent=text;return o;};
+function paintVoiceMenu(){const select=$('#ttsVoice');select.replaceChildren(option(tr('System default'),''));
+ const group=(label,items)=>{if(!items.length)return;const g=document.createElement('optgroup');g.label=tr(label);for(const [value,text] of items)g.append(option(text,value));select.append(g);};
+ group('Natural voices',naturalVoices.filter(v=>v.installed).map(v=>['natural:'+v.id,v.name+' · '+v.label]));
+ group('System voices',systemVoices.map(v=>[v.name,v.lang?v.name+' ('+v.lang+')':v.name]));
+ if(state.ttsVoice&&![...select.options].some(o=>o.value===state.ttsVoice))select.append(option(state.ttsVoice,state.ttsVoice));select.value=state.ttsVoice||'';}
+async function loadVoices(){try{systemVoices=(await(await fetch('/api/tts/voices')).json()).voices||[];}catch{}paintVoiceMenu();}
+// Natural voices download once (Windows app), with their size, progress and any credit their license asks for.
+async function loadNatural(){try{const j=await(await fetch('/api/tts/natural')).json();naturalVoices=j.voices||[];paintNatural(j.supported);paintVoiceMenu();
+ clearTimeout(naturalTimer);if(naturalVoices.some(v=>v.job?.stage==='downloading'))naturalTimer=setTimeout(loadNatural,2000);}catch{}}
+function paintNatural(supported){$('#naturalNote').textContent=supported?'Natural voices sound far more human. Download one once, then pick it under Voice.':'Natural voices are available in the Windows app.';const box=$('#naturalVoices');box.replaceChildren();
+ for(const v of naturalVoices){const row=document.createElement('div');row.className='natural-row';const name=document.createElement('span');name.className='natural-name';name.textContent=v.name+' · '+v.label;
+  const meta=document.createElement('span');meta.className='natural-meta';meta.textContent=v.installed?'Installed':v.job?.stage==='downloading'?'Downloading…':v.job?.stage==='failed'?v.job.detail:Math.round(v.size/1e6)+' MB';
+  const btn=document.createElement('button');btn.type='button';btn.className='button';btn.textContent=v.installed?'Remove':'Download';btn.disabled=!supported||v.job?.stage==='downloading';
+  btn.onclick=async()=>{btn.disabled=true;try{await api(v.installed?'tts/natural/remove':'tts/natural/install',{id:v.id});await loadNatural();}catch(e){toast(e.message,'error');btn.disabled=false;}};
+  row.append(name,meta,btn);if(v.installed&&v.credit){const c=document.createElement('span');c.className='natural-credit';c.textContent=v.credit;row.append(c);}box.append(row);}}
+loadVoices();loadNatural();
+$('#ttsTest').onclick=async()=>{const b=$('#ttsTest');b.disabled=true;try{const item=await api('tts/test',{});const audio=new Audio(item.url);audio.volume=Math.max(0,Math.min(1,(state.ttsVolume??80)/100));await audio.play();toast('Playing the test voice here and on your text-to-speech browser source.','success');}catch(e){toast(e.message,'error');}finally{b.disabled=false;}};
+$('#ttsSkip').onclick=async()=>{try{await api('tts/skip',{});}catch(e){toast(e.message,'error');}};
+function paintTts(t){const el=$('#ttsError');el.hidden=!t?.error;el.textContent=t?.error||'';}
 
 // Test bubbles and copying
 const samples=[['DemoStreamer','welcome to the stream!','twitch'],['bubblefan','','twitch',{kind:'sub',title:'bubblefan subscribed at Tier 1.'}],['lunarose','hydrate!!','twitch',{kind:'redemption',title:'Hydrate!',amount:300,color:'#00c7ac'}],['lunarose','hello from YouTube ♡','youtube'],['TikTok friend','hello from TikTok LIVE!','tiktok'],['mossy','FeelsGoodMan','twitch'],['kickfan','hi from Kick!','kick'],['My Complete YouTube Display Name','full names belong in the spotlight ✨','youtube'],['nightowl','check this out https://example.com','twitch'],['peach','💛💛💛','youtube'],['danceparty','SourPls','twitch']];
@@ -128,7 +152,7 @@ async function loadApps(){try{const apps=await(await fetch('/api/apps')).json();
 for(const button of document.querySelectorAll('[data-save-app]'))button.onclick=async()=>{const p=button.dataset.saveApp,box=document.querySelector('[data-app="'+p+'"]');button.disabled=true;try{await api('apps',{platform:p,clientId:box.querySelector('[name=clientId]').value,clientSecret:box.querySelector('[name=clientSecret]').value});box.querySelector('[name=clientSecret]').value='';await loadApps();toast((p==='kick'?'Kick':'Google')+' app saved.','success');await status();}catch(e){toast(e.message,'error');}finally{button.disabled=false;}};
 loadApps();
 $('#twitchConnect').onclick=async()=>{const button=$('#twitchConnect');button.disabled=true;try{if(button.dataset.state==='connected'||button.dataset.state==='pending'){await api('twitch/disconnect',{});toast('Twitch disconnected.','success');}else{const pending=await api('twitch/connect',{});$('#twitchUserCode').textContent=pending.userCode;$('#twitchActivate').href=pending.verificationUri;$('#twitchCode').hidden=false;window.open(pending.verificationUri,'_blank','noopener');}await status();}catch(e){toast(e.message,'error');}finally{button.disabled=false;}};
-async function status(){try{const j=await(await fetch('/api/status')).json();lastStatus=j;paintViewers(j);paintUpdate(j.update);
+async function status(){try{const j=await(await fetch('/api/status')).json();lastStatus=j;paintViewers(j);paintUpdate(j.update);paintTts(j.tts);
  if(!loaded){fill(j.settings);loaded=true;}else if(((j.settings.uiTheme||'rose')!==(state.uiTheme||'rose')||(j.settings.language||'en')!==(state.language||'en'))&&!saveTimer){state.uiTheme=j.settings.uiTheme;state.language=j.settings.language;fill({...collect(),uiTheme:j.settings.uiTheme,language:j.settings.language||'en'});}
  const online=!!j.collector?.active;$('#studioStatus').textContent=online?'Background app connected':'Background app offline';$('#helperChip').dataset.state=online?'online':'offline';$('#helperBanner').hidden=online;
  paintPlatforms(j);

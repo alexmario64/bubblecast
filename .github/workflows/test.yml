@@ -13,4 +13,11 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      # The natural-voice test downloads Piper and one Spanish voice (about 85 MB); keep them between runs.
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/piper
+          key: piper-2023.11.14-2-es_MX-claude-high
       - run: pnpm test
+        env:
+          BUBBLECAST_PIPER_CACHE: ${{ runner.temp }}/piper
