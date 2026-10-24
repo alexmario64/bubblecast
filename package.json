@@ -1,6 +1,6 @@
 {
   "name": "bubblecast",
-  "version": "1.33.1",
+  "version": "1.33.2",
   "private": true,
   "description": "Combined Twitch, YouTube, TikTok and Kick chat for OBS",
   "author": "Bubblecast",

@@ -22,4 +22,9 @@ test('an installed server saves channels and settings in its data folder',async 
  await readFile(join(dir,'settings.json'),'utf8');
  assert.equal((await (await fetch(base+'/api/status')).json()).youtube.live,false,'YouTube waits for OBS');
  assert.equal((await post('/api/obs/streaming',{streaming:true})).live,true);assert.equal((await (await fetch(base+'/api/status')).json()).youtube.live,true);
+ await post('/api/sources',{enabled:true,youtubeChannel:'@example'});
+ const found=(await post('/api/youtube/page-live',{videos:[{video:'abcdefghijk',vertical:true},{video:'bcdefghijkl',vertical:false}]})).found;
+ assert.deepEqual(found.map(f=>[f.slot,f.video]),[['youtube','bcdefghijkl'],['youtubeShorts','abcdefghijk']],'the page fallback fills both slots by shape');
+ const urls=(await (await fetch(base+'/api/sources')).json()).urls;assert.match(urls.youtubeShorts,/v=abcdefghijk/);
+ await post('/api/youtube/page-live',{videos:[]});assert.equal((await (await fetch(base+'/api/sources')).json()).urls.youtube,'https://www.youtube.com/@example/live','back to the channel page when nothing is live');
 });
