@@ -68,19 +68,24 @@ export async function wavSeconds(file){try{const b=await readFile(file);const ra
 
 // ---- The queue: one message is voiced at a time and handed to the /tts pages. ----
 export class Speech{
- constructor({emit,engine=engines,natural=null,dir=join(tmpdir(),'bubblecast-tts'),now=Date.now,keepMs=300000}){Object.assign(this,{emit,engine,natural,dir,now,keepMs});this.queue=[];this.busy=false;this.files=new Map();this.recent=new Map();this.voiceList=null;this.error=null;}
+ constructor({emit,engine=engines,natural=null,dir=join(tmpdir(),'bubblecast-tts'),now=Date.now,keepMs=300000,onCooldown=()=>{}}){Object.assign(this,{emit,engine,natural,dir,now,keepMs,onCooldown});this.cooldownUntil=0;this.queue=[];this.busy=false;this.files=new Map();this.recent=new Map();this.voiceList=null;this.error=null;}
  async voices(){if(!this.voiceList)try{this.voiceList=await this.engine.voices();}catch(e){this.error=String(e.message||e);return [];}return this.voiceList;}
  // Spanish voices say "dijo", others "said".
  lang(s){const id=String(s.ttsVoice||'').startsWith('natural:')?s.ttsVoice.slice(8):'';const v=id?VOICES.find(v=>v.id===id):this.voiceList?.find(v=>v.name===s.ttsVoice);return (v?.lang||s.language||'en').slice(0,2);}
  consider(m,s){const text=speechText(m,s,this.lang(s));if(!text)return false;
   const key=m.platform+':'+(m.userId||m.user),t=this.now();
   const last=this.recent.get(key);if(!m.event&&!(m.roles||[]).includes('broadcaster')&&s.ttsCooldown&&last!==undefined&&t-last<s.ttsCooldown*1000)return false;
+  // The shared wait applies to every platform; a paid reward is always read (Twitch keeps its own cooldown).
+  const reward=m.event?.kind==='redemption';if(!reward&&t<this.cooldownUntil)return false;
+  if(s.ttsGlobalCooldown){this.cooldownUntil=Math.max(this.cooldownUntil,t+s.ttsGlobalCooldown*1000);this.emit('tts-cooldown',this.cooldown(s));this.onCooldown({until:this.cooldownUntil,fromReward:reward});}
   this.recent.set(key,t);while(this.recent.size>2000)this.recent.delete(this.recent.keys().next().value);
   // The card shows the message without the spoken "name said:".
   const display=speechText(m,{...s,ttsReadName:false},this.lang(s))||text;
   this.enqueue(text,m,s,{display}).catch(()=>{});return true;}
 // Resolves with what the /tts pages were sent, so Studio can play the test voice too.
  // A preview plays only in Studio; a test also plays on the /tts browser sources.
+ // How long until text to speech takes messages again, for the /tts pages.
+ cooldown(s){return {until:this.cooldownUntil,reward:s.ttsRewardId&&s.ttsReward?s.ttsReward:''};}
  // A Twitch channel point redemption, straight from Twitch with the reward's name and the viewer's text.
  redeemed(r,s){if(!s.ttsTwitch||this.recent.has('reward:'+r.id))return false;this.recent.set('reward:'+r.id,this.now());
   return this.consider({platform:'twitch',user:r.user,userId:r.userId,parts:r.text?[{type:'text',text:r.text}]:[],event:{kind:'redemption',title:r.title},fromTwitch:true},s);}

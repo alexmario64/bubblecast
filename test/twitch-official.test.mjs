@@ -35,7 +35,7 @@ test('Device Code sign-in waits for approval, validates, saves the token private
  assert.equal(twitch.connected,true);assert.equal(twitch.auth.login,'streamer');if(process.platform!=='win32')assert.equal((await stat(file)).mode&0o777,0o600);assert.equal(JSON.parse(await readFile(file,'utf8')).refresh_token,'rt');
  for(const until=Date.now()+2000;!f.socket&&Date.now()<until;)await new Promise(r=>setImmediate(r));assert.match(f.socket.url,/eventsub\.wss\.twitch\.tv/);
  await f.socket.emit({metadata:{message_type:'session_welcome'},payload:{session:{id:'s1',keepalive_timeout_seconds:10}}});
- const subs=f.calls.filter(c=>c.path==='/eventsub/subscriptions').map(c=>JSON.parse(c.body).type);assert.deepEqual(subs,['channel.channel_points_custom_reward_redemption.add','channel.poll.begin','channel.poll.progress','channel.poll.end'],'chat comes from the chat connection, EventSub only adds redemptions and polls');assert.equal(JSON.parse(f.calls.find(c=>c.path==='/eventsub/subscriptions').body).transport.session_id,'s1');
+ const subs=f.calls.filter(c=>c.path==='/eventsub/subscriptions').map(c=>JSON.parse(c.body).type);assert.deepEqual(subs,['channel.channel_points_custom_reward_redemption.add','channel.channel_points_custom_reward.update','channel.poll.begin','channel.poll.progress','channel.poll.end'],'chat comes from the chat connection, EventSub only adds redemptions and polls');assert.equal(JSON.parse(f.calls.find(c=>c.path==='/eventsub/subscriptions').body).transport.session_id,'s1');
  const note={metadata:{message_type:'notification',message_id:'x1'},payload:{subscription:{type:'channel.channel_points_custom_reward_redemption.add'},event:{id:'r9',user_name:'Viewer',user_input:'',reward:{id:'w1',title:'Hydrate!',cost:300}}}};
  await f.socket.emit(note);await f.socket.emit(note);assert.equal(messages.length,1,'duplicate deliveries are dropped');assert.equal(messages[0].event.title,'Hydrate!');assert.equal(messages[0].event.color,'#00C7AC','reward color comes from the reward list');
  await f.socket.emit({...note,metadata:{message_type:'notification',message_id:'x2'},payload:{...note.payload,event:{id:'r10',user_name:'Viewer',user_id:'7',user_input:'hola chat',reward:{id:'w2',title:'TTS',cost:100}}}});
@@ -56,4 +56,16 @@ test('moderators can send chat but get no owner-only events or polls, and expire
  assert.ok(f.calls.some(c=>c.path==='/token'&&c.body.get('grant_type')==='refresh_token'),'a token about to expire is refreshed before use');
  assert.equal(f.socket,undefined,'a moderator needs no EventSub connection');assert.equal(twitch.ready,true,'moderators can still send chat');
  assert.equal((await twitch.createPoll({question:'Q?',choices:['A','B'],duration:120})).status,'failed');twitch.stop();
+});
+test('the text-to-speech reward is created and updated with its cooldown, and Twitch edits come back',async()=>{
+ const {rewardInfo}=await import('../twitch-official.mjs');
+ assert.deepEqual(rewardInfo({id:'a',title:'TTS',cost:500,is_paused:false,global_cooldown_setting:{is_enabled:true,global_cooldown_seconds:45}}),{id:'a',title:'TTS',cost:500,paused:false,enabled:true,cooldown:45});
+ assert.equal(rewardInfo({id:'a',title:'TTS',cost:5,global_cooldown_setting:{is_enabled:false,global_cooldown_seconds:45}}).cooldown,0,'an off cooldown reads as 0');
+ const calls=[];const twitch=new TwitchOfficial({file:'unused',request:async(url,o)=>{calls.push([String(url),o?.method||'GET',o?.body&&JSON.parse(o.body)]);return {ok:true,status:200,json:async()=>({data:[{id:'new',title:'TTS',cost:300,global_cooldown_setting:{is_enabled:true,global_cooldown_seconds:20}}]})};}});
+ twitch.auth={access_token:'a',refresh_token:'r',user_id:'100',scopes:['channel:manage:redemptions']};twitch.broadcaster={id:'100',login:'streamer'};
+ const made=await twitch.createReward({title:'TTS',cost:300,cooldown:20});assert.equal(made.id,'new');
+ assert.deepEqual(calls[0][2],{title:'TTS',cost:300,is_global_cooldown_enabled:true,global_cooldown_seconds:20,is_user_input_required:true,prompt:'Your message is read aloud on stream.'});
+ await twitch.updateReward('new',{cooldown:0});assert.deepEqual(calls[1][2],{is_global_cooldown_enabled:false});assert.equal(calls[1][1],'PATCH');
+ await twitch.updateReward('new',{paused:true});assert.deepEqual(calls[2][2],{is_paused:true});
+ twitch.auth.scopes=[];await assert.rejects(twitch.createReward({title:'x',cost:1,cooldown:0}),/Reconnect Twitch/);
 });
