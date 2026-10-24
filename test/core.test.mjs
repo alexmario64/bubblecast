@@ -61,3 +61,6 @@ test('bots stay off stream unless switched on and stay in the dock unless switch
 test('interface theme accepts rose, red, midnight and white only',()=>{for(const theme of ['rose','red','midnight','white'])assert.equal(settings({uiTheme:theme}).uiTheme,theme);assert.equal(settings({uiTheme:'neon'}).uiTheme,'rose');});
 test('the dock matches the app theme unless it has its own',()=>{assert.equal(settings({}).dockTheme,'app');assert.equal(dockThemeOf(settings({uiTheme:'red'})),'red');assert.equal(dockThemeOf(settings({uiTheme:'red',dockTheme:'midnight'})),'midnight');assert.equal(settings({dockTheme:'neon'}).dockTheme,'app');});
 test('YouTube Noto emoji images survive normalize for the dock and overlay',()=>{const src='https://fonts.gstatic.com/s/e/notoemoji/15.1/1f600/72.png';const m=normalize({...msg('hi'),platform:'youtube',parts:[{type:'image',src,alt:'😀',large:false}]});assert.equal(m.parts[0].src,src);assert.equal(safeMedia('https://gstatic.com.evil.test/x.png'),null);});
+test('the overlay chat style is bubbles by default and accepts only bubbles or classic',()=>{
+ assert.equal(settings({}).chatStyle,'bubbles');assert.equal(settings({chatStyle:'classic'}).chatStyle,'classic');assert.equal(settings({chatStyle:'neon'}).chatStyle,'bubbles');
+});
