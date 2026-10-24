@@ -38,7 +38,7 @@ export async function obsStreams({configOverride,Socket=WebSocket,folder}={}){
     if(m.op===7){const p=pending.get(m.d.requestId);if(p){pending.delete(m.d.requestId);m.d.requestStatus.result?p.resolve(m.d.responseData||{}):p.reject(Error(m.d.requestStatus.comment||'failed'));}}});});
   const rpc=(requestType,requestData={})=>new Promise((resolve,reject)=>{const requestId=randomUUID(),timer=setTimeout(()=>{pending.delete(requestId);reject(Error('timeout'));},4000);pending.set(requestId,{resolve:x=>{clearTimeout(timer);resolve(x);},reject:e=>{clearTimeout(timer);reject(e);}});socket.send(JSON.stringify({op:6,d:{requestType,requestId,requestData}}));});
   const streaming=!!(await rpc('GetStreamStatus')).outputActive;let vertical=false;
-  try{const r=await rpc('CallVendorRequest',{vendorName:'aitum-vertical-canvas',requestType:'status'});const d=r.responseData||r;vertical=!!(d.streaming??d.stream_active??d.outputActive);}catch{}
+  try{const r=await rpc('CallVendorRequest',{vendorName:'aitum-vertical-canvas',requestType:'status'});const d=r.responseData||r;vertical=d.streaming===true;}catch{}
   return {streaming,vertical};
  }catch{return null;}finally{try{socket.close();}catch{}}
 }

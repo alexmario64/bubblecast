@@ -1,7 +1,7 @@
 import {Outbox,destinations} from './outbox.mjs';
 import {TwitchOfficial} from './twitch-official.mjs';
 import {TwitchLive} from './twitch-live.mjs';
-import {YouTubeOfficial,sourceKeys as youtubeKeys} from './youtube-official.mjs';
+import {YouTubeOfficial,sourceKeys as youtubeKeys,assignSlots} from './youtube-official.mjs';
 import {YouTubeMerge} from './youtube-merge.mjs';
 import {KickOfficial} from './kick-official.mjs';
 import {AppKeys} from './app-keys.mjs';
@@ -107,8 +107,8 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/update/check')return json(await updates.check(true));
  if(u.pathname==='/api/update/install'){const job=updates.job();if(!job)return json({error:updates.status().packaged?'No update to install.':'This copy runs from source. Update it with git pull.'},409);if(!collectorActive())return json({error:'Start Bubblecast to install the update.'},409);updates.report('downloading');queueCollector({action:'update',...job});return json(updates.status());}
  if(u.pathname==='/api/update/progress'){updates.report(String(data.stage||''),data.detail);return json({ok:true});}
- if(u.pathname==='/api/youtube/page-live'){youtubePageLive=data.live===true;if(youtubePageLive)youtube.setLive(true);return json({ok:true});}
- if(u.pathname==='/api/obs/streaming'){if(data.streaming===true){obsStreamingAt=Date.now();streamingChanged();}return json({ok:true,live:obsLive()});}
+ if(u.pathname==='/api/youtube/page-live'){const videos=(Array.isArray(data.videos)?data.videos:[]).filter(v=>/^[\w-]{11}$/.test(v?.video||'')).slice(0,4);youtubePageLive=videos.length>0;if(youtubePageLive)youtube.setLive(true);pageFound=pageSlots(videos);await youtubeFound(youtube.found).catch(()=>{});return json({ok:true,found:pageFound});}
+ if(u.pathname==='/api/obs/streaming'){if(data.streaming===true){obsStreamingAt=Date.now();youtube.setLive(true);streamingChanged();}return json({ok:true,live:obsLive()});}
  if(u.pathname==='/api/obs/dock')return json(await addObsDock().catch(error=>({status:'failed',detail:error.message})));
  if(u.pathname==='/api/settings'){const before=state;state=settings(data);catalogAt=0;await saveSettings();rewardSync.fromStudio(before).catch(()=>{});return json(state);}
  if(u.pathname==='/api/tts/reward/create'){try{return json(await rewardSync.create());}catch(e){return json({error:e.message},400);}}
@@ -191,7 +191,7 @@ setTimeout(()=>{updates.check().catch(()=>{});setInterval(()=>updates.check().ca
 // after it stops, so offline hours cost no API quota.
 // The helper's signed-out YouTube page also reports when the channel goes live (no quota spent), so chat
 // starts even when OBS isn't the one streaming (Aitum Vertical, another encoder).
-let obsStreamingAt=0,youtubePageLive=false,verticalLive=false,checkUntil=0,lastCheck=0,wasStreaming=false;const obsLive=()=>Date.now()-obsStreamingAt<120000;
+let pageFound=[],obsStreamingAt=0,youtubePageLive=false,verticalLive=false,checkUntil=0,lastCheck=0,wasStreaming=false;const obsLive=()=>Date.now()-obsStreamingAt<120000;
 // One YouTube check, never on a timer: when OBS or Aitum Vertical starts streaming or a message is sent to
 // YouTube. With the Google app and quota left it's an API check; otherwise the helper reads the channel's
 // live page once.
@@ -204,7 +204,11 @@ let quotaOut=false;setInterval(()=>{youtube.setLive(obsLive()||verticalLive||you
 function configureYouTube(){const found=sources.youtubeFound||[],slot=k=>found.find(f=>f.slot===k)?.video||'';youtube.configure(sources.enabled?{youtube:sources.urls.youtube?sources.youtubeVideo||slot('youtube'):'',youtubeShorts:sources.urls.youtubeShorts?sources.youtubeShortsVideo||slot('youtubeShorts'):''}:{});youtube.autoFind(savedSources.enabled&&!savedSources.youtubeVideo&&!savedSources.youtubeShortsVideo);}
 // A newly found or ended YouTube stream updates the chat sources the same way saving connections does.
 async function youtubeFound(found){const next=resolvedSources(savedSources,found);if(JSON.stringify(next.urls)===JSON.stringify(sources.urls)&&JSON.stringify(next.youtubeFound)===JSON.stringify(sources.youtubeFound))return;const changed=JSON.stringify(next.urls)!==JSON.stringify(sources.urls);sources=next;if(changed)await savePolls();emit('sources',sources);configureYouTube();}
-function resolvedSources(saved=savedSources,found=youtube.found){return withFoundVideos(withAccountChannels(saved,{twitch:twitch.connected?twitch.auth?.login:'',kick:kick.connected?kick.auth?.channel:''}),youtube.apiReady?found:[],youtube.connected?youtube.auth?.channel?.id||'':'',!youtube.apiReady);}
+// Streams found on the channel page, placed like the API's: the streamer's saved format first, then the page's
+// own aspect ratio; a single stream while only Aitum Vertical streams is the vertical one.
+function pageSlots(videos){const {formats,hidden}=youtube.choices,only=videos.length===1&&verticalLive&&!obsLive();
+ return assignSlots(videos.map(v=>({video:v.video,title:String(v.title||'').slice(0,120),hidden:hidden.includes(v.video),format:formats[v.video]||(v.vertical===true||only&&v.vertical!==false?'vertical':v.vertical===false?'horizontal':'')})));}
+function resolvedSources(saved=savedSources,found=youtube.found){return withFoundVideos(withAccountChannels(saved,{twitch:twitch.connected?twitch.auth?.login:'',kick:kick.connected?kick.auth?.channel:''}),youtube.apiReady?found:pageFound,youtube.connected?youtube.auth?.channel?.id||'':'',!youtube.apiReady);}
 function refreshSources(){const next=resolvedSources();const changed=JSON.stringify(next)!==JSON.stringify(sources);sources=next;if(changed)emit('sources',sources);configureTwitch();configureYouTube();configureKick();}
 await appKeys.load();youtube.setApp(appKeys.get('youtube'));kick.setApp(appKeys.get('kick'));await twitch.load();configureTwitch();await youtube.load();await kick.load();configureKick();await youtubeMerge.load();refreshSources();
 server.listen(3927,'127.0.0.1',()=>console.log('Bubblecast ready: http://127.0.0.1:3927 • OBS: http://127.0.0.1:3927/overlay'));
