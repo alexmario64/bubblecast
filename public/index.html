@@ -247,7 +247,7 @@
    <label class="row"><span>Moderators</span><input type="checkbox" name="ttsMods" class="switch"></label>
    <p class="footnote">You can always use it. Each platform’s own moderators, VIPs, subscribers and members are recognized from their badges.</p>
   </fieldset>
-  <fieldset class="group"><legend>Voice</legend>
+  <fieldset class="group tts-voice"><legend>Voice</legend>
    <div class="row stacked voice-row"><span>Choose a voice</span>
     <div class="segmented compact voice-langs" role="group" aria-label="Voice language"><button type="button" data-voice-lang="es">Español</button><button type="button" data-voice-lang="en">English</button><button type="button" data-voice-lang="all">All</button></div>
     <div class="voice-grid" id="voiceGrid"></div>
@@ -262,7 +262,7 @@
    <div class="row tts-actions"><button type="button" class="button" id="ttsTest">Test voice</button><button type="button" class="button" id="ttsSkip">Skip current message</button></div>
    <p class="footnote tts-error" id="ttsError" hidden></p>
   </fieldset>
-  <fieldset class="group"><legend>Add the voice to OBS</legend>
+  <fieldset class="group tts-obs"><legend>Add the voice to OBS</legend>
    <div class="row url-row"><code>/tts</code><button type="button" class="button" data-copy="/tts">Copy URL</button></div>
    <p class="footnote">In OBS, add a Browser source with this URL and tick “Control audio via OBS”. It shows nothing on screen and gets its own volume slider.</p>
   </fieldset>

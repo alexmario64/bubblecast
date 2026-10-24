@@ -7,9 +7,9 @@ import {mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url)),out=root+'.local/screenshots/',base='http://127.0.0.1:3927';
 const desktop={width:1440,height:960},dockNarrow={width:440,height:860},dockWide={width:1180,height:780},canvas={width:1280,height:720};
-const studioPages=['overview','connections','appearance','chat','polls','dock','obs'];
+const studioPages=['overview','connections','appearance','chat','polls','tts','dock','obs'];
 const shots=[
- ...['rose','red','midnight','white'].flatMap(theme=>studioPages.map(page=>({name:`studio-${page}-${theme}`,path:'/#'+page,viewport:desktop,theme}))),
+ ...['rose','red','midnight','white'].flatMap(theme=>studioPages.map(page=>({name:`studio-${page}-${theme}`,path:'/#'+page,viewport:desktop,theme,full:true}))),
  {name:'studio-overview-narrow',path:'/#overview',viewport:{width:420,height:880}},
  ...['rose','red','midnight','white'].flatMap(theme=>[{name:`dock-${theme}`,path:'/dock?preview=1',viewport:dockNarrow,theme},{name:`dock-wide-${theme}`,path:'/dock?preview=1',viewport:dockWide,theme}]),
  {name:'dock-connections',path:'/dock?preview=1',viewport:dockNarrow,click:'#connections'},
@@ -35,6 +35,8 @@ try{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.text().startsWith('Failed to load resource'))errors.push(m.text());});
   // A missing Komika Axis font is reported in the UI, not a page error.
   page.on('response',r=>{if(r.status()>=400&&!r.url().includes('/fonts/'))errors.push(r.status()+' '+r.url());});
+  // The setup guide would open over Studio on a fresh browser profile.
+  await page.addInitScript(()=>{try{localStorage.setItem('bubblecast-guide-seen','1');}catch{}});
   await page.goto(base+shot.path,{waitUntil:'domcontentloaded'});
   await page.waitForTimeout(shot.wait||1200);
   // Theme is a saved setting; override it in the page only so nothing is written.
@@ -43,7 +45,7 @@ try{
   if(shot.focus){await page.keyboard.press('Tab');await page.focus(shot.focus).catch(()=>{});await page.waitForTimeout(300);}
   if(shot.click){await page.click(shot.click).catch(()=>{});await page.waitForTimeout(500);}
   if(shot.select){await page.selectOption(...shot.select).catch(()=>{});await page.waitForTimeout(1500);}
-  await page.screenshot({path:out+shot.name+'.png',omitBackground:!!shot.transparent});
+  await page.screenshot({path:out+shot.name+'.png',omitBackground:!!shot.transparent,fullPage:!!shot.full});
   await page.close();console.log(errors.length?'⚠':'✓',shot.name);for(const e of errors)console.log('   ',e);problems+=errors.length;
  }
 }finally{await browser.close();server?.kill();}

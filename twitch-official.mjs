@@ -76,6 +76,7 @@ export class TwitchOfficial{
   const r=await this.request(HELIX+path,{method,headers:{'Client-Id':TWITCH_CLIENT_ID,Authorization:'Bearer '+this.auth?.access_token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(10000)});
   if(r.status===401&&retry&&await this.refresh())return this.helix(path,{method,body},false);
   if(r.status===204)return {};let json={};try{json=await r.json();}catch{}
+  if(r.status===401)throw Error('Twitch sign-in expired. Connect Twitch again in Connections.');
   if(!r.ok)throw Error(json.message||'Twitch returned HTTP '+r.status);return json;
  }
 
