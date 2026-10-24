@@ -1,6 +1,6 @@
 {
   "name": "bubblecast-background",
-  "version": "1.29.1",
+  "version": "1.29.2",
   "private": true,
   "main": "main.cjs"
 }

@@ -371,3 +371,9 @@ body[data-theme=midnight] #autoscroll[aria-pressed=false],body[data-theme=midnig
 .account-row>a,.account-row>button{display:inline-flex;align-items:center;justify-content:center;min-height:30px;line-height:1.4;text-align:center;box-sizing:border-box}
 
 .account-row>.account-identity{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;align-items:baseline}.account-platform{white-space:nowrap}.account-state{min-width:0;overflow-wrap:anywhere}
+
+/* Themed dropdowns in the dock: pill-shaped in toolbars, full width in forms. */
+:is(.layout-tools,.pane-heading,.composer-top) .bc-select{width:auto;max-width:100%}
+:is(.layout-tools,.pane-heading,.composer-top) .bc-select-button{min-height:28px;padding:4px 8px 4px 12px;border-radius:999px;border-color:var(--line);background:var(--surface-2);font-size:11.5px}
+.composer-top .bc-select{max-width:calc(100% - 80px)}
+:is(#pollCreateForm,.theme-section) .bc-select{display:block;width:100%;margin-top:6px}
