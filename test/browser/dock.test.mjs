@@ -198,3 +198,11 @@ test('found YouTube stream chips keep plain names and show the title on hover',a
  const origin=f.doc.querySelector('.chat-row .origin');assert.equal(origin.textContent,'YouTube');assert.equal(origin.title,long,'the message label shows the stream title on hover');
  assert.ok(!f.doc.body.textContent.includes(long),'the title is never shown as text in the dock');
 });
+test('inside OBS, Studio links open the background app’s Studio window; elsewhere they open a tab',async t=>{
+ const status={bridge:{},sources:{urls:{}},collector:{active:true,version:'1.26.3'}};
+ const f=await setup(t,[],{status});await new Promise(r=>setTimeout(r,10));const opened=[];f.w.open=(...a)=>{opened.push(a);};
+ f.w.obsstudio={};f.doc.querySelector('#openStudio').click();await new Promise(r=>setTimeout(r,10));
+ const call=f.requests.find(([url])=>url==='/api/collector/control');assert.ok(call,'asks the app to show Studio');assert.deepEqual(JSON.parse(call[1].body),{action:'setup'});assert.equal(opened.length,0);
+ const g=await setup(t,[],{status});await new Promise(r=>setTimeout(r,10));const link=g.doc.querySelector('#openStudio');let prevented=null;link.addEventListener('click',e=>{prevented=e.defaultPrevented;});
+ g.doc.addEventListener('click',e=>{prevented=e.defaultPrevented;e.preventDefault();});link.click();assert.equal(prevented,false,'outside OBS the link is left to the browser');assert.ok(!g.requests.some(([url])=>url==='/api/collector/control'));
+});

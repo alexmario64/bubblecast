@@ -56,6 +56,32 @@ body[data-layout=webcam] .body .media{height:110px}
 .event-line+*{margin-top:6px}
 .message.event .body:has(.event-line:only-child){padding-block:13px 12px}
 
+/* Classic style: one line per message like Twitch chat (logo, badges, colored name, then the text),
+   with a dark outline so it reads over any game. Emotes stay inline; events keep their colored label. */
+#chat.classic{gap:calc(var(--gap,18px)*.3)}
+.classic .message{width:100%;padding-top:0;animation:classic-enter .18s ease-out both}
+.classic .message.event{animation:classic-enter .18s ease-out both}
+.classic .bubble-group{display:block;filter:none;animation:none!important;font:700 calc(var(--size)*.82)/1.45 var(--classic-font);color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,1px 1px 2px #000,0 0 6px #000a;overflow-wrap:anywhere}
+.classic .pill{display:inline;background:none;border:0;box-shadow:none;padding:0;margin:0;width:auto;max-width:none;font:inherit;text-shadow:inherit}
+.classic .pill>*,.classic .body>*{vertical-align:middle}
+.classic .platform{display:inline-flex;width:calc(var(--size)*.95);height:calc(var(--size)*.95);margin-right:.3em;filter:drop-shadow(0 1px 1px #000c)}
+.classic .platform img{filter:none}
+.classic .badges{display:inline-flex;gap:3px;margin-right:.3em;filter:none}
+.classic .badge-slot{width:calc(var(--size)*.85);height:calc(var(--size)*.85);background:none;box-shadow:none;border-radius:3px}
+.classic .username{display:inline;padding:0;font-weight:800;line-height:inherit;text-shadow:inherit}
+.classic .username::after{content:':';color:#fff;margin-right:.35em}
+.classic .body{display:inline;padding:0;background:none;border:0;border-radius:0;box-shadow:none;color:#fff;font:inherit}
+.classic .body::after{display:none}
+.classic .emote{height:calc(var(--size)*1.45);max-width:120px;margin:0 2px}
+.classic .body.single-emote{display:inline;min-width:0}
+.classic .body.single-emote .emote{display:inline;height:calc(var(--size)*1.9);margin:0}
+.classic .media{display:block;margin-top:4px;max-height:140px;border-radius:8px}
+.classic .message.event .body{border:0;box-shadow:none;padding:0}
+.classic .event-line{display:inline-flex;font-size:.82em;margin-right:.4em;vertical-align:middle}
+.classic .event-detail{color:#fff}
+.classic.right{text-align:right}
+@keyframes classic-enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
 @keyframes enter{from{opacity:0;transform:translateX(var(--slide)) scale(.78)}60%{opacity:1}to{opacity:1;transform:translateX(0) scale(1)}}
 @keyframes leave{to{opacity:0;transform:translateX(var(--slide)) scale(.85)}}
 @keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translate(2px,calc(-1 * var(--float))) rotate(-.2deg)}}

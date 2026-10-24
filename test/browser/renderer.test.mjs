@@ -54,3 +54,9 @@ test('stream events render as labeled, highlighted bubbles and respect the enabl
  const bubbles=[...doc.querySelectorAll('.message.event')];assert.equal(bubbles.length,2,'follows are off by default');
  assert.equal(bubbles[0].querySelector('.event-chip').textContent,'New sub');assert.equal(bubbles[0].querySelector('.event-detail').textContent,'Viewer subscribed at Tier 1.');assert.equal(bubbles[0].querySelector('.pill .event-chip'),null,'the label sits in the bubble, not the name pill');
  assert.equal(bubbles[1].dataset.event,'redemption');assert.equal(bubbles[1].querySelector('.event-detail').textContent,'Hydrate! · 300 points');assert.match(bubbles[1].querySelector('.body').textContent,/drink water/);assert.equal(bubbles[1].style.getPropertyValue('--event'),'#00c7ac');});
+test('the classic chat style keeps logo, badges, colored name and text on one line of the same message',t=>{
+ const {events,doc}=setup(t);events.emit('settings',{...defaults,chatStyle:'classic'});events.emit('message',{...message,userColor:'#00ff7f'});
+ const chat=doc.querySelector('#chat');assert.ok(chat.classList.contains('classic'));
+ assert.ok(doc.querySelector('.platform img'));assert.equal(doc.querySelectorAll('.badge').length,1);assert.equal(doc.querySelector('.username').style.color,'#00ff7f');assert.equal(doc.querySelector('.body').textContent,'hello');
+ events.emit('settings',{...defaults,chatStyle:'bubbles'});assert.ok(!chat.classList.contains('classic'),'switching back restores bubbles');
+});
