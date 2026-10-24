@@ -32,7 +32,7 @@ let savedSources=sources;try{sources=savedSources=sourceConfig(JSON.parse(await 
 const token=randomBytes(24).toString('hex'),clients=new Set(),relay=new MessageRelay(),dockHistory=new DockHistory();
 // Text to speech: spoken chat goes only to the /tts pages, not into the dock history.
 const natural=new NaturalVoices({dir:join(dataDir,'.local','piper')});
-const speech=new Speech({natural,emit:(type,data)=>{const frame=`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;for(const r of clients)r.write(frame);}});
+const speech=new Speech({natural,onCooldown:c=>rewardSync.pauseFor(c),emit:(type,data)=>{const frame=`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;for(const r of clients)r.write(frame);}});
 const outbox=new Outbox(),pollJobs=new PollJobs(),pollEndJobs=new PollEndJobs();let collectorWaiter=null;
 function queueCollector(command){if(collectorCommands.length>=64)throw Error('Capture command queue is busy.');collectorCommands.push(command);collectorWaiter?.();}
 let collector={updatedAt:0,version:null,errors:{}},collectorCommands=[];
@@ -61,9 +61,9 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/fonts/komika-axis.ttf'){
  const candidates=[join(process.env.LOCALAPPDATA||'','Microsoft','Windows','Fonts'),join(process.env.WINDIR||'C:/Windows','Fonts'),join(process.env.HOME||'','Library','Fonts'),'/Library/Fonts'].flatMap(dir=>['KOMIKAX.ttf','KOMIKAX_.ttf'].map(file=>join(dir,file)));for(const path of candidates){try{const font=await readFile(path);res.writeHead(200,{'Content-Type':'font/ttf','Cache-Control':'private, max-age=86400'});return res.end(font);}catch{}}return json({error:'Install Komika Axis for this user account.'},404);
  }
- if(u.pathname==='/api/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Connection':'keep-alive'});res.write(`event: settings\ndata: ${JSON.stringify(state)}\n\n`);res.write('event: polls\ndata: '+JSON.stringify(polls.snapshot())+'\n\n');clients.add(res);req.on('close',()=>clients.delete(res));return;}
+ if(u.pathname==='/api/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Connection':'keep-alive'});res.write(`event: settings\ndata: ${JSON.stringify(state)}\n\n`);res.write('event: polls\ndata: '+JSON.stringify(polls.snapshot())+'\n\n');res.write('event: tts-cooldown\ndata: '+JSON.stringify(speech.cooldown(state))+'\n\n');clients.add(res);req.on('close',()=>clients.delete(res));return;}
  if(u.pathname==='/api/polls'&&req.method==='GET')return json({polls:polls.snapshot()});
- if(u.pathname==='/api/status')return json({bridge,traffic,settings:state,sources,sourceStatus,renderTiming,twitch:twitch.status(),youtube:youtube.status(),kick:kick.status(),update:updates.status(),tts:{error:speech.error,queued:speech.queue.length,rewardsReady:twitch.redemptionsReady},collector:{...collector,active:collectorActive(),viewers:{...collector.viewers,...youtube.viewers,...(twitch.viewers?{twitch:twitch.viewers}:{}),...(kick.viewers?{kick:kick.viewers}:{})}}});
+ if(u.pathname==='/api/status')return json({bridge,traffic,settings:state,sources,sourceStatus,renderTiming,twitch:twitch.status(),youtube:youtube.status(),kick:kick.status(),update:updates.status(),tts:{error:speech.error,queued:speech.queue.length,rewardsReady:twitch.redemptionsReady,canManage:twitch.canManageRewards,reward:rewardSync.status},collector:{...collector,active:collectorActive(),viewers:{...collector.viewers,...youtube.viewers,...(twitch.viewers?{twitch:twitch.viewers}:{}),...(kick.viewers?{kick:kick.viewers}:{})}}});
  if(u.pathname==='/api/collector/commands'&&req.method==='GET'){if(req.headers['x-bubblecast-token']!==token)return json({error:'Pair the capture app.'},401);const deliver=()=>{const commands=collectorCommands.map(c=>c.action==='send'?{action:'send',job:forHelper(outbox.claim(c.id),'send')}:c.action==='create-poll'?{action:'create-poll',job:forHelper(pollJobs.claim(c.id))}:c.action==='end-poll'?{action:'end-poll',job:forHelper(pollEndJobs.claim(c.id))}:c).filter(c=>!['send','create-poll','end-poll'].includes(c.action)||c.job);collectorCommands=[];json({commands});};if(collectorCommands.length||u.searchParams.get('wait')!=='1'){deliver();return;}if(collectorWaiter)return json({error:'Collector already listening'},409);const done=()=>{if(collectorWaiter!==done)return;collectorWaiter=null;clearTimeout(timer);deliver();};const timer=setTimeout(done,25000);collectorWaiter=done;res.on('close',()=>{if(collectorWaiter===done){collectorWaiter=null;clearTimeout(timer);}});return;}
  if(u.pathname==='/api/chat/history'&&req.method==='GET')return json({messages:dockHistory.snapshot(state)});
  if(u.pathname==='/api/sources'&&req.method==='GET')return json({...sources,urls:{...sources.urls,twitch:''},captureMode:collectorActive()?'desktop':'chrome'});
@@ -109,7 +109,8 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/update/progress'){updates.report(String(data.stage||''),data.detail);return json({ok:true});}
  if(u.pathname==='/api/obs/streaming'){if(data.streaming===true){obsStreamingAt=Date.now();youtube.setLive(true);}return json({ok:true,live:obsLive()});}
  if(u.pathname==='/api/obs/dock')return json(await addObsDock().catch(error=>({status:'failed',detail:error.message})));
- if(u.pathname==='/api/settings'){state=settings(data);catalogAt=0;await writeFile(join(dataDir,'settings.json'),JSON.stringify(state,null,2));emit('settings',state);return json(state);}
+ if(u.pathname==='/api/settings'){const before=state;state=settings(data);catalogAt=0;await saveSettings();rewardSync.fromStudio(before).catch(()=>{});return json(state);}
+ if(u.pathname==='/api/tts/reward/create'){try{return json(await rewardSync.create());}catch(e){return json({error:e.message},400);}}
  if(u.pathname==='/api/clear'){emit('clear',{});return json({ok:true});}
  if(u.pathname==='/api/bridge'||u.pathname==='/api/test'){
  if(u.pathname==='/api/bridge'&&collectorActive()&&data.transport!=='desktop')return json({ok:true,ignored:true});
@@ -136,7 +137,7 @@ setInterval(()=>{for(const r of clients)r.write(': keepalive\n\n');},20000).unre
 // Twitch runs here. Chat, subs and raids always come from Twitch's official chat connection (the only
 // source with GIFs); signing in adds badges, reward titles, text-free redemptions, polls, sending and viewers.
 function ingestOfficial(data){const platform=data.platform;bridge[platform]=Date.now();if(data.action==='delete'){emit('delete',{platform,sourceKey:data.sourceKey||platform,id:String(data.id||'').slice(0,200),userId:String(data.userId||'').slice(0,100)});return;}if(data.action==='clear'){emit('clear',{});return;}if(data.action!=='update'){traffic[platform].received++;traffic[platform].lastMessageAt=Date.now();}const event=relay.ingest(data,state);if(event){emit(event.type,event.message);if(event.type==='message')traffic[platform].displayed++;}}
-const twitch=new TwitchOfficial({file:join(dataDir,'.local','twitch-auth.json'),onMessage:ingestOfficial,onRedemption:r=>{if(state.ttsEnabled)speech.redeemed(r,state);},onAuth:()=>refreshSources(),onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
+const twitch=new TwitchOfficial({file:join(dataDir,'.local','twitch-auth.json'),onMessage:ingestOfficial,onRedemption:r=>{if(state.ttsEnabled)speech.redeemed(r,state);},onRewardChange:r=>rewardSync.fromTwitch(r).catch(()=>{}),onAuth:()=>{refreshSources();setTimeout(()=>rewardSync.load(),8000);},onPoll:async p=>{const poll=polls.accept(p);if(poll){emit('poll',poll);await savePolls();}}});
 const twitchChat=new TwitchLive({onMessage:ingestOfficial,reward:id=>twitch.rewards.get(id),badgeImages:(tag,info)=>twitch.badgeList(tag,info)});
 function configureTwitch(){const channel=sources.enabled&&sources.urls.twitch?sources.twitchChannel:'';twitch.configure(twitch.connected?channel:'');twitchChat.configure(channel);}
 // Opens Google or Kick sign-in in the default browser, so docks inside OBS can connect too (Google blocks embedded sign-in).
@@ -155,6 +156,27 @@ function ingestYouTube(m){if(m.action){ingestOfficial(m);return;}const {message,
 // Kick: official API for sending and viewers once connected; chat and polls stay with the helper.
 const kick=new KickOfficial({file:join(dataDir,'.local','kick-auth.json'),onAuth:()=>refreshSources()});
 function configureKick(){kick.configure(sources.enabled&&sources.urls.kick?sources.kickChannel:'',{enabled:sources.enabled});}
+async function saveSettings(){await writeFile(join(dataDir,'settings.json'),JSON.stringify(state,null,2));emit('settings',state);}
+// Keeps the text-to-speech reward and Studio in step: Studio edits go to Twitch, Twitch edits come back to
+// Studio, and a command elsewhere pauses the reward for the shared wait so Twitch shows it unavailable too.
+const rewardSync={status:{linked:false,managed:false,error:null},pauseTimer:null,
+ async create(){if(!twitch.canManageRewards)throw Error('Reconnect Twitch to let Bubblecast manage channel point rewards.');
+  const r=await twitch.createReward({title:state.ttsReward||'TTS',cost:state.ttsRewardCost,cooldown:state.ttsGlobalCooldown});if(!r)throw Error('Twitch did not create the reward.');
+  state=settings({...state,ttsReward:r.title,ttsRewardId:r.id,ttsRewardCost:r.cost});await saveSettings();this.status={linked:true,managed:true,error:null};return this.status;},
+ // Studio changed: send title, cost and the shared wait to the linked reward.
+ async fromStudio(before){const id=state.ttsRewardId;if(!id||!twitch.canManageRewards)return;
+  const changes={};if(state.ttsReward!==before.ttsReward&&state.ttsReward)changes.title=state.ttsReward;if(state.ttsRewardCost!==before.ttsRewardCost)changes.cost=state.ttsRewardCost;if(state.ttsGlobalCooldown!==before.ttsGlobalCooldown)changes.cooldown=state.ttsGlobalCooldown;
+  if(!Object.keys(changes).length)return;try{await twitch.updateReward(id,changes);this.status={linked:true,managed:true,error:null};}catch(e){this.status={...this.status,error:e.message};}},
+ // Twitch changed the reward (or Bubblecast connected): bring title, cost and cooldown into Studio.
+ async fromTwitch(r){if(!r||r.id!==state.ttsRewardId)return;const next=settings({...state,ttsReward:r.title,ttsRewardCost:r.cost,ttsGlobalCooldown:r.cooldown});
+  this.status={...this.status,linked:true};if(next.ttsReward!==state.ttsReward||next.ttsRewardCost!==state.ttsRewardCost||next.ttsGlobalCooldown!==state.ttsGlobalCooldown){state=next;await saveSettings();}},
+ async load(){if(!state.ttsRewardId||!twitch.redemptionsReady)return;try{const r=await twitch.findReward(state.ttsRewardId);if(!r){this.status={linked:false,managed:false,error:'The linked reward was deleted on Twitch. Create it again.'};return;}
+  this.status={linked:true,managed:await twitch.rewardManaged(r.id),error:null};await this.fromTwitch(r);}catch(e){this.status={...this.status,error:e.message};}},
+ // A message from a command started the shared wait: pause the reward until it ends.
+ pauseFor({until,fromReward}){if(fromReward||!state.ttsRewardId||!this.status.managed)return;const id=state.ttsRewardId;clearTimeout(this.pauseTimer);
+  twitch.updateReward(id,{paused:true}).catch(()=>{});this.pauseTimer=setTimeout(()=>twitch.updateReward(id,{paused:false}).catch(()=>{}),Math.max(0,until-Date.now()));}};
+setInterval(()=>rewardSync.load(),300000).unref();setTimeout(()=>rewardSync.load(),15000).unref();
+
 // Update checks: the installed Windows app (BUBBLECAST_PACKAGED) can install them; a checkout only reports them.
 const updates=new Updates({current:JSON.parse(await readFile(join(root,'package.json'),'utf8')).version,packaged:process.env.BUBBLECAST_PACKAGED==='1'});
 setTimeout(()=>{updates.check().catch(()=>{});setInterval(()=>updates.check().catch(()=>{}),3600000).unref();},20000).unref();

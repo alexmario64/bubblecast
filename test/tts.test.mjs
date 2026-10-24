@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {speechText,Speech} from '../tts.mjs';
 import {settings,normalize,viewerRoles} from '../core.mjs';
 import {chatMessage} from '../youtube-official.mjs';
-const on=extra=>settings({ttsEnabled:true,...extra});
+const on=extra=>settings({ttsEnabled:true,ttsGlobalCooldown:0,...extra});
 const msg=(text,extra={})=>({platform:'twitch',user:'SampleViewer',userId:'1',parts:[{type:'text',text}],...extra});
 test('the command reads what follows it, and plain chat is ignored unless asked',()=>{
  assert.equal(speechText(msg('!tts hello everyone'),on()),'SampleViewer said: hello everyone');
@@ -89,4 +89,15 @@ test('the card gets the message without the spoken name, the viewer’s details 
  speech.consider(normalize(msg('!tts hola chat',{userColor:'#ff0000',badges:[{src:'https://static-cdn.jtvnw.net/badges/v1/x/3',alt:'Moderator'}]}),on()),on());
  await new Promise(r=>setTimeout(r,30));const item=sent[0];
  assert.equal(item.text,'SampleViewer said: hola chat');assert.equal(item.display,'hola chat');assert.equal(item.color,'#ff0000');assert.equal(item.badges[0].alt,'Moderator');assert.equal(item.duration,1);
+});
+test('the shared wait blocks commands from every platform, lets paid rewards through and tells the overlay',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'bubblecast-tts-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ let now=0;const sent=[],cooldowns=[];const speech=new Speech({emit:(type,data)=>sent.push([type,data]),engine:{voices:async()=>[],speak:async()=>{}},dir,now:()=>now,keepMs:10,onCooldown:c=>cooldowns.push(c)});
+ const s=on({ttsGlobalCooldown:30,ttsReward:'TTS',ttsRewardId:'abc'});
+ assert.ok(speech.consider(normalize(msg('!tts uno'),s),s));
+ assert.ok(!speech.consider(normalize({...msg('!tts dos'),platform:'kick',userId:'2'},s),s),'another platform waits too');
+ assert.ok(speech.redeemed({id:'r1',user:'Payer',userId:'3',title:'TTS',text:'pagado'},s),'a paid reward is still read');
+ now=31000;assert.ok(speech.consider(normalize({...msg('!tts tres'),userId:'4'},s),s));
+ const cd=sent.find(([type])=>type==='tts-cooldown')[1];assert.equal(cd.until,30000);assert.equal(cd.reward,'TTS');
+ assert.deepEqual(cooldowns.map(c=>c.fromReward),[false,true,false],'commands pause the Twitch reward, rewards do not');
 });

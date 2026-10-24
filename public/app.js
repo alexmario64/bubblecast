@@ -122,7 +122,12 @@ async function loadNatural(){try{const j=await(await fetch('/api/tts/natural')).
 loadVoices();loadNatural();
 $('#ttsTest').onclick=async()=>{const b=$('#ttsTest');b.disabled=true;try{const item=await api('tts/test',{});const audio=new Audio(item.url);audio.volume=Math.max(0,Math.min(1,(state.ttsVolume??80)/100));await audio.play();toast('Playing the test voice here and on your text-to-speech browser source.','success');}catch(e){toast(e.message,'error');}finally{b.disabled=false;}};
 $('#ttsSkip').onclick=async()=>{try{await api('tts/skip',{});}catch(e){toast(e.message,'error');}};
-function paintTts(t){const el=$('#ttsError');el.hidden=!t?.error;el.textContent=t?.error||'';$('#ttsRewardWarning').hidden=!form.elements.ttsReward.value.trim()||!!t?.rewardsReady;}
+function paintTts(t){const el=$('#ttsError');el.hidden=!t?.error;el.textContent=t?.error||'';$('#ttsRewardWarning').hidden=!form.elements.ttsReward.value.trim()||!!t?.rewardsReady;
+ // The Twitch reward link: create it, or show whether Studio and Twitch are in sync.
+ const r=t?.reward||{},linked=!!state.ttsRewardId&&r.linked!==false,status=$('#ttsRewardStatus'),create=$('#ttsRewardCreate');
+ status.textContent=r.error?r.error:!t?.rewardsReady?tr('Connect Twitch as the channel owner to use a reward.'):linked&&r.managed?tr('Linked to Twitch · name, cost and cooldown stay in sync both ways.'):linked?tr('Linked to Twitch. It was made on Twitch, so set its cooldown there; create one here to keep it in sync.'):!t?.canManage?tr('Reconnect Twitch to let Bubblecast create and sync the reward.'):tr('Not linked to a Twitch reward.');
+ status.classList.toggle('ok',linked&&!!r.managed&&!r.error);create.hidden=linked&&!!r.managed;create.disabled=!t?.canManage;}
+$('#ttsRewardCreate').onclick=async()=>{const b=$('#ttsRewardCreate');b.disabled=true;try{await api('tts/reward/create',{});toast(tr('Reward created on Twitch.'),'success');await status();}catch(e){toast(e.message,'error');}finally{b.disabled=false;}};
 
 // Test bubbles and copying
 const samples=[['DemoStreamer','welcome to the stream!','twitch'],['bubblefan','','twitch',{kind:'sub',title:'bubblefan subscribed at Tier 1.'}],['lunarose','hydrate!!','twitch',{kind:'redemption',title:'Hydrate!',amount:300,color:'#00c7ac'}],['lunarose','hello from YouTube ♡','youtube'],['TikTok friend','hello from TikTok LIVE!','tiktok'],['mossy','FeelsGoodMan','twitch'],['kickfan','hi from Kick!','kick'],['My Complete YouTube Display Name','full names belong in the spotlight ✨','youtube'],['nightowl','check this out https://example.com','twitch'],['peach','💛💛💛','youtube'],['danceparty','SourPls','twitch']];

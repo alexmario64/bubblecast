@@ -4,13 +4,18 @@ import {errorText} from './net-errors.mjs';
 import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import {dirname} from 'node:path';
 export const TWITCH_CLIENT_ID='yxei290g7kg2xheueg1esf32moozc0';
-export const TWITCH_SCOPES=['user:read:chat','user:write:chat','channel:read:subscriptions','channel:read:redemptions','channel:manage:polls'];
+export const TWITCH_SCOPES=['user:read:chat','user:write:chat','channel:read:subscriptions','channel:read:redemptions','channel:manage:redemptions','channel:manage:polls'];
 const ID='https://id.twitch.tv/oauth2',HELIX='https://api.twitch.tv/helix',EVENTSUB='wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_seconds=30';
 
 // ---- EventSub event mapping (pure) ----
 // Chat, subs and raids come from Twitch's chat connection (twitch-live.mjs), which alone carries GIFs.
 // EventSub adds what chat cannot: text-free redemptions and poll updates.
 // Redemptions with text also arrive as a chat message carrying the reward id; only text-free ones are taken here.
+// A Twitch reward as Bubblecast uses it; Twitch's cooldown is off (0) or 1 s and up.
+export function rewardInfo(r){return {id:r.id,title:r.title||'',cost:r.cost||0,paused:!!r.is_paused,enabled:r.is_enabled!==false,cooldown:r.global_cooldown_setting?.is_enabled?r.global_cooldown_setting.global_cooldown_seconds||0:0};}
+function rewardBody({title,cost,cooldown,paused,prompt}){const b={};if(title!=null)b.title=String(title).slice(0,45);if(cost!=null)b.cost=Math.max(1,Math.round(cost));
+ if(cooldown!=null){b.is_global_cooldown_enabled=cooldown>0;if(cooldown>0)b.global_cooldown_seconds=Math.round(cooldown);}if(paused!=null)b.is_paused=!!paused;
+ if(prompt){b.is_user_input_required=true;b.prompt='Your message is read aloud on stream.';}return b;}
 export function redemption(e,rewards=new Map()){
  if(!e?.id||!e.reward||String(e.user_input||'').trim())return null;const reward=rewards.get(e.reward.id);
  return {platform:'twitch',sourceKey:'twitch',id:'reward-'+e.id,user:e.user_name||e.user_login||'Someone',userId:e.user_id||'',parts:[],event:{kind:'redemption',title:e.reward.title,amount:e.reward.cost,color:reward?.color,image:reward?.image}};
@@ -23,8 +28,8 @@ export function poll(e,type){
 
 // ---- Connection ----
 export class TwitchOfficial{
- constructor({file,request=fetch,Socket=WebSocket,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onMessage=()=>{},onPoll=()=>{},onAuth=()=>{},onRedemption=()=>{}}){
-  Object.assign(this,{file,request,Socket,now,schedule,cancel,random,onMessage,onPoll,onAuth,onRedemption});
+ constructor({file,request=fetch,Socket=WebSocket,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onMessage=()=>{},onPoll=()=>{},onAuth=()=>{},onRedemption=()=>{},onRewardChange=()=>{}}){
+  Object.assign(this,{file,request,Socket,now,schedule,cancel,random,onMessage,onPoll,onAuth,onRedemption,onRewardChange});
   this.auth=null;this.pending=null;this.channel='';this.broadcaster=null;this.socket=null;this.session=null;this.subscribed=[];this.failed=[];this.error=null;this.viewers=null;this.badges=new Map();this.rewards=new Map();this.seen=new Set();this.timers={};this.generation=0;
  }
  async load(){try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}this.timer('validate',()=>this.validate(),1000);}
@@ -33,6 +38,14 @@ export class TwitchOfficial{
  get connected(){return !!this.auth?.access_token;}
  get ready(){return !!(this.connected&&this.broadcaster);}
  get isBroadcaster(){return !!(this.broadcaster&&this.auth?.user_id===this.broadcaster.id);}
+ // ---- The text-to-speech reward. Twitch only lets an app change rewards that app created. ----
+ get canManageRewards(){return this.isBroadcaster&&(this.auth?.scopes||[]).includes('channel:manage:redemptions');}
+ async findReward(id){if(!id||!this.isBroadcaster)return null;const r=(await this.helix('/channel_points/custom_rewards?broadcaster_id='+this.broadcaster.id+'&id='+encodeURIComponent(id))).data?.[0];return r?rewardInfo(r):null;}
+ async rewardManaged(id){if(!this.canManageRewards||!id)return false;try{return !!(await this.helix('/channel_points/custom_rewards?broadcaster_id='+this.broadcaster.id+'&only_manageable_rewards=true&id='+encodeURIComponent(id))).data?.length;}catch{return false;}}
+ async createReward({title,cost,cooldown}){if(!this.canManageRewards)throw Error('Reconnect Twitch to let Bubblecast manage channel point rewards.');
+  const r=(await this.helix('/channel_points/custom_rewards?broadcaster_id='+this.broadcaster.id,{method:'POST',body:rewardBody({title,cost,cooldown,prompt:true})})).data?.[0];return r?rewardInfo(r):null;}
+ async updateReward(id,changes){if(!this.canManageRewards)throw Error('Reconnect Twitch to let Bubblecast manage channel point rewards.');
+  const r=(await this.helix('/channel_points/custom_rewards?broadcaster_id='+this.broadcaster.id+'&id='+encodeURIComponent(id),{method:'PATCH',body:rewardBody(changes)})).data?.[0];return r?rewardInfo(r):null;}
  // Whether channel point redemptions reach Bubblecast: the channel owner must be connected.
  get redemptionsReady(){return this.connected&&!!this.isBroadcaster&&!!this.broadcaster;}
  status(){return {connected:this.connected,login:this.auth?.login||'',channel:this.channel,ready:this.ready,broadcaster:this.isBroadcaster,pending:this.pending&&this.pending.expiresAt>this.now()?{userCode:this.pending.userCode,verificationUri:this.pending.verificationUri,expiresAt:this.pending.expiresAt}:null,missing:this.failed,error:this.error,viewers:this.viewers};}
@@ -109,11 +122,13 @@ export class TwitchOfficial{
   socket.addEventListener('close',()=>{if(this.socket===socket&&generation===this.generation){this.session=null;this.timer('retry',()=>this.reconnect(),5000+this.random()*5000);}});
  }
  async subscribe(generation){
-  const b={broadcaster_user_id:this.broadcaster.id},types=[['channel.channel_points_custom_reward_redemption.add',b],['channel.poll.begin',b],['channel.poll.progress',b],['channel.poll.end',b]];
+  const b={broadcaster_user_id:this.broadcaster.id},types=[['channel.channel_points_custom_reward_redemption.add',b],['channel.channel_points_custom_reward.update',b],['channel.poll.begin',b],['channel.poll.progress',b],['channel.poll.end',b]];
   this.subscribed=[];this.failed=[];
   for(const [type,condition] of types){if(generation!==this.generation)return;try{await this.helix('/eventsub/subscriptions',{method:'POST',body:{type,version:'1',condition,transport:{method:'websocket',session_id:this.session}}});this.subscribed.push(type);}catch{this.failed.push(type);}}
  }
  dispatch(type,e){
+  // A reward edited on Twitch (title, cost, cooldown, paused) is passed on so Studio stays in sync.
+  if(type==='channel.channel_points_custom_reward.update'&&e?.id){this.onRewardChange(rewardInfo(e));return;}
   if(type==='channel.channel_points_custom_reward_redemption.add'){if(e?.reward?.title)this.onRedemption({id:String(e.id||''),user:e.user_name||e.user_login||'Someone',userId:e.user_id||'',title:e.reward.title,text:String(e.user_input||'')});const data=redemption(e,this.rewards);if(data)this.onMessage(data);}
   else if(type.startsWith('channel.poll.')){const p=poll(e,type);if(p)this.onPoll(p);}
  }

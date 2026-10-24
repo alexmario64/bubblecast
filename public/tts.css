@@ -7,7 +7,8 @@ html,body{margin:0;background:transparent!important;width:100%;height:100%;overf
 /* Laid out on a 1920-wide canvas and scaled to the source size. */
 #stage{position:absolute;top:0;left:0;width:1920px;height:1080px;transform-origin:top left;transform:scale(var(--scale,1))}
 body.portrait #stage{width:1080px;height:1920px}
-#cards{position:absolute;left:50%;top:70px;width:min(900px,90%);transform:translateX(-50%) scale(var(--size,1));transform-origin:top center;display:grid;justify-items:center;--accent:#21b8df;--bubble:#f3f7f8;--text:#33464e;--font:'Komika Axis'}
+#stage{--accent:#21b8df;--bubble:#f3f7f8;--text:#33464e;--font:'Komika Axis'}
+#cards{position:absolute;left:50%;top:70px;width:min(900px,90%);transform:translateX(-50%) scale(var(--size,1));transform-origin:top center;display:grid;justify-items:center}
 body.portrait #cards{top:220px}
 #cards.middle{top:50%;transform:translate(-50%,-50%) scale(var(--size,1));transform-origin:center}
 #cards.bottom{top:auto;bottom:80px;transform-origin:bottom center}
@@ -44,3 +45,35 @@ body.portrait #cards.bottom{bottom:320px}
 @keyframes drain{to{transform:scaleX(0)}}
 @keyframes float{50%{transform:translateY(-6px)}}
 @media(prefers-reduced-motion:reduce){.tts-card,.pill,.queue,.speaking .waves i,.tts-card .float{animation:none}}
+
+/* Shared wait: a small countdown chip under the card area. */
+#cooldown{position:absolute;left:50%;top:70px;transform:translateX(-50%) scale(var(--size,1));transform-origin:top center;display:flex;align-items:center;gap:10px;padding:10px 18px 12px 14px;border-radius:999px;background:linear-gradient(180deg,color-mix(in srgb,var(--accent,#21b8df),white 24%),var(--accent,#21b8df));border:1px solid #ffffff80;box-shadow:inset 0 1px 1px #ffffffbd,0 6px 14px #1a38453a;color:#fff;font:400 22px/1 var(--font,'Komika Axis'),'Arial Rounded MT Bold',sans-serif;text-shadow:0 1px 2px #0006;animation:pill-in .5s cubic-bezier(.2,1.5,.4,1) both;overflow:hidden}
+#cooldown.middle{top:50%}#cooldown.bottom{top:auto;bottom:80px}
+.cd-icon{width:22px;height:22px;border-radius:50%;border:3px solid #fff;border-right-color:transparent;animation:spin 1.2s linear infinite}
+.cd-bar{position:absolute;left:14px;right:14px;bottom:4px;height:4px;border-radius:2px;background:#ffffff40;overflow:hidden}
+.cd-bar i{display:block;height:100%;background:#fff;transform-origin:left;transition:transform .25s linear}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Classic style: the classic chat overlay's look — white bold text with a dark outline straight on the stream,
+   platform logo, badges and the viewer's colored name, no box. A thin bar under the line shows the time left. */
+#cards.classic .tts-card{filter:none;width:auto;max-width:100%}
+#cards.classic .float{animation:none;position:relative;padding:4px 0 12px;font:700 32px/1.45 var(--classic-font,Inter),'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,1px 1px 2px #000,0 0 6px #000a;overflow-wrap:anywhere}
+#cards.classic .pill{display:inline;margin:0;padding:0;background:none;border:0;box-shadow:none;font:inherit;text-shadow:inherit;animation:none}
+#cards.classic .pill>*,#cards.classic .body>*{vertical-align:middle}
+#cards.classic .logo{display:inline-block;width:30px;height:30px;margin-right:8px;filter:drop-shadow(0 1px 1px #000c)}
+#cards.classic .badges{display:inline-flex;gap:4px;margin-right:8px}
+#cards.classic .badges img{width:28px;height:28px}
+#cards.classic .name{display:inline;padding:0;font-weight:800;text-shadow:inherit}
+#cards.classic .name::after{content:':';color:#fff;margin-right:.35em}
+#cards.classic .tag{display:none}
+#cards.classic .queue{margin-left:10px;vertical-align:middle;font-size:15px}
+#cards.classic .body{display:inline;padding:0;background:none;border:0;border-radius:0;font:inherit;color:#fff;overflow:visible;min-width:0}
+#cards.classic .body::after{display:none}
+#cards.classic .waves{display:inline-flex;height:26px;margin-right:8px;vertical-align:middle}
+#cards.classic .waves i{width:4px;background:#fff;box-shadow:0 0 2px #000}
+#cards.classic .text{display:inline;font:inherit;color:inherit}
+#cards.classic .bar{left:0;right:0;bottom:2px;height:4px;border-radius:2px;background:#0006}
+#cards.classic .bar i{background:var(--accent);border-radius:2px}
+#cooldown.classic{background:none;border:0;box-shadow:none;padding:4px 0 10px;font:700 24px/1.2 var(--classic-font,Inter),'Segoe UI',Roboto,Arial,sans-serif;text-shadow:0 0 2px #000,0 0 2px #000,1px 1px 2px #000,0 0 6px #000a}
+#cooldown.classic .cd-icon{border-color:#fff;border-right-color:transparent;box-shadow:0 0 2px #000}
+#cooldown.classic .cd-bar{left:0;right:0;bottom:0;background:#0006}
+#cooldown.classic .cd-bar i{background:var(--accent,#21b8df)}
