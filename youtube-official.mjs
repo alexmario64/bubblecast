@@ -17,7 +17,7 @@ export const sourceKeys=['youtube','youtubeShorts'];
 export class YouTubeOfficial{
  constructor({file,live=true,clientId='',clientSecret='',request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{},onMessage=()=>{},onFound=()=>{},choicesFile=''}){
   Object.assign(this,{file,live,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth,onMessage,onFound,choicesFile});this.found=[];this.candidates=[];this.choices={formats:{},hidden:[]};this.finding=false;
-  this.auth=null;this.pending=null;this.videos={};this.chats={};this.viewers={};this.polls={};this.error=null;this.timers={};this.generation=0;this.streams={};this.quotaUntil=0;
+  this.auth=null;this.pending=null;this.videos={};this.chats={};this.viewers={};this.polls={};this.error=null;this.timers={};this.generation=0;this.streams={};this.quotaUntil=0;this.liveOnYouTube=false;
  }
  // Background reading (finding streams, chat, viewers) only runs while the streamer is live in OBS, so no
  // quota is spent offline. Sending chat and running polls are the streamer's own actions and always allowed.
@@ -25,6 +25,8 @@ export class YouTubeOfficial{
   this.generation++;this.cancel(this.timers.chats);this.cancel(this.timers.find);this.stopStreams();this.chats={};this.viewers={};if(this.found.length){this.found=[];this.candidates=[];this.onFound([]);}}
  setApp(app={}){const clientId=String(app.clientId||''),changed=clientId!==this.clientId;Object.assign(this,{clientId,clientSecret:String(app.clientSecret||'')});return changed;}
  get configured(){return !!(this.clientId&&this.clientSecret);}
+ // The API can read: an app is set up, signed in, and the daily quota isn't used up.
+ get apiReady(){return this.connected&&this.quotaUntil<=this.now();}
  get connected(){return !!this.auth?.refresh_token;}
  async load(){if(this.choicesFile)try{const c=JSON.parse(await readFile(this.choicesFile,'utf8'));this.choices={formats:c.formats&&typeof c.formats==='object'?c.formats:{},hidden:Array.isArray(c.hidden)?c.hidden.slice(-50):[]};}catch{}try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}if(this.auth&&this.auth.client_id!==this.clientId)this.auth=null;}
  async save(){await mkdir(dirname(this.file),{recursive:true});await writeFile(this.file,JSON.stringify(this.auth),{mode:0o600});}
@@ -84,7 +86,7 @@ export class YouTubeOfficial{
  async findLive(){
   if(!this.finding||!this.connected||!this.live)return;
   try{const list=async status=>(await this.api('liveBroadcasts',{query:{part:'id,snippet,status,contentDetails',broadcastStatus:status,broadcastType:'all',maxResults:'25'}})).items||[];
-   const active=await list('active'),upcoming=active.length>=2?[]:await list('upcoming');
+   const active=await list('active');this.liveOnYouTube=active.length>0;const upcoming=active.length>=2?[]:await list('upcoming');
    // A stream key that is already receiving video from OBS marks the real broadcast before it goes live (1 unit).
    const keys=[...new Set(upcoming.map(i=>i.contentDetails?.boundStreamId).filter(id=>/^[\w-]{1,100}$/.test(id||'')))].slice(0,25);
    const receiving=new Set(keys.length?((await this.api('liveStreams',{query:{part:'id,status',id:keys.join(','),maxResults:'25'}})).items||[]).filter(i=>i.status?.streamStatus==='active').map(i=>i.id):[]);

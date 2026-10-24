@@ -23,3 +23,22 @@ export async function setupObs({configOverride,Socket=WebSocket,resolution='2160
  return {ok:true,scene,source:name};
  }finally{socket.close();}
 }
+
+// Whether OBS is streaming, on its main output and on Aitum Vertical's canvas, asked over OBS WebSocket on this
+// computer only. Returns null when OBS WebSocket isn't enabled with a password or OBS isn't open.
+export async function obsStreams({configOverride,Socket=WebSocket,folder}={}){
+ let config=configOverride;if(!config){const {obsConfigFolder}=await import('./obs-dock.mjs');try{config=JSON.parse(await readFile(join(folder||obsConfigFolder(),'plugin_config','obs-websocket','config.json'),'utf8'));}catch{return null;}}
+ if(!config?.server_enabled)return null;
+ const socket=new Socket('ws://127.0.0.1:'+Number(config.server_port||4455));const pending=new Map(),hash=s=>createHash('sha256').update(s).digest('base64');
+ try{
+  await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>{reject(Error('timeout'));},4000);socket.addEventListener('error',()=>{clearTimeout(timeout);reject(Error('closed'));});socket.addEventListener('close',()=>{clearTimeout(timeout);reject(Error('closed'));for(const p of pending.values())p.reject(Error('closed'));pending.clear();});
+   socket.addEventListener('message',e=>{let m;try{m=JSON.parse(e.data);}catch{return;}
+    if(m.op===0){const a=m.d.authentication;socket.send(JSON.stringify({op:1,d:{rpcVersion:1,eventSubscriptions:0,...(a?{authentication:hash(hash(String(config.server_password||'')+a.salt)+a.challenge)}:{})}}));}
+    if(m.op===2){clearTimeout(timeout);resolve();}
+    if(m.op===7){const p=pending.get(m.d.requestId);if(p){pending.delete(m.d.requestId);m.d.requestStatus.result?p.resolve(m.d.responseData||{}):p.reject(Error(m.d.requestStatus.comment||'failed'));}}});});
+  const rpc=(requestType,requestData={})=>new Promise((resolve,reject)=>{const requestId=randomUUID(),timer=setTimeout(()=>{pending.delete(requestId);reject(Error('timeout'));},4000);pending.set(requestId,{resolve:x=>{clearTimeout(timer);resolve(x);},reject:e=>{clearTimeout(timer);reject(e);}});socket.send(JSON.stringify({op:6,d:{requestType,requestId,requestData}}));});
+  const streaming=!!(await rpc('GetStreamStatus')).outputActive;let vertical=false;
+  try{const r=await rpc('CallVendorRequest',{vendorName:'aitum-vertical-canvas',requestType:'status'});const d=r.responseData||r;vertical=!!(d.streaming??d.stream_active??d.outputActive);}catch{}
+  return {streaming,vertical};
+ }catch{return null;}finally{try{socket.close();}catch{}}
+}

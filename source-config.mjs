@@ -19,10 +19,10 @@ export function sourceConfig(input={}){
 }
 
 // With no YouTube links entered, the streams found on the connected channel fill their assigned YouTube slots.
-// With nothing found through the API (quota used up, no Google app, not live yet), the channel's live page is read
-// instead: the channel entered, or the connected YouTube account's channel.
-export function withFoundVideos(saved,found,accountChannel=''){if(!saved.enabled||saved.youtubeVideo||saved.youtubeShortsVideo)return {...saved,youtubeFound:[]};
- if(!found?.length){const path=saved.youtubeChannel||(/^UC[\w-]{22}$/.test(accountChannel)?'channel/'+accountChannel:'');return {...saved,youtubeFound:[],...(path?{configured:true,urls:{...saved.urls,youtube:youtubeLivePage(path)}}:{})};}const url=slot=>{const f=found.find(f=>f.slot===slot);return f?'https://www.youtube.com/live_chat?v='+f.video+'&is_popout=1':'';};
+// Without the API (no Google app, or the quota used up) the channel's live page is read instead: the channel
+// entered, or the connected YouTube account's channel. With the API, streams come only from what it finds.
+export function withFoundVideos(saved,found,accountChannel='',fallback=true){if(!saved.enabled||saved.youtubeVideo||saved.youtubeShortsVideo)return {...saved,youtubeFound:[]};
+ if(!found?.length){if(!fallback)return {...saved,youtubeFound:[]};const path=saved.youtubeChannel||(/^UC[\w-]{22}$/.test(accountChannel)?'channel/'+accountChannel:'');return {...saved,youtubeFound:[],...(path?{configured:true,urls:{...saved.urls,youtube:youtubeLivePage(path)}}:{})};}const url=slot=>{const f=found.find(f=>f.slot===slot);return f?'https://www.youtube.com/live_chat?v='+f.video+'&is_popout=1':'';};
  return {...saved,configured:true,youtubeFound:found,urls:{...saved.urls,youtube:url('youtube'),youtubeShorts:url('youtubeShorts')}};}
 
 // Account channels are runtime defaults. Never save them as manual overrides.

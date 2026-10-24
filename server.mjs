@@ -14,7 +14,7 @@ import {join,extname} from 'node:path';
 import {randomBytes} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {settings,normalize} from './core.mjs';
-import {setupObs} from './obs.mjs';
+import {setupObs,obsStreams} from './obs.mjs';
 import {addObsDock} from './obs-dock.mjs';
 import {Updates} from './updates.mjs';
 import {Speech} from './tts.mjs';
@@ -91,7 +91,7 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/polls/end/result'){for(const key of pollDestinations)if(data.results?.[key])pollEndJobs.result(data.id,key,data.results[key]);return json({ok:true});}
  if(u.pathname==='/api/polls/create/status')return json(pollJobs.public(pollJobs.get(data.id))||{error:'Poll status expired.'});
  if(u.pathname==='/api/polls/create/result'){for(const key of pollDestinations)if(data.results?.[key])pollJobs.result(data.id,key,data.results[key]);return json({ok:true});}
- if(u.pathname==='/api/chat/send'){if(origin?.startsWith('chrome-extension://'))return json({error:'Use the Bubblecast dock to send messages.'},403);if(collectorCommands.length>=64)return json({error:'Capture command queue is busy.'},429);const official=sendOfficial(),helperNeeded=helperTargets(data,official);if(helperNeeded&&(!collectorActive()||!/^1\.(?:[89]|[1-9]\d)\./.test(collector.version||'')))return json({error:'Start or update the Bubblecast background helper to send messages.'},409);const {job,fresh}=outbox.enqueue(data,sources.enabled?sources.urls:{});if(fresh){job.official=[...official];if(job.urls.twitch)outbox.result(job.id,'twitch',await twitch.sendChat(job.text));for(const key of youtubeKeys)if(job.urls[key])outbox.result(job.id,key,await youtube.sendChat(key,job.text));if(job.urls.kick&&job.official.includes('kick'))outbox.result(job.id,'kick',await kick.sendChat(job.text));if(helperNeeded)queueCollector({action:'send',id:job.id});}return json(outbox.public(job));}
+ if(u.pathname==='/api/chat/send'){if(Array.isArray(data.targets)&&data.targets.some(k=>String(k).startsWith('youtube')))checkYouTube();if(origin?.startsWith('chrome-extension://'))return json({error:'Use the Bubblecast dock to send messages.'},403);if(collectorCommands.length>=64)return json({error:'Capture command queue is busy.'},429);const official=sendOfficial(),helperNeeded=helperTargets(data,official);if(helperNeeded&&(!collectorActive()||!/^1\.(?:[89]|[1-9]\d)\./.test(collector.version||'')))return json({error:'Start or update the Bubblecast background helper to send messages.'},409);const {job,fresh}=outbox.enqueue(data,sources.enabled?sources.urls:{});if(fresh){job.official=[...official];if(job.urls.twitch)outbox.result(job.id,'twitch',await twitch.sendChat(job.text));for(const key of youtubeKeys)if(job.urls[key])outbox.result(job.id,key,await youtube.sendChat(key,job.text));if(job.urls.kick&&job.official.includes('kick'))outbox.result(job.id,'kick',await kick.sendChat(job.text));if(helperNeeded)queueCollector({action:'send',id:job.id});}return json(outbox.public(job));}
  if(u.pathname==='/api/chat/send/status')return json(outbox.public(outbox.get(data.id))||{error:'Message status expired.'});
  if(u.pathname==='/api/chat/send/result'){const results=data.results||{};for(const target of destinations)if(results[target])outbox.result(data.id,target,results[target]);return json({ok:true});}
  if(u.pathname==='/api/render-timing'){if(!Object.hasOwn(renderTiming,data.view)||!['twitch','youtube','tiktok','kick'].includes(data.platform))return json({error:'Invalid timing source'},400);const key=data.platform==='youtube'&&data.sourceKey==='youtubeShorts'?'youtubeShorts':data.platform,previous=renderTiming[data.view][key];if(data.mediaMs!=null&&previous&&previous.messageId!==data.messageId)return json({ok:true,ignored:true});const entry=previous?.messageId===data.messageId?{...previous}:{};entry.messageId=String(data.messageId||'').slice(0,200);for(const field of ['paintMs','mediaMs'])if(Number.isFinite(data[field])&&data[field]>=0&&data[field]<=60000)entry[field]=Math.round(data[field]);entry.updatedAt=Date.now();renderTiming[data.view][key]=entry;return json({ok:true});}
@@ -108,7 +108,7 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/update/install'){const job=updates.job();if(!job)return json({error:updates.status().packaged?'No update to install.':'This copy runs from source. Update it with git pull.'},409);if(!collectorActive())return json({error:'Start Bubblecast to install the update.'},409);updates.report('downloading');queueCollector({action:'update',...job});return json(updates.status());}
  if(u.pathname==='/api/update/progress'){updates.report(String(data.stage||''),data.detail);return json({ok:true});}
  if(u.pathname==='/api/youtube/page-live'){youtubePageLive=data.live===true;if(youtubePageLive)youtube.setLive(true);return json({ok:true});}
- if(u.pathname==='/api/obs/streaming'){if(data.streaming===true){obsStreamingAt=Date.now();youtube.setLive(true);}return json({ok:true,live:obsLive()});}
+ if(u.pathname==='/api/obs/streaming'){if(data.streaming===true){obsStreamingAt=Date.now();streamingChanged();}return json({ok:true,live:obsLive()});}
  if(u.pathname==='/api/obs/dock')return json(await addObsDock().catch(error=>({status:'failed',detail:error.message})));
  if(u.pathname==='/api/settings'){const before=state;state=settings(data);catalogAt=0;await saveSettings();rewardSync.fromStudio(before).catch(()=>{});return json(state);}
  if(u.pathname==='/api/tts/reward/create'){try{return json(await rewardSync.create());}catch(e){return json({error:e.message},400);}}
@@ -191,12 +191,20 @@ setTimeout(()=>{updates.check().catch(()=>{});setInterval(()=>updates.check().ca
 // after it stops, so offline hours cost no API quota.
 // The helper's signed-out YouTube page also reports when the channel goes live (no quota spent), so chat
 // starts even when OBS isn't the one streaming (Aitum Vertical, another encoder).
-let obsStreamingAt=0,youtubePageLive=false;const obsLive=()=>Date.now()-obsStreamingAt<120000;
-let quotaOut=false;setInterval(()=>{youtube.setLive(obsLive()||youtubePageLive);const out=youtube.quotaUntil>Date.now();if(out!==quotaOut){quotaOut=out;refreshSources();}},15000).unref();
+let obsStreamingAt=0,youtubePageLive=false,verticalLive=false,checkUntil=0,lastCheck=0,wasStreaming=false;const obsLive=()=>Date.now()-obsStreamingAt<120000;
+// One YouTube check, never on a timer: when OBS or Aitum Vertical starts streaming or a message is sent to
+// YouTube. With the Google app and quota left it's an API check; otherwise the helper reads the channel's
+// live page once.
+function checkYouTube(){const now=Date.now();if(now-lastCheck<30000||youtube.reading('youtube'))return;lastCheck=now;
+ if(youtube.apiReady){checkUntil=now+150000;youtube.setLive(true);}else if(collectorActive()&&collectorCommands.length<64)queueCollector({action:'youtube-check'});}
+function streamingChanged(){const now=obsLive()||verticalLive;if(now&&!wasStreaming)checkYouTube();wasStreaming=now;}
+// Aitum Vertical streams on its own canvas, which OBS doesn't report to browser sources; ask OBS WebSocket locally.
+setInterval(async()=>{const s=await obsStreams().catch(()=>null);if(!s)return;if(s.streaming)obsStreamingAt=Date.now();verticalLive=s.vertical;streamingChanged();},20000).unref();
+let quotaOut=false;setInterval(()=>{youtube.setLive(obsLive()||verticalLive||youtubePageLive||youtube.liveOnYouTube||Date.now()<checkUntil);const out=youtube.quotaUntil>Date.now();if(out!==quotaOut){quotaOut=out;refreshSources();}},15000).unref();
 function configureYouTube(){const found=sources.youtubeFound||[],slot=k=>found.find(f=>f.slot===k)?.video||'';youtube.configure(sources.enabled?{youtube:sources.urls.youtube?sources.youtubeVideo||slot('youtube'):'',youtubeShorts:sources.urls.youtubeShorts?sources.youtubeShortsVideo||slot('youtubeShorts'):''}:{});youtube.autoFind(savedSources.enabled&&!savedSources.youtubeVideo&&!savedSources.youtubeShortsVideo);}
 // A newly found or ended YouTube stream updates the chat sources the same way saving connections does.
 async function youtubeFound(found){const next=resolvedSources(savedSources,found);if(JSON.stringify(next.urls)===JSON.stringify(sources.urls)&&JSON.stringify(next.youtubeFound)===JSON.stringify(sources.youtubeFound))return;const changed=JSON.stringify(next.urls)!==JSON.stringify(sources.urls);sources=next;if(changed)await savePolls();emit('sources',sources);configureYouTube();}
-function resolvedSources(saved=savedSources,found=youtube.found){return withFoundVideos(withAccountChannels(saved,{twitch:twitch.connected?twitch.auth?.login:'',kick:kick.connected?kick.auth?.channel:''}),youtube.reading('youtube')||youtube.quotaUntil<=Date.now()?found:[],youtube.connected?youtube.auth?.channel?.id||'':'');}
+function resolvedSources(saved=savedSources,found=youtube.found){return withFoundVideos(withAccountChannels(saved,{twitch:twitch.connected?twitch.auth?.login:'',kick:kick.connected?kick.auth?.channel:''}),youtube.apiReady?found:[],youtube.connected?youtube.auth?.channel?.id||'':'',!youtube.apiReady);}
 function refreshSources(){const next=resolvedSources();const changed=JSON.stringify(next)!==JSON.stringify(sources);sources=next;if(changed)emit('sources',sources);configureTwitch();configureYouTube();configureKick();}
 await appKeys.load();youtube.setApp(appKeys.get('youtube'));kick.setApp(appKeys.get('kick'));await twitch.load();configureTwitch();await youtube.load();await kick.load();configureKick();await youtubeMerge.load();refreshSources();
 server.listen(3927,'127.0.0.1',()=>console.log('Bubblecast ready: http://127.0.0.1:3927 • OBS: http://127.0.0.1:3927/overlay'));

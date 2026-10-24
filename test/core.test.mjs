@@ -81,3 +81,8 @@ test('without found YouTube streams, the channel’s live page is read: the one 
  assert.equal(withFoundVideos(sourceConfig({}),[],'UCabcdefghijklmnopqrstuv').urls.youtube,'https://www.youtube.com/channel/UCabcdefghijklmnopqrstuv/live');
  assert.match(withFoundVideos(sourceConfig({youtubeChannel:'@truealex'}),[{video:'abcdefghijk',slot:'youtube'}]).urls.youtube,/live_chat\?v=abcdefghijk/,'found streams win');
 });
+test('with the YouTube API available, no fallback page is opened; without it, the channel page is',async()=>{
+ const {sourceConfig,withFoundVideos}=await import('../source-config.mjs');const saved=sourceConfig({youtubeChannel:'@truealex'});
+ assert.equal(withFoundVideos(saved,[],'UCabcdefghijklmnopqrstuv',false).urls.youtube,'','the API is used instead');
+ assert.equal(withFoundVideos(saved,[],'UCabcdefghijklmnopqrstuv',true).urls.youtube,'https://www.youtube.com/@truealex/live');
+});
