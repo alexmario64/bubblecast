@@ -2,7 +2,7 @@
 // one message at a time, for the /tts browser source to play through OBS. Chat text reaches the voice engine
 // through a temporary file and environment variables, never a command line.
 import {spawn} from 'node:child_process';
-import {mkdir,writeFile,rm} from 'node:fs/promises';
+import {mkdir,writeFile,rm,readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {randomUUID} from 'node:crypto';
@@ -63,6 +63,9 @@ export const engines={
  },
 };
 
+// Length of a WAV file in seconds, from its header (data size ÷ bytes per second).
+export async function wavSeconds(file){try{const b=await readFile(file);const rate=b.readUInt32LE(28);let o=12;while(o+8<=b.length){const id=b.toString('ascii',o,o+4),size=b.readUInt32LE(o+4);if(id==='data')return Math.round(Math.min(size,b.length-o-8)/rate*100)/100;o+=8+size+(size%2);}}catch{}return 0;}
+
 // ---- The queue: one message is voiced at a time and handed to the /tts pages. ----
 export class Speech{
  constructor({emit,engine=engines,natural=null,dir=join(tmpdir(),'bubblecast-tts'),now=Date.now,keepMs=300000}){Object.assign(this,{emit,engine,natural,dir,now,keepMs});this.queue=[];this.busy=false;this.files=new Map();this.recent=new Map();this.voiceList=null;this.error=null;}
@@ -73,14 +76,16 @@ export class Speech{
   const key=m.platform+':'+(m.userId||m.user),t=this.now();
   const last=this.recent.get(key);if(!m.event&&!(m.roles||[]).includes('broadcaster')&&s.ttsCooldown&&last!==undefined&&t-last<s.ttsCooldown*1000)return false;
   this.recent.set(key,t);while(this.recent.size>2000)this.recent.delete(this.recent.keys().next().value);
-  this.enqueue(text,m,s).catch(()=>{});return true;}
+  // The card shows the message without the spoken "name said:".
+  const display=speechText(m,{...s,ttsReadName:false},this.lang(s))||text;
+  this.enqueue(text,m,s,{display}).catch(()=>{});return true;}
 // Resolves with what the /tts pages were sent, so Studio can play the test voice too.
  // A preview plays only in Studio; a test also plays on the /tts browser sources.
  // A Twitch channel point redemption, straight from Twitch with the reward's name and the viewer's text.
  redeemed(r,s){if(!s.ttsTwitch||this.recent.has('reward:'+r.id))return false;this.recent.set('reward:'+r.id,this.now());
   return this.consider({platform:'twitch',user:r.user,userId:r.userId,parts:r.text?[{type:'text',text:r.text}]:[],event:{kind:'redemption',title:r.title},fromTwitch:true},s);}
  test(s,{preview=false}={}){return this.enqueue(this.lang(s)==='es'?'Hola, esta es la voz de Bubblecast. ¡Bienvenidos al stream!':'Hi, this is the Bubblecast voice. Welcome to the stream!',{user:'Bubblecast',platform:'test'},s,{silent:preview});}
- enqueue(text,m,s,{silent=false}={}){return new Promise((resolve,reject)=>{if(this.queue.length>=10)this.queue.shift()?.reject(Error('Too many messages waiting.'));this.queue.push({id:randomUUID(),text,user:m.user,platform:m.platform,voice:s.ttsVoice,rate:s.ttsRate,volume:s.ttsVolume,silent,resolve,reject});this.pump();});}
+ enqueue(text,m,s,{silent=false,display=text}={}){return new Promise((resolve,reject)=>{if(this.queue.length>=10)this.queue.shift()?.reject(Error('Too many messages waiting.'));this.queue.push({id:randomUUID(),text,user:m.user,platform:m.platform,voice:s.ttsVoice,rate:s.ttsRate,volume:s.ttsVolume,silent,display,badges:(m.badges||[]).slice(0,6),color:m.userColor||'',reward:m.event?.kind==='redemption'?m.event.title:'',event:m.event&&m.event.kind!=='redemption'?m.event.kind:'',resolve,reject});this.pump();});}
  skip(){this.emit('tts-skip',{});}
  file(id){return this.files.get(id)||null;}
  async knows(voice){if(!voice)return true;if(voice.startsWith('natural:'))return !!this.natural&&await this.natural.installed(voice.slice(8));return (await this.voices()).some(v=>v.name===voice);}
@@ -90,7 +95,7 @@ export class Speech{
    if(String(job.voice||'').startsWith('natural:')){if(!this.natural)throw Error('Natural voices are not available.');await this.natural.speak({id:job.voice.slice(8),text:job.text,rate:job.rate,out});}
    else try{await this.engine.speak({text:job.text,voice:job.voice,rate:job.rate,out,input});}finally{rm(input,{force:true}).catch(()=>{});}
    this.files.set(job.id,out);this.error=null;
-   const item={id:job.id,url:'/api/tts/audio/'+job.id,text:job.text,user:job.user,platform:job.platform,volume:job.volume};if(!job.silent)this.emit('tts',item);job.resolve(item);
+   const item={id:job.id,url:'/api/tts/audio/'+job.id,text:job.text,display:job.display,user:job.user,platform:job.platform,badges:job.badges,color:job.color,reward:job.reward,event:job.event,volume:job.volume,duration:await wavSeconds(out),waiting:this.queue.length};if(!job.silent)this.emit('tts',item);job.resolve(item);
    setTimeout(()=>{this.files.delete(job.id);rm(out,{force:true}).catch(()=>{});},this.keepMs).unref?.();
   }catch(e){this.error='Text to speech failed: '+(e.message||e);job.reject(Error(this.error));}
   finally{this.busy=false;this.pump();}}

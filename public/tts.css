@@ -1,0 +1,46 @@
+/* Text-to-speech card: the chat overlay's bubble style (name pill over a glossy bubble), with sound waves
+   while it speaks and a bar that empties as the message plays. Colors and font come from Chat overlay. */
+@font-face{font-family:'Komika Axis';src:local('Komika Axis'),url('/fonts/komika-axis.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent!important;width:100%;height:100%;overflow:hidden}
+[hidden]{display:none!important}
+/* Laid out on a 1920-wide canvas and scaled to the source size. */
+#stage{position:absolute;top:0;left:0;width:1920px;height:1080px;transform-origin:top left;transform:scale(var(--scale,1))}
+body.portrait #stage{width:1080px;height:1920px}
+#cards{position:absolute;left:50%;top:70px;width:min(900px,90%);transform:translateX(-50%) scale(var(--size,1));transform-origin:top center;display:grid;justify-items:center;--accent:#21b8df;--bubble:#f3f7f8;--text:#33464e;--font:'Komika Axis'}
+body.portrait #cards{top:220px}
+#cards.middle{top:50%;transform:translate(-50%,-50%) scale(var(--size,1));transform-origin:center}
+#cards.bottom{top:auto;bottom:80px;transform-origin:bottom center}
+body.portrait #cards.bottom{bottom:320px}
+.tts-card{position:relative;width:max-content;max-width:100%;filter:drop-shadow(0 8px 14px #1a38453a);animation:card-in .6s cubic-bezier(.2,1.45,.4,1) both}
+.tts-card.leaving{animation:card-out .45s cubic-bezier(.55,0,.75,.25) both}
+.tts-card .float{animation:float 4.8s ease-in-out infinite}
+.pill{position:relative;z-index:2;display:flex;align-items:center;flex-wrap:wrap;gap:8px;width:max-content;max-width:100%;margin:0 0 -7px 4px;padding:7px 14px 8px 10px;border-radius:24px;background:linear-gradient(180deg,color-mix(in srgb,var(--accent),white 24%),var(--accent));border:1px solid color-mix(in srgb,var(--accent),white 42%);box-shadow:inset 0 1px 1px #ffffffbd,0 2px 3px #18384420;color:#fff;font:400 24px/1.3 var(--font),'Arial Rounded MT Bold',sans-serif;animation:pill-in .5s .08s cubic-bezier(.2,1.5,.4,1) both}
+.logo{width:32px;height:30px;object-fit:contain;filter:drop-shadow(0 1px 2px #0008)}
+.badges{display:inline-flex;gap:4px}
+.badges img{width:24px;height:24px;object-fit:contain;border-radius:5px}
+.name{padding:0 2px;text-shadow:-.9px 0 0 #202020,.9px 0 0 #202020,0 -.9px 0 #202020,0 .9px 0 #202020,0 1px 3px #000c;overflow-wrap:anywhere}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 8px;border-radius:999px;background:#ffffff33;border:1px solid #ffffff55;font-size:14px;text-shadow:0 1px 1px #0005;white-space:nowrap}
+.tag svg{width:16px;height:16px}
+.body{position:relative;display:flex;align-items:center;gap:16px;min-width:340px;padding:26px 28px 30px;border-radius:30px;border:1px solid #ffffffeb;background:linear-gradient(155deg,#ffffffd9,var(--bubble) 56%);color:var(--text);font:400 36px/1.4 var(--font),'Arial Rounded MT Bold',sans-serif;overflow:hidden}
+.body::after{content:'';position:absolute;inset:3px 6px auto;height:38%;background:linear-gradient(#ffffffb3,#fff0);border-radius:22px;pointer-events:none}
+.text{position:relative;z-index:1;margin:0;overflow-wrap:anywhere}
+/* Sound waves: move while the voice plays. */
+.waves{position:relative;z-index:1;display:flex;align-items:center;gap:4px;height:40px;flex:none}
+.waves i{width:6px;height:10px;border-radius:3px;background:var(--accent);opacity:.85}
+.speaking .waves i{animation:wave .6s ease-in-out infinite alternate}
+.waves i:nth-child(2){animation-delay:.1s}.waves i:nth-child(3){animation-delay:.2s}.waves i:nth-child(4){animation-delay:.3s}.waves i:nth-child(5){animation-delay:.15s}
+/* Time left: a bar along the bottom of the bubble that empties as the message plays. */
+.bar{position:absolute;left:18px;right:18px;bottom:10px;height:6px;border-radius:3px;background:color-mix(in srgb,var(--text) 14%,transparent);overflow:hidden}
+.bar i{display:block;height:100%;width:100%;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--accent),white 30%),var(--accent));transform-origin:left;transform:scaleX(1)}
+.speaking .bar i{animation:drain var(--duration,4s) linear forwards}
+.queue{padding:4px 10px;border-radius:999px;background:#1b1f2ae6;color:#fff;font:700 15px/1 system-ui,sans-serif;text-shadow:none;box-shadow:0 2px 6px #0004;animation:queue-in .4s cubic-bezier(.2,1.6,.4,1) both}
+#hint{position:fixed;inset:auto 12px 12px auto;padding:10px 14px;border:0;border-radius:10px;background:#1b1f2acc;color:#fff;font:600 15px system-ui,sans-serif;cursor:pointer}
+@keyframes card-in{from{opacity:0;transform:translateY(-40px) scale(.75) rotate(-2deg)}to{opacity:1;transform:none}}
+@keyframes card-out{to{opacity:0;transform:translateY(-24px) scale(.9)}}
+@keyframes pill-in{from{opacity:0;transform:translateY(10px) scale(.8)}}
+@keyframes queue-in{from{opacity:0;transform:scale(0)}}
+@keyframes wave{from{height:8px}to{height:36px}}
+@keyframes drain{to{transform:scaleX(0)}}
+@keyframes float{50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){.tts-card,.pill,.queue,.speaking .waves i,.tts-card .float{animation:none}}

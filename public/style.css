@@ -47,7 +47,12 @@ main{min-width:0;padding:30px clamp(20px,3.4vw,52px) 60px}
 #settings{max-width:1320px;margin:0 auto}
 .tts-page{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
 .tts-page>.group,.tts-page>.card{width:auto;min-width:0;margin:0;justify-self:stretch}
-.tts-page>.tts-hero,.tts-page>.tts-voice{grid-column:1/-1}
+.tts-page>.tts-hero,.tts-page>.tts-voice,.tts-page>.tts-stream{grid-column:1/-1}
+.tts-stream-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px;align-items:start;padding:4px 16px 16px}
+@media(max-width:1100px){.tts-stream-grid{grid-template-columns:1fr}}
+.tts-stream .tts-preview .stage{aspect-ratio:16/9;height:auto;max-height:none}
+.tts-page>.group:has(textarea){grid-column:1/-1}
+.tts-stream-settings{display:grid;align-content:start}
 @media(max-width:1100px){.tts-page{grid-template-columns:1fr}}
 /* Summary: on/off, the voice in use and the test buttons, always in view at the top. */
 .tts-hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto;align-items:center;gap:18px 24px;padding:20px 22px}
