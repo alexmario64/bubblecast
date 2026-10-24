@@ -82,3 +82,11 @@ test('a redemption from Twitch is read once, with the reward matched by name',as
  assert.ok(speech.redeemed(r,s));assert.ok(!speech.redeemed(r,s),'the same redemption is read once');assert.ok(!speech.redeemed({...r,id:'r2',title:'Hydrate'},s));
  await new Promise(r=>setTimeout(r,20));assert.deepEqual(spoken,['SampleViewer said: hola chat']);
 });
+test('the card gets the message without the spoken name, the viewer’s details and the audio length',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'bubblecast-tts-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const sent=[];const wav=Buffer.alloc(44+44100);wav.write('RIFF',0);wav.write('WAVE',8);wav.write('fmt ',12);wav.writeUInt32LE(16,16);wav.writeUInt32LE(22050,24);wav.writeUInt32LE(44100,28);wav.write('data',36);wav.writeUInt32LE(44100,40);
+ const {writeFile}=await import('node:fs/promises');const speech=new Speech({emit:(type,data)=>sent.push(data),engine:{voices:async()=>[],speak:async j=>{await writeFile(j.out,wav);}},dir,keepMs:10});
+ speech.consider(normalize(msg('!tts hola chat',{userColor:'#ff0000',badges:[{src:'https://static-cdn.jtvnw.net/badges/v1/x/3',alt:'Moderator'}]}),on()),on());
+ await new Promise(r=>setTimeout(r,30));const item=sent[0];
+ assert.equal(item.text,'SampleViewer said: hola chat');assert.equal(item.display,'hola chat');assert.equal(item.color,'#ff0000');assert.equal(item.badges[0].alt,'Moderator');assert.equal(item.duration,1);
+});

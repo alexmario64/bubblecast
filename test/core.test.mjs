@@ -64,3 +64,8 @@ test('YouTube Noto emoji images survive normalize for the dock and overlay',()=>
 test('the overlay chat style is bubbles by default and accepts only bubbles or classic',()=>{
  assert.equal(settings({}).chatStyle,'bubbles');assert.equal(settings({chatStyle:'classic'}).chatStyle,'classic');assert.equal(settings({chatStyle:'neon'}).chatStyle,'bubbles');
 });
+test('the text-to-speech card can be hidden, placed and sized, within limits',()=>{
+ const d=settings({});assert.deepEqual([d.ttsCard,d.ttsCardPosition,d.ttsCardSize],[true,'top',100]);
+ const s=settings({ttsCard:false,ttsCardPosition:'bottom',ttsCardSize:500});assert.deepEqual([s.ttsCard,s.ttsCardPosition,s.ttsCardSize],[false,'bottom',160]);
+ assert.equal(settings({ttsCardPosition:'left'}).ttsCardPosition,'top');
+});
