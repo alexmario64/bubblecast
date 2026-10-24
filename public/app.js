@@ -60,6 +60,16 @@ window.addEventListener('bubblecast-sources-status',e=>{try{const result=JSON.pa
 window.addEventListener('bubblecast-paired',()=>toast('Browser bridge paired.','success'));
 window.addEventListener('bubblecast-bridge-reload-needed',()=>toast('The browser bridge was reloaded. Refresh this page to reconnect.','error'));
 
+// Updates: a banner and the Overview card show new versions; the installed app installs them in one click.
+function paintUpdate(u){if(!u)return;const p=u.progress&&Date.now()-u.progress.at<600000?u.progress:null,busy=!!p&&p.stage!=='failed';
+ $('#versionText').textContent='Version '+u.current+(u.available?' · Update available: '+u.latest:u.checkedAt&&!u.error?' · Up to date':'');
+ $('#updateBanner').hidden=!u.available&&!p;
+ $('#updateText').textContent=p?.stage==='downloading'?'Downloading the update…':p?.stage==='installing'?'Installing the update. Bubblecast will reopen in a moment.':p?.stage==='failed'?'The update didn’t install: '+p.detail:u.installable?'Bubblecast '+u.latest+' is available.':'Bubblecast '+u.latest+' is available. Update this copy with git pull.';
+ for(const b of [$('#installUpdate'),$('#installUpdateCard')]){b.hidden=!u.installable;b.disabled=busy;}}
+async function installUpdate(){try{paintUpdate(await api('update/install',{}));}catch(e){toast(e.message,'error');}}
+$('#installUpdate').onclick=installUpdate;$('#installUpdateCard').onclick=installUpdate;
+$('#checkUpdate').onclick=async()=>{const b=$('#checkUpdate');b.disabled=true;try{const u=await api('update/check',{});paintUpdate(u);toast(u.error||(u.available?'Bubblecast '+u.latest+' is available.':'You have the latest version.'),u.error?'error':'success');}catch(e){toast(e.message,'error');}finally{b.disabled=false;}};
+
 // Test bubbles and copying
 const samples=[['DemoStreamer','welcome to the stream!','twitch'],['bubblefan','','twitch',{kind:'sub',title:'bubblefan subscribed at Tier 1.'}],['lunarose','hydrate!!','twitch',{kind:'redemption',title:'Hydrate!',amount:300,color:'#00c7ac'}],['lunarose','hello from YouTube ♡','youtube'],['TikTok friend','hello from TikTok LIVE!','tiktok'],['mossy','FeelsGoodMan','twitch'],['kickfan','hi from Kick!','kick'],['My Complete YouTube Display Name','full names belong in the spotlight ✨','youtube'],['nightowl','check this out https://example.com','twitch'],['peach','💛💛💛','youtube'],['danceparty','SourPls','twitch']];
 const demoBadges=[{src:'https://static-cdn.jtvnw.net/badges/v1/2526bab3-6d02-4a55-85f5-9955187d8fb1/3',alt:'4-Year Subscriber'},{src:'https://static-cdn.jtvnw.net/badges/v1/5527c58c-fb7d-422d-b71b-f309dcb85cc1/3',alt:'Broadcaster'}];
@@ -118,7 +128,7 @@ async function loadApps(){try{const apps=await(await fetch('/api/apps')).json();
 for(const button of document.querySelectorAll('[data-save-app]'))button.onclick=async()=>{const p=button.dataset.saveApp,box=document.querySelector('[data-app="'+p+'"]');button.disabled=true;try{await api('apps',{platform:p,clientId:box.querySelector('[name=clientId]').value,clientSecret:box.querySelector('[name=clientSecret]').value});box.querySelector('[name=clientSecret]').value='';await loadApps();toast((p==='kick'?'Kick':'Google')+' app saved.','success');await status();}catch(e){toast(e.message,'error');}finally{button.disabled=false;}};
 loadApps();
 $('#twitchConnect').onclick=async()=>{const button=$('#twitchConnect');button.disabled=true;try{if(button.dataset.state==='connected'||button.dataset.state==='pending'){await api('twitch/disconnect',{});toast('Twitch disconnected.','success');}else{const pending=await api('twitch/connect',{});$('#twitchUserCode').textContent=pending.userCode;$('#twitchActivate').href=pending.verificationUri;$('#twitchCode').hidden=false;window.open(pending.verificationUri,'_blank','noopener');}await status();}catch(e){toast(e.message,'error');}finally{button.disabled=false;}};
-async function status(){try{const j=await(await fetch('/api/status')).json();lastStatus=j;paintViewers(j);
+async function status(){try{const j=await(await fetch('/api/status')).json();lastStatus=j;paintViewers(j);paintUpdate(j.update);
  if(!loaded){fill(j.settings);loaded=true;}else if(((j.settings.uiTheme||'rose')!==(state.uiTheme||'rose')||(j.settings.language||'en')!==(state.language||'en'))&&!saveTimer){state.uiTheme=j.settings.uiTheme;state.language=j.settings.language;fill({...collect(),uiTheme:j.settings.uiTheme,language:j.settings.language||'en'});}
  const online=!!j.collector?.active;$('#studioStatus').textContent=online?'Background app connected':'Background app offline';$('#helperChip').dataset.state=online?'online':'offline';$('#helperBanner').hidden=online;
  paintPlatforms(j);

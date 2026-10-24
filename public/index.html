@@ -28,6 +28,7 @@
 
 <main>
 <div class="banner" id="helperBanner" role="alert" hidden><strong>Background app is offline.</strong> Chat capture, sending and polls are paused. Start Bubblecast Background (or reopen OBS) to resume.</div>
+<div class="banner update-banner" id="updateBanner" role="status" hidden><span id="updateText"></span><button type="button" class="button primary" id="installUpdate" hidden>Install update</button></div>
 <form id="settings" autocomplete="off">
 
 <section class="page" data-page="overview" id="page-overview">
@@ -57,6 +58,7 @@
     <button type="button" class="quick" data-test-message><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 12 16-8-6 16-2-6z"/></svg><span>Send a test bubble</span></button>
    </div>
    <p class="footnote">Test bubbles appear only on your overlays, never in your real chats.</p>
+   <div class="version-row"><span id="versionText">Version</span><button type="button" class="button" id="checkUpdate">Check for updates</button><button type="button" class="button primary" id="installUpdateCard" hidden>Install update</button></div>
   </div>
  </div>
 </section>

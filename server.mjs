@@ -16,6 +16,7 @@ import {spawn} from 'node:child_process';
 import {settings,normalize} from './core.mjs';
 import {setupObs} from './obs.mjs';
 import {addObsDock} from './obs-dock.mjs';
+import {Updates} from './updates.mjs';
 import {MessageRelay} from './relay.mjs';
 import {sourceConfig,withFoundVideos,withAccountChannels} from './source-config.mjs';
 import {DockHistory} from './dock-history.mjs';
@@ -57,7 +58,7 @@ const server=http.createServer(async(req,res)=>{
  }
  if(u.pathname==='/api/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Connection':'keep-alive'});res.write(`event: settings\ndata: ${JSON.stringify(state)}\n\n`);res.write('event: polls\ndata: '+JSON.stringify(polls.snapshot())+'\n\n');clients.add(res);req.on('close',()=>clients.delete(res));return;}
  if(u.pathname==='/api/polls'&&req.method==='GET')return json({polls:polls.snapshot()});
- if(u.pathname==='/api/status')return json({bridge,traffic,settings:state,sources,sourceStatus,renderTiming,twitch:twitch.status(),youtube:youtube.status(),kick:kick.status(),collector:{...collector,active:collectorActive(),viewers:{...collector.viewers,...youtube.viewers,...(twitch.viewers?{twitch:twitch.viewers}:{}),...(kick.viewers?{kick:kick.viewers}:{})}}});
+ if(u.pathname==='/api/status')return json({bridge,traffic,settings:state,sources,sourceStatus,renderTiming,twitch:twitch.status(),youtube:youtube.status(),kick:kick.status(),update:updates.status(),collector:{...collector,active:collectorActive(),viewers:{...collector.viewers,...youtube.viewers,...(twitch.viewers?{twitch:twitch.viewers}:{}),...(kick.viewers?{kick:kick.viewers}:{})}}});
  if(u.pathname==='/api/collector/commands'&&req.method==='GET'){if(req.headers['x-bubblecast-token']!==token)return json({error:'Pair the capture app.'},401);const deliver=()=>{const commands=collectorCommands.map(c=>c.action==='send'?{action:'send',job:forHelper(outbox.claim(c.id),'send')}:c.action==='create-poll'?{action:'create-poll',job:forHelper(pollJobs.claim(c.id))}:c.action==='end-poll'?{action:'end-poll',job:forHelper(pollEndJobs.claim(c.id))}:c).filter(c=>!['send','create-poll','end-poll'].includes(c.action)||c.job);collectorCommands=[];json({commands});};if(collectorCommands.length||u.searchParams.get('wait')!=='1'){deliver();return;}if(collectorWaiter)return json({error:'Collector already listening'},409);const done=()=>{if(collectorWaiter!==done)return;collectorWaiter=null;clearTimeout(timer);deliver();};const timer=setTimeout(done,25000);collectorWaiter=done;res.on('close',()=>{if(collectorWaiter===done){collectorWaiter=null;clearTimeout(timer);}});return;}
  if(u.pathname==='/api/chat/history'&&req.method==='GET')return json({messages:dockHistory.snapshot(state)});
  if(u.pathname==='/api/sources'&&req.method==='GET')return json({...sources,urls:{...sources.urls,twitch:''},captureMode:collectorActive()?'desktop':'chrome'});
@@ -91,6 +92,9 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname==='/api/collector/control'){if(!['show','signin','refresh','setup','quit','poll-editor','poll-check'].includes(data.action))return json({error:'Unknown capture action'},400);if(['show','signin','refresh','poll-editor','poll-check'].includes(data.action)&&!['twitch','youtube','youtubeShorts','tiktok','kick'].includes(data.sourceKey))return json({error:'Unknown source'},400);queueCollector({action:data.action,sourceKey:data.sourceKey,...(data.action==='setup'&&data.page==='connections'?{page:'connections'}:{})});return json({ok:true});}
  if(u.pathname==='/api/sources/status'){if(collectorActive()&&data.mode!=='desktop')return json({ok:true,ignored:true});sourceStatus={version:/^\d+\.\d+\.\d+$/.test(data.version||'')?data.version:null,mode:data.mode==='desktop'?'desktop':'chrome',twitch:data.twitch===true,youtube:data.youtube===true,youtubeShorts:data.youtubeShorts===true,tiktok:data.tiktok===true,kick:data.kick===true,updatedAt:Date.now()};return json({ok:true});}
  if(u.pathname==='/api/obs/setup')return json(await setupObs({resolution:state.resolution}));
+ if(u.pathname==='/api/update/check')return json(await updates.check(true));
+ if(u.pathname==='/api/update/install'){const job=updates.job();if(!job)return json({error:updates.status().packaged?'No update to install.':'This copy runs from source. Update it with git pull.'},409);if(!collectorActive())return json({error:'Start Bubblecast to install the update.'},409);updates.report('downloading');queueCollector({action:'update',...job});return json(updates.status());}
+ if(u.pathname==='/api/update/progress'){updates.report(String(data.stage||''),data.detail);return json({ok:true});}
  if(u.pathname==='/api/obs/streaming'){if(data.streaming===true){obsStreamingAt=Date.now();youtube.setLive(true);}return json({ok:true,live:obsLive()});}
  if(u.pathname==='/api/obs/dock')return json(await addObsDock().catch(error=>({status:'failed',detail:error.message})));
  if(u.pathname==='/api/settings'){state=settings(data);catalogAt=0;await writeFile(join(dataDir,'settings.json'),JSON.stringify(state,null,2));emit('settings',state);return json(state);}
@@ -139,6 +143,9 @@ function ingestYouTube(m){if(m.action){ingestOfficial(m);return;}const {message,
 // Kick: official API for sending and viewers once connected; chat and polls stay with the helper.
 const kick=new KickOfficial({file:join(dataDir,'.local','kick-auth.json'),onAuth:()=>refreshSources()});
 function configureKick(){kick.configure(sources.enabled&&sources.urls.kick?sources.kickChannel:'',{enabled:sources.enabled});}
+// Update checks: the installed Windows app (BUBBLECAST_PACKAGED) can install them; a checkout only reports them.
+const updates=new Updates({current:JSON.parse(await readFile(join(root,'package.json'),'utf8')).version,packaged:process.env.BUBBLECAST_PACKAGED==='1'});
+setTimeout(()=>{updates.check().catch(()=>{});setInterval(()=>updates.check().catch(()=>{}),3600000).unref();},20000).unref();
 // Pages inside OBS report whether it is streaming. YouTube reads only while OBS is live and for two minutes
 // after it stops, so offline hours cost no API quota.
 let obsStreamingAt=0;const obsLive=()=>Date.now()-obsStreamingAt<120000;
