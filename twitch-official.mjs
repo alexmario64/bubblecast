@@ -42,6 +42,8 @@ export class TwitchOfficial{
  get canManageRewards(){return this.isBroadcaster&&(this.auth?.scopes||[]).includes('channel:manage:redemptions');}
  async findReward(id){if(!id||!this.isBroadcaster)return null;const r=(await this.helix('/channel_points/custom_rewards?broadcaster_id='+this.broadcaster.id+'&id='+encodeURIComponent(id))).data?.[0];return r?rewardInfo(r):null;}
  async rewardManaged(id){if(!this.canManageRewards||!id)return false;try{return !!(await this.helix('/channel_points/custom_rewards?broadcaster_id='+this.broadcaster.id+'&only_manageable_rewards=true&id='+encodeURIComponent(id))).data?.length;}catch{return false;}}
+ // Every reward on the channel, to link one that already exists by name.
+ async listRewards(){if(!this.isBroadcaster)return [];return ((await this.helix('/channel_points/custom_rewards?broadcaster_id='+this.broadcaster.id)).data||[]).map(rewardInfo);}
  async createReward({title,cost,cooldown}){if(!this.canManageRewards)throw Error('Reconnect Twitch to let Bubblecast manage channel point rewards.');
   const r=(await this.helix('/channel_points/custom_rewards?broadcaster_id='+this.broadcaster.id,{method:'POST',body:rewardBody({title,cost,cooldown,prompt:true})})).data?.[0];return r?rewardInfo(r):null;}
  async updateReward(id,changes){if(!this.canManageRewards)throw Error('Reconnect Twitch to let Bubblecast manage channel point rewards.');

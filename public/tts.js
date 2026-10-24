@@ -15,7 +15,7 @@ function applySettings(s){settings={...settings,...s};const c=document.getElemen
  if(s.fontFamily)c.setProperty('--font','"'+String(s.fontFamily).replace(/["\\]/g,'')+'"');
  // Classic uses a clean sans-serif like the classic chat, unless another font is picked in Studio.
  c.setProperty('--classic-font',!s.fontFamily||s.fontFamily==='Komika Axis'?'Inter':'"'+String(s.fontFamily).replace(/["\\]/g,'')+'"');
- cards.hidden=s.ttsCard===false;cards.className=(['top','middle','bottom'].includes(s.ttsCardPosition)?s.ttsCardPosition:'top')+(s.ttsCardStyle==='classic'?' classic':'');cooldownBox.className=cards.className;if(Number.isFinite(+s.ttsCardSize))c.setProperty('--size',+s.ttsCardSize/100);hint.textContent=t().hint;paintQueue();}
+ cards.hidden=s.ttsCard===false;cards.className=(['top','middle','bottom'].includes(s.ttsCardPosition)?s.ttsCardPosition:'top')+(s.ttsCardStyle==='classic'?' classic':s.ttsCardStyle==='modern'?' classic modern':'');cooldownBox.className=cards.className;if(Number.isFinite(+s.ttsCardSize))c.setProperty('--size',+s.ttsCardSize/100);hint.textContent=t().hint;paintQueue();}
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
 function card(item){const root=el('div','tts-card'),float=el('div','float'),pill=el('div','pill');
  if(logos[item.platform]){const logo=el('img','logo');logo.src=logos[item.platform];logo.alt='';pill.append(logo);}
@@ -23,7 +23,7 @@ function card(item){const root=el('div','tts-card'),float=el('div','float'),pill
  const name=el('span','name',item.user);if(/^#[0-9a-f]{6}$/i.test(item.color||''))name.style.color=item.color;pill.append(name);
  const tag=el('span','tag');tag.innerHTML=item.reward?gift:speaker;tag.append(item.reward||t().tts);pill.append(tag);
  const body=el('div','body'),waves=el('div','waves');waves.setAttribute('aria-hidden','true');for(let i=0;i<5;i++)waves.append(el('i'));
- const bar=el('div','bar');bar.append(el('i'));body.append(waves,el('p','text',item.display||item.text),bar);
+ const bar=el('div','bar');bar.append(el('i'));const end=tag.cloneNode(true);end.className='tag tag-end';body.append(waves,el('p','text',item.display||item.text),end,bar);
  float.append(pill,body);root.append(float);root.style.setProperty('--duration',Math.max(1,item.duration||4)+'s');return root;}
 function paintQueue(){if(!current)return;current.card.querySelector('.queue')?.remove();if(queue.length)current.card.querySelector('.pill').append(el('span','queue',t().waiting(queue.length)));}
 function finish(entry){if(current!==entry)return;current=null;clearTimeout(entry.timer);entry.audio?.pause();const c=entry.card;c.classList.remove('speaking');c.classList.add('leaving');setTimeout(()=>c.remove(),460);setTimeout(next,250);}

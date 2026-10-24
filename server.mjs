@@ -161,8 +161,13 @@ async function saveSettings(){await writeFile(join(dataDir,'settings.json'),JSON
 // Studio, and a command elsewhere pauses the reward for the shared wait so Twitch shows it unavailable too.
 const rewardSync={status:{linked:false,managed:false,error:null},pauseTimer:null,
  async create(){if(!twitch.canManageRewards)throw Error('Reconnect Twitch to let Bubblecast manage channel point rewards.');
-  const r=await twitch.createReward({title:state.ttsReward||'TTS',cost:state.ttsRewardCost,cooldown:state.ttsGlobalCooldown});if(!r)throw Error('Twitch did not create the reward.');
-  state=settings({...state,ttsReward:r.title,ttsRewardId:r.id,ttsRewardCost:r.cost});await saveSettings();this.status={linked:true,managed:true,error:null};return this.status;},
+  const title=state.ttsReward||'TTS';let r,managed=true;
+  try{r=await twitch.createReward({title,cost:state.ttsRewardCost,cooldown:state.ttsGlobalCooldown});}
+  catch(e){// A reward with this name already exists: link that one instead.
+   if(!/DUPLICATE/i.test(e.message))throw e;r=(await twitch.listRewards()).find(x=>x.title.trim().toLowerCase()===title.trim().toLowerCase());if(!r)throw e;managed=await twitch.rewardManaged(r.id);}
+  if(!r)throw Error('Twitch did not create the reward.');
+  state=settings({...state,ttsReward:r.title,ttsRewardId:r.id,ttsRewardCost:r.cost,...(managed?{}:{ttsGlobalCooldown:r.cooldown})});await saveSettings();
+  this.status={linked:true,managed,error:null};if(managed)await twitch.updateReward(r.id,{cooldown:state.ttsGlobalCooldown}).catch(()=>{});return this.status;},
  // Studio changed: send title, cost and the shared wait to the linked reward.
  async fromStudio(before){const id=state.ttsRewardId;if(!id||!twitch.canManageRewards)return;
   const changes={};if(state.ttsReward!==before.ttsReward&&state.ttsReward)changes.title=state.ttsReward;if(state.ttsRewardCost!==before.ttsRewardCost)changes.cost=state.ttsRewardCost;if(state.ttsGlobalCooldown!==before.ttsGlobalCooldown)changes.cooldown=state.ttsGlobalCooldown;

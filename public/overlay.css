@@ -91,6 +91,16 @@ body[data-layout=webcam] .body .media{height:110px}
 @keyframes classic-enter{from{opacity:0;transform:translateY(60%)}to{opacity:1;transform:none}}
 @keyframes classic-leave{to{opacity:0}}
 
+/* Modern: the classic one-line layout on a dark strip with an accent edge (a rounded, darker take on Twitch chat). */
+#chat.modern{gap:calc(var(--gap,18px)*.4)}
+.modern .bubble-group{width:max-content;max-width:100%;padding:8px 16px 9px 13px;border-radius:12px;border-left:4px solid var(--accent);background:#0e0e10d9;color:#efeff1;text-shadow:none;box-shadow:0 6px 16px #0005}
+.modern .platform{filter:none}
+.modern .username::after{color:#efeff1}
+.modern .body{color:#efeff1}
+.modern .event-detail{color:#efeff1}
+.modern .message.event .bubble-group{border-left-color:var(--event);background:linear-gradient(90deg,color-mix(in srgb,var(--event) 28%,#0e0e10d9),#0e0e10d9 70%);padding-left:13px}
+.right.modern .bubble-group,.modern.right .bubble-group{margin-left:auto}
+
 @keyframes enter{from{opacity:0;transform:translateX(var(--slide)) scale(.78)}60%{opacity:1}to{opacity:1;transform:translateX(0) scale(1)}}
 @keyframes leave{to{opacity:0;transform:translateX(var(--slide)) scale(.85)}}
 @keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translate(2px,calc(-1 * var(--float))) rotate(-.2deg)}}

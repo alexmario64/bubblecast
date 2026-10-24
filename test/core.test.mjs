@@ -69,3 +69,6 @@ test('the text-to-speech card can be hidden, placed and sized, within limits',()
  const s=settings({ttsCard:false,ttsCardPosition:'bottom',ttsCardSize:500});assert.deepEqual([s.ttsCard,s.ttsCardPosition,s.ttsCardSize],[false,'bottom',160]);
  assert.equal(settings({ttsCardPosition:'left'}).ttsCardPosition,'top');
 });
+test('chat and text-to-speech styles accept bubbles, classic and modern',()=>{
+ assert.equal(settings({chatStyle:'modern'}).chatStyle,'modern');assert.equal(settings({ttsCardStyle:'modern'}).ttsCardStyle,'modern');assert.equal(settings({ttsCardStyle:'neon'}).ttsCardStyle,'bubbles');
+});

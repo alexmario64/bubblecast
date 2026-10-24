@@ -69,3 +69,8 @@ test('the text-to-speech reward is created and updated with its cooldown, and Tw
  await twitch.updateReward('new',{paused:true});assert.deepEqual(calls[2][2],{is_paused:true});
  twitch.auth.scopes=[];await assert.rejects(twitch.createReward({title:'x',cost:1,cooldown:0}),/Reconnect Twitch/);
 });
+test('listing rewards maps every reward on the channel',async()=>{
+ const twitch=new TwitchOfficial({file:'unused',request:async()=>({ok:true,status:200,json:async()=>({data:[{id:'a',title:'TTS',cost:100,global_cooldown_setting:{is_enabled:true,global_cooldown_seconds:30}},{id:'b',title:'Hydrate',cost:50}]})})});
+ twitch.auth={access_token:'a',refresh_token:'r',user_id:'100',scopes:[]};twitch.broadcaster={id:'100',login:'streamer'};
+ assert.deepEqual((await twitch.listRewards()).map(r=>[r.id,r.title,r.cooldown]),[['a','TTS',30],['b','Hydrate',0]]);
+});
