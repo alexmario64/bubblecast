@@ -64,9 +64,9 @@ body.portrait #cards.bottom{bottom:320px}
 #cards.classic .badges img{width:28px;height:28px}
 #cards.classic .name{display:inline;padding:0;font-weight:800;text-shadow:inherit}
 #cards.classic .name::after{content:':';color:#fff;margin-right:.35em}
-#cards.classic .tag{display:none}
+#cards.classic .tag,#cards .tag-end{display:none}
 #cards.classic .queue{margin-left:10px;vertical-align:middle;font-size:15px}
-#cards.classic .body{display:inline;padding:0;background:none;border:0;border-radius:0;font:inherit;color:#fff;overflow:visible;min-width:0}
+#cards.classic .body{display:inline;position:static;padding:0;background:none;border:0;border-radius:0;font:inherit;color:#fff;overflow:visible;min-width:0}
 #cards.classic .body::after{display:none}
 #cards.classic .waves{display:inline-flex;height:26px;margin-right:8px;vertical-align:middle}
 #cards.classic .waves i{width:4px;background:#fff;box-shadow:0 0 2px #000}
@@ -77,3 +77,26 @@ body.portrait #cards.bottom{bottom:320px}
 #cooldown.classic .cd-icon{border-color:#fff;border-right-color:transparent;box-shadow:0 0 2px #000}
 #cooldown.classic .cd-bar{left:0;right:0;bottom:0;background:#0006}
 #cooldown.classic .cd-bar i{background:var(--accent,#21b8df)}
+
+/* Modern: a dark card with the platform's color on its edge. Header: logo, badges and name, with the
+   text-to-speech tag and the queue on the right; below it, the sound waves and the message; the time-left bar
+   runs along the bottom. */
+#cards.modern .float{--edge:var(--accent);display:grid;gap:8px;min-width:560px;padding:14px 20px 18px 16px;border-radius:14px;border-left:5px solid var(--edge);background:#0e0e10e0;color:#efeff1;text-shadow:none;box-shadow:0 10px 26px #0006}
+#cards.modern .tts-card:has(.logo[src*=twitch]) .float{--edge:#9146ff}#cards.modern .tts-card:has(.logo[src*=youtube]) .float{--edge:#ff0033}#cards.modern .tts-card:has(.logo[src*=kick]) .float{--edge:#53fc18}#cards.modern .tts-card:has(.logo[src*=tiktok]) .float{--edge:#fe2c55}
+#cards.modern .pill{display:flex;width:auto;max-width:none;align-items:center;gap:8px;font:800 24px/1.2 var(--classic-font,Inter),'Segoe UI',sans-serif}
+#cards.modern .logo{width:26px;height:26px;margin:0;filter:none}
+#cards.modern .badges{margin:0}
+#cards.modern .name::after{content:none}
+#cards.modern .tag{display:inline-flex;margin-left:auto;padding:4px 10px;background:#ffffff14;border:1px solid #ffffff22;font:600 14px/1 Inter,'Segoe UI',sans-serif;text-shadow:none;color:#d6d6dc}
+#cards.modern .tag svg{width:14px;height:14px}
+#cards.modern .queue{margin-left:6px;background:#ffffff1f}
+#cards.modern .body{display:flex;align-items:center;gap:12px;font:600 30px/1.35 var(--classic-font,Inter),'Segoe UI',sans-serif}
+#cards.modern .waves{display:flex;height:30px;margin:0}
+#cards.modern .waves i{width:4px;background:var(--edge);box-shadow:none}
+#cards.modern .text{flex:1;min-width:0}
+#cards.modern .tag-end{display:none}
+#cards.modern .bar{left:0;right:0;bottom:0;height:4px;border-radius:0 0 14px 0;background:#ffffff14}
+#cards.modern .bar i{background:var(--edge);border-radius:0}
+#cooldown.modern{padding:10px 18px 12px 14px;border-radius:12px;border-left:4px solid var(--accent,#21b8df);background:#0e0e10d9;text-shadow:none;box-shadow:0 8px 20px #0006}
+#cooldown.modern .cd-icon{border-color:var(--accent,#21b8df);border-right-color:transparent;box-shadow:none}
+#cooldown.modern .cd-bar{left:14px;right:14px;bottom:4px;background:#ffffff1a}

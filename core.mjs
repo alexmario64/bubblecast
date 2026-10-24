@@ -27,11 +27,11 @@ export function settings(input={}) {
  if(['rose','red','midnight','white'].includes(input.uiTheme))s.uiTheme=input.uiTheme;if(['en','es'].includes(input.language))s.language=input.language;
  if(['app','rose','red','midnight','white'].includes(input.dockTheme))s.dockTheme=input.dockTheme;
  {const shown=eventList(input.eventsShown);if(shown)s.eventsShown=shown;}
- if(['bubbles','classic'].includes(input.chatStyle))s.chatStyle=input.chatStyle;
+ if(['bubbles','classic','modern'].includes(input.chatStyle))s.chatStyle=input.chatStyle;
  // Text to speech: who can trigger it and how it sounds.
  for(const k of ['ttsEnabled','ttsTwitch','ttsYoutube','ttsTiktok','ttsKick','ttsCommandOn','ttsReadAll','ttsEveryone','ttsSubscribers','ttsVips','ttsMods','ttsReadName','ttsEvents']) if(typeof input[k]==='boolean')s[k]=input[k];
  if(typeof input.ttsCommand==='string'&&/^[!#.\/]?[a-z0-9_-]{1,20}$/i.test(input.ttsCommand.trim()))s.ttsCommand=input.ttsCommand.trim();
- if(typeof input.ttsCard==='boolean')s.ttsCard=input.ttsCard;if(['bubbles','classic'].includes(input.ttsCardStyle))s.ttsCardStyle=input.ttsCardStyle;
+ if(typeof input.ttsCard==='boolean')s.ttsCard=input.ttsCard;if(['bubbles','classic','modern'].includes(input.ttsCardStyle))s.ttsCardStyle=input.ttsCardStyle;
  if(typeof input.ttsRewardId==='string'&&/^[\w-]{0,64}$/.test(input.ttsRewardId))s.ttsRewardId=input.ttsRewardId;
  for(const [key,min,max] of [['ttsGlobalCooldown',0,600],['ttsRewardCost',1,1000000]]) if(input[key]!==''&&input[key]!=null&&Number.isFinite(+input[key]))s[key]=Math.round(Math.max(min,Math.min(max,+input[key])));if(['top','middle','bottom'].includes(input.ttsCardPosition))s.ttsCardPosition=input.ttsCardPosition;
  if(input.ttsCardSize!==''&&input.ttsCardSize!=null&&Number.isFinite(+input.ttsCardSize))s.ttsCardSize=Math.round(Math.max(60,Math.min(160,+input.ttsCardSize)));
