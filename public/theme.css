@@ -24,7 +24,6 @@ body[data-theme=white]{--bg:radial-gradient(ellipse at 0 0,#e9e6ff 0,transparent
 .bc-select-caret{width:16px;height:16px;flex:none;color:var(--text-2);transition:transform .25s var(--spring)}
 .bc-select-button.open .bc-select-caret{transform:rotate(180deg)}
 .bc-select-menu{position:fixed;z-index:1000;max-width:min(380px,calc(100vw - 16px));overflow:auto;padding:5px;border-radius:13px;background:var(--surface-solid);border:1px solid var(--border);box-shadow:0 18px 44px #0000002e,0 2px 6px #00000014;color:var(--text);font-size:13px;opacity:0;transform:translateY(-6px) scale(.97);transform-origin:top center;transition:opacity .14s ease,transform .2s var(--spring);backdrop-filter:blur(20px)}
-.bc-select-menu.up{transform-origin:bottom center;transform:translateY(6px) scale(.97)}
 .bc-select-menu.shown{opacity:1;transform:none}
 .bc-select-option{position:relative;padding:8px 30px 8px 11px;border-radius:9px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .12s}
 .bc-select-option.active{background:var(--accent-soft)}
