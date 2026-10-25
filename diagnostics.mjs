@@ -14,13 +14,13 @@ export function diagnosticSnapshot({version='',sources={},collector={},traffic={
  const rows=Object.fromEntries(platforms.map(p=>{
   const official={twitch,youtube,kick}[p],account=collector.accounts?.[p],feed=helper?collector.feeds?.[p]:null;
   const configured=enabled&&!!(urls[p]||p==='youtube'&&(urls.youtubeShorts||sources.youtubeChannel||youtube.connected));
-  const receiving=configured&&recent(traffic[p]?.lastMessageAt,now,60000),capture=helper&&!!collector.errors?.[p]||!!feed?.error||!!feed?.polling?.error;
+  const receiving=configured&&recent(traffic[p]?.lastMessageAt,now,60000),capture=helper&&!!collector.errors?.[p]||!!feed?.error||!!feed?.polling?.error||feed?.startup==='failed';
   const hasError=!!official?.error||!!capture;
   const reading=p==='youtube'&&!['page','signin'].includes(youtube.readMode)&&Object.values(youtube.chats||{}).some(c=>c.reading??c.live);
   const route=!configured?'none':p==='twitch'?'irc':reading?'api':feed?choice(feed.transport,['network','page'],'page'):'none';
   const session=official?(official.connected?'signed-in':'signed-out'):choice(account?.signedIn,[true,false],null)===null?'unknown':account.signedIn?'signed-in':'signed-out';
-  const state=!enabled?'disabled':!configured?'not-configured':capture?'error':receiving?'receiving':hasError?'error':p==='youtube'&&youtube.configured&&!youtube.connected?'signin-required':p==='twitch'&&twitchChatReady||reading?'connected':['tiktok','kick'].includes(p)&&!helper?'helper-offline':'waiting';
-  return [p,{state,route,session,hasError,heartbeat:configured&&recent(bridge[p],now,25000),received:count(traffic[p]?.received),displayed:count(traffic[p]?.displayed),lastMessageAt:count(traffic[p]?.lastMessageAt)}];
+  const state=!enabled?'disabled':!configured?'not-configured':capture?'error':receiving?'receiving':hasError?'error':p==='youtube'&&youtube.configured&&!youtube.connected?'signin-required':p==='twitch'&&twitchChatReady||reading?'connected':['tiktok','kick'].includes(p)&&!helper?'helper-offline':p==='tiktok'&&account?.signedIn===false?'signin-required':'waiting';
+  return [p,{state,route,session,startup:p==='tiktok'?choice(feed?.startup,['painting','painted','failed','user-opened'],'not-started'):null,hasError,heartbeat:configured&&recent(bridge[p],now,25000),received:count(traffic[p]?.received),displayed:count(traffic[p]?.displayed),lastMessageAt:count(traffic[p]?.lastMessageAt)}];
  }));
  const ws=recent(obs.checkedAt,now,45000)?choice(obs.websocket,['ready','unavailable'],'unavailable'):'not-checked',browser=recent(obs.browserAt,now,75000);
  const detection={websocket:ws,browser,browserStreaming:browser?obs.browserStreaming===true:null,websocketMain:ws==='ready'?obs.main===true:null,main:browser&&(ws!=='ready'||obs.browserAt>=obs.checkedAt)?obs.browserStreaming===true:ws==='ready'?obs.main===true:null,vertical:ws==='ready'&&obs.verticalDetected?obs.vertical===true:null,path:ws==='ready'?(browser?'both':'websocket'):browser?'browser':'none'};

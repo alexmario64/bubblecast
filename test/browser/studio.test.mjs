@@ -84,7 +84,7 @@ test('Studio shows per-platform diagnostics and missing detection, channel and l
  const prior=status.diagnostics;status.diagnostics={...diagnosticSnapshot({sources:{urls:{tiktok:'t',kick:'k'}},collector:{active:true,accounts:{tiktok:{signedIn:false}},errors:{kick:'private detail'}},traffic:{tiktok:{received:7,displayed:4,lastMessageAt:Date.now()}},obs:{checkedAt:Date.now(),websocket:'unavailable',browserAt:Date.now(),browserStreaming:true}}),log:{error:true}};
  t.after(()=>{status.diagnostics=prior;});const {doc}=await studio(t);
  const rows=[...doc.querySelectorAll('#diagnosticPlatforms li')];assert.equal(rows.length,4);
- assert.match(rows[2].textContent,/Receiving chat.*Not signed in.*Received: 7.*Shown: 4/);assert.match(rows[3].textContent,/Capture or connection error/);assert.ok(!doc.querySelector('#diagnosticPlatforms').textContent.includes('private detail'));
+ assert.match(rows[2].textContent,/Receiving chat.*Sign in to TikTok.*Received: 7.*Shown: 4/);assert.match(rows[3].textContent,/Capture or connection error/);assert.ok(!doc.querySelector('#diagnosticPlatforms').textContent.includes('private detail'));
  assert.match(doc.querySelector('#diagnosticObs').textContent,/OBS: Streaming.*Aitum: Not detected.*OBS browser.*WebSocket unavailable/);
  assert.match(doc.querySelector('#diagnosticYouTube').textContent,/Add a YouTube channel.*No check yet/);assert.equal(doc.querySelector('#diagnosticLog').textContent,'Local log could not be written.');
 });
@@ -101,4 +101,12 @@ test('no-app YouTube exposes its channel and explicit discovery control; configu
  assert.equal(doc.querySelector('#youtubeChannelField').hidden,false);assert.match(doc.querySelector('#account-youtube').textContent,/Read-only YouTube chat/);assert.match(doc.querySelector('#youtubeDiscoveryNote').textContent,/Stream checks scheduled.*Next check/);
  await doc.querySelector('#youtubeCheck').onclick();assert.equal(calls.filter(([url])=>url==='/api/youtube/check').length,1);assert.ok(!calls.some(([url])=>url==='/api/youtube/connect'));
  status.youtube={configured:true,connected:false,readMode:'signin'};status.diagnostics=diagnosticSnapshot({trigger:{blocked:'signin-required'}});const signedOut=await studio(t,'#connections');assert.equal(signedOut.doc.querySelector('#youtubeSlow').hidden,true);assert.equal(signedOut.doc.querySelector('#youtubeCheck').disabled,true);
+});
+
+test('TikTok missing-session prompt remains explicit in Connections and diagnostics, including Spanish',async t=>{
+ const prior={collector:status.collector,diagnostics:status.diagnostics,language:status.settings.language};t.after(()=>{status.collector=prior.collector;status.diagnostics=prior.diagnostics;status.settings.language=prior.language;});
+ status.collector={active:true,accounts:{tiktok:{signedIn:false}}};status.diagnostics=diagnosticSnapshot({sources:{urls:{tiktok:'t'}},collector:{...status.collector,feeds:{tiktok:{transport:'network',startup:'painted'}}}});
+ const {doc,calls}=await studio(t,'#connections');assert.equal(doc.querySelector('#account-tiktok').textContent,'Sign in to TikTok · reading chat');const row=doc.querySelectorAll('#diagnosticPlatforms li')[2];assert.match(row.textContent,/Sign in to TikTok.*Hidden window started/);
+ doc.querySelector('[data-setup-signin="tiktok"]').click();await wait(10);const actions=calls.filter(([url])=>url==='/api/collector/control');assert.equal(actions.length,1);assert.equal(JSON.parse(actions[0][1].body).action,'signin');
+ status.settings.language='es';const spanish=await studio(t,'#connections',true);assert.match(spanish.doc.querySelector('#account-tiktok').textContent,/Inicia sesión en TikTok · leyendo el chat/);assert.match(spanish.doc.querySelector('#diagnosticPlatforms').textContent,/Ventana oculta iniciada/);
 });

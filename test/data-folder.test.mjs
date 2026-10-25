@@ -67,3 +67,14 @@ test('an ordinary API permission failure never enables page-chat fallback',async
  assert.equal(status.youtube.readMode,'api');assert.equal(status.youtube.quotaUntil,null);assert.equal(status.sources.youtubeLive,undefined);
  assert.equal((await post('/api/bridge',{platform:'youtube',transport:'desktop',id:'blocked-fallback',user:'Example',parts:[{type:'text',text:'fixture'}]})).ignored,true);assert.equal((await (await request('/api/chat/history')).json()).messages.length,0);
 });
+
+test('TikTok collector startup and session states reach diagnostics without private fields, preserving anonymous chat',async t=>{
+ const {request,dir,advance}=await isolatedServer(t),{token}=await (await request('/api/pair')).json();
+ const post=async(path,data)=>{const r=await request(path,{method:'POST',headers:{'content-type':'application/json','x-bubblecast-token':token},body:JSON.stringify(data)});assert.equal(r.status,200);return r.json();};
+ await post('/api/sources',{tiktokChannel:'fixture'});
+ const report={active:true,version:'1.33.5',accounts:{tiktok:{state:'signed-out',signedIn:false,canSend:false,sessionid:'fixture-private-cookie'}},feeds:{tiktok:{transport:'network',startup:'painted',cookies:['fixture-private-cookie']}}};
+ await post('/api/collector/status',report);let status=await (await request('/api/status')).json();assert.equal(status.diagnostics.platforms.tiktok.state,'signin-required');assert.equal(status.diagnostics.platforms.tiktok.startup,'painted');assert.ok(!JSON.stringify(status.collector).includes('fixture-private-cookie'));
+ await post('/api/bridge',{platform:'tiktok',sourceKey:'tiktok',id:'fixture-new',user:'Example',parts:[{type:'text',text:'Synthetic offline fixture'}],transport:'desktop'});status=await (await request('/api/status')).json();assert.equal(status.diagnostics.platforms.tiktok.state,'receiving');assert.equal(status.diagnostics.platforms.tiktok.session,'signed-out');assert.equal((await (await request('/api/chat/history')).json()).messages.length,1);
+ report.feeds.tiktok.startup='fixture-private-cookie';await post('/api/collector/status',report);status=await (await request('/api/status')).json();assert.equal(status.collector.feeds.tiktok.startup,null);assert.equal(status.diagnostics.platforms.tiktok.startup,'not-started');
+ await advance(5001);await new Promise(r=>setTimeout(r,5100));const log=await readFile(join(dir,'.local','diagnostics.log'),'utf8');assert.ok(!log.includes('fixture-private-cookie'));assert.ok(!log.includes('Synthetic offline fixture'));const latest=JSON.parse(log.trim().split('\n').at(-1));assert.equal(latest.platforms.tiktok.startup,'not-started');assert.equal(latest.platforms.tiktok.session,'signed-out');assert.equal(latest.platforms.tiktok.received,1);
+});
