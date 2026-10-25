@@ -1,6 +1,7 @@
 // Official YouTube connection: Google sign-in for desktop apps (loopback + PKCE) and the YouTube Data API.
 // Reads chat through YouTube's official live chat stream and sends chat, runs polls and reads viewer counts.
 // Custom emojis arrive as :name: text; youtube-merge.mjs adds their images from the signed-out chat page.
+import {youtubeReadMode} from './youtube-discovery.mjs';
 import {errorText} from './net-errors.mjs';
 import {randomBytes,createHash} from 'node:crypto';
 import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
@@ -15,23 +16,26 @@ const reasons={quotaExceeded:'The YouTube API daily quota is used up. It resets 
 export const sourceKeys=['youtube','youtubeShorts'];
 
 export class YouTubeOfficial{
- constructor({file,live=true,clientId='',clientSecret='',request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{},onMessage=()=>{},onFound=()=>{},choicesFile=''}){
-  Object.assign(this,{file,live,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth,onMessage,onFound,choicesFile});this.found=[];this.candidates=[];this.choices={formats:{},hidden:[]};this.finding=false;
-  this.auth=null;this.pending=null;this.videos={};this.chats={};this.viewers={};this.polls={};this.error=null;this.timers={};this.generation=0;this.streams={};this.quotaUntil=0;this.liveOnYouTube=false;this.discovery={state:'idle',startedAt:0,finishedAt:0,found:0};
+ constructor({file,live=true,clientId='',clientSecret='',request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{},onMessage=()=>{},onFound=()=>{},onQuota=()=>{},choicesFile=''}){
+  Object.assign(this,{file,live,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth,onMessage,onFound,onQuota,choicesFile});this.found=[];this.candidates=[];this.choices={formats:{},hidden:[]};this.finding=false;
+  this.auth=null;this.pending=null;this.videos={};this.chats={};this.viewers={};this.polls={};this.error=null;this.timers={};this.generation=0;this.streams={};this.quotaUntil=0;this.liveOnYouTube=false;this.findEpoch=0;this.findPromise=null;this.discovery={state:'idle',startedAt:0,finishedAt:0,found:0};
  }
  // Background reading (finding streams, chat, viewers) only runs while the streamer is live in OBS, so no
  // quota is spent offline. Sending chat and running polls are the streamer's own actions and always allowed.
- setLive(on){on=!!on;if(on===this.live)return;this.live=on;if(on){this.refreshChats();if(this.finding)this.timer('find',()=>this.findLive(),1000);return;}
-  this.generation++;this.cancel(this.timers.chats);this.cancel(this.timers.find);this.stopStreams();this.chats={};this.viewers={};if(this.found.length){this.found=[];this.candidates=[];this.onFound([]);}}
+ setLive(on){on=!!on;if(on===this.live)return;this.live=on;if(on){this.refreshChats();return;}
+  this.generation++;this.findEpoch++;this.cancel(this.timers.chats);if(this.discovery.state==='checking')this.discovery={...this.discovery,state:'idle',finishedAt:this.now()};this.stopStreams();this.chats={};this.viewers={};if(this.found.length){this.found=[];this.candidates=[];this.onFound([]);}}
  setApp(app={}){const clientId=String(app.clientId||''),changed=clientId!==this.clientId;Object.assign(this,{clientId,clientSecret:String(app.clientSecret||'')});return changed;}
  get configured(){return !!(this.clientId&&this.clientSecret);}
  // The API can read: an app is set up, signed in, and the daily quota isn't used up.
- get apiReady(){return this.connected&&this.quotaUntil<=this.now();}
+ get readMode(){return youtubeReadMode(this,this.now());}
+ get apiReady(){return this.readMode==='api';}
+ get pageFallback(){return this.readMode==='page';}
+ exhaustQuota(){if(this.quotaUntil>this.now())return;this.quotaUntil=nextPacificMidnight(this.now());this.onQuota();}
  get connected(){return !!this.auth?.refresh_token;}
  async load(){if(this.choicesFile)try{const c=JSON.parse(await readFile(this.choicesFile,'utf8'));this.choices={formats:c.formats&&typeof c.formats==='object'?c.formats:{},hidden:Array.isArray(c.hidden)?c.hidden.slice(-50):[]};}catch{}try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}if(this.auth&&this.auth.client_id!==this.clientId)this.auth=null;}
  async save(){await mkdir(dirname(this.file),{recursive:true});await writeFile(this.file,JSON.stringify(this.auth),{mode:0o600});}
  timer(name,fn,ms){this.cancel(this.timers[name]);this.timers[name]=this.schedule(()=>{this.timers[name]=null;return fn();},ms);}
- status(){return {discovery:{...this.discovery},configured:this.configured,connected:this.connected,live:this.live,quotaUntil:this.quotaUntil>this.now()?this.quotaUntil:null,channel:this.auth?.channel||null,ready:this.connected,error:this.error,found:this.finding?this.found:null,candidates:this.finding?this.candidates:null,chats:Object.fromEntries(sourceKeys.map(k=>[k,{video:this.videos[k]||'',live:!!this.chats[k]}]))};}
+ status(){return {readMode:this.readMode,discovery:{...this.discovery},configured:this.configured,connected:this.connected,live:this.live,quotaUntil:this.quotaUntil>this.now()?this.quotaUntil:null,channel:this.auth?.channel||null,ready:this.connected,error:this.error,found:this.finding?this.found:null,candidates:this.finding?this.candidates:null,chats:Object.fromEntries(sourceKeys.map(k=>[k,{video:this.videos[k]||'',live:!!this.chats[k],reading:this.reading(k)}]))};}
 
  // ---- Sign-in: Google opens in the default browser and returns to this local server. ----
  startSignIn(){
@@ -57,44 +61,44 @@ export class YouTubeOfficial{
   if(this.auth.expires_at-this.now()<60000){const {ok,body}=await this.token({grant_type:'refresh_token',refresh_token:this.auth.refresh_token});if(!ok){await this.forget('YouTube sign-in ended. Connect YouTube again.');throw Error(this.error);}Object.assign(this.auth,{access_token:body.access_token,expires_at:this.now()+body.expires_in*1000});await this.save();}
   return this.auth.access_token;
  }
- async forget(error=null){this.stopStreams();this.finding=false;if(this.found.length){this.found=[];this.onFound([]);}this.auth=null;this.pending=null;this.error=error;this.chats={};this.viewers={};for(const name of Object.keys(this.timers))this.cancel(this.timers[name]);await rm(this.file,{force:true});this.onAuth();}
+ async forget(error=null){this.findEpoch++;this.stopStreams();this.finding=false;if(this.found.length){this.found=[];this.onFound([]);}this.auth=null;this.pending=null;this.error=error;this.chats={};this.viewers={};for(const name of Object.keys(this.timers))this.cancel(this.timers[name]);await rm(this.file,{force:true});this.onAuth();}
  async disconnect(){const token=this.auth?.refresh_token;await this.forget();if(token)try{await this.request('https://oauth2.googleapis.com/revoke',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({token}),signal:AbortSignal.timeout(10000)});}catch{}}
  async api(resource,{method='GET',query={},body}={}){
   if(this.quotaUntil>this.now()){const error=Error(reasons.quotaExceeded);error.reason='quotaExceeded';throw error;}
   const token=await this.access();
   const r=await this.request(API+resource+'?'+new URLSearchParams(query),{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(15000)});
   if(r.status===204)return {};let json={};try{json=await r.json();}catch{}
-  if(!r.ok){const reason=json.error?.errors?.[0]?.reason;if(reason==='quotaExceeded')this.quotaUntil=nextPacificMidnight(this.now());const error=Error(reasons[reason]||json.error?.message||'YouTube returned HTTP '+r.status);error.reason=reason;throw error;}
+  if(!r.ok){const reason=json.error?.errors?.[0]?.reason;if(reason==='quotaExceeded')this.exhaustQuota();const error=Error(reasons[reason]||json.error?.message||'YouTube returned HTTP '+r.status);error.reason=reason;throw error;}
   return json;
  }
 
  // ---- Live chats and viewers: one videos.list call (1 unit) per stream about every 90-110 s. ----
- configure(videos){const next=Object.fromEntries(sourceKeys.map(k=>[k,String(videos?.[k]||'')]).filter(([,v])=>/^[\w-]{11}$/.test(v)));if(JSON.stringify(next)===JSON.stringify(this.videos))return;this.videos=next;this.stopStreams();this.chats={};this.viewers={};this.refreshChats();}
+ configure(videos){const next=Object.fromEntries(sourceKeys.map(k=>[k,String(videos?.[k]||'')]).filter(([,v])=>/^[\w-]{11}$/.test(v)));if(JSON.stringify(next)===JSON.stringify(this.videos))return;for(const key of sourceKeys)if(next[key]!==this.videos[key]){this.stopStream(key);delete this.chats[key];delete this.viewers[key];}this.videos=next;this.refreshChats();}
  refreshChats(){const generation=++this.generation;this.cancel(this.timers.chats);if(this.live&&this.connected&&Object.keys(this.videos).length)this.timer('chats',()=>this.pollChats(generation),1000);}
  async pollChats(generation){
   if(generation!==this.generation||!this.connected||!this.live)return;
-  try{const ids=Object.values(this.videos);const items=(await this.api('videos',{query:{part:'liveStreamingDetails',id:ids.join(',')}})).items||[];
+  try{const ids=Object.values(this.videos);const items=(await this.api('videos',{query:{part:'liveStreamingDetails',id:ids.join(',')}})).items||[];if(generation!==this.generation||!this.live||!this.connected)return;
    for(const [key,video] of Object.entries(this.videos)){const d=items.find(i=>i.id===video)?.liveStreamingDetails;const live=!!d?.activeLiveChatId&&!d.actualEndTime;this.chats[key]=live?d.activeLiveChatId:null;this.readChat(key);this.viewers[key]={live,viewers:live&&d.concurrentViewers!=null?Number(d.concurrentViewers):null,updatedAt:this.now(),error:null};}
    this.error=null;
   }catch(error){this.error=errorText(error,'YouTube');}
-  this.timer('chats',()=>this.pollChats(generation),90000+this.random()*20000);
+  if(generation===this.generation&&this.live&&this.connected)this.timer('chats',()=>this.pollChats(generation),90000+this.random()*20000);
  }
- // ---- Finding the channel's own streams: liveBroadcasts.list (1 unit each) about every 90-110 s. ----
- // Used when no stream links are entered. Live streams come first; while fewer than two are live, upcoming
- // streams that are ready or about to start fill the rest, because YouTube opens their chat before going live.
- autoFind(on){on=!!on&&this.connected;if(on===this.finding)return;this.finding=on;this.cancel(this.timers.find);if(on&&this.live)this.timer('find',()=>this.findLive(),1000);else if(this.found.length){this.found=[];this.onFound([]);}}
- async findLive(){
-  if(!this.finding||!this.connected||!this.live)return;
+ // Discovery is explicitly requested by the bounded stream-start series or a user action. Never recurring.
+ autoFind(on){on=!!on&&this.connected;if(on===this.finding)return;this.findEpoch++;this.finding=on;if(!on&&this.discovery.state==='checking')this.discovery={...this.discovery,state:'idle',finishedAt:this.now()};if(!on&&this.found.length){this.found=[];this.onFound([]);}}
+ findLive(){
+  if(!this.finding||!this.apiReady||!this.live)return Promise.resolve();if(this.findPromise)return this.findPromise;
+  const promise=this.discoverOnce(this.findEpoch).finally(()=>{if(this.findPromise===promise)this.findPromise=null;});return this.findPromise=promise;
+ }
+ async discoverOnce(epoch){
+  const current=()=>epoch===this.findEpoch&&this.finding&&this.apiReady&&this.live;
   this.discovery={state:'checking',startedAt:this.now(),finishedAt:0,found:0};
   try{const list=async status=>(await this.api('liveBroadcasts',{query:{part:'id,snippet,status,contentDetails',broadcastStatus:status,broadcastType:'all',maxResults:'25'}})).items||[];
-   const active=await list('active');this.liveOnYouTube=active.length>0;const upcoming=active.length>=2?[]:await list('upcoming');
-   // A stream key that is already receiving video from OBS marks the real broadcast before it goes live (1 unit).
+   const active=await list('active');if(!current())return;const upcoming=active.length>=2?[]:await list('upcoming');if(!current())return;
    const keys=[...new Set(upcoming.map(i=>i.contentDetails?.boundStreamId).filter(id=>/^[\w-]{1,100}$/.test(id||'')))].slice(0,25);
-   const receiving=new Set(keys.length?((await this.api('liveStreams',{query:{part:'id,status',id:keys.join(','),maxResults:'25'}})).items||[]).filter(i=>i.status?.streamStatus==='active').map(i=>i.id):[]);
-   this.candidates=pickBroadcasts(active,upcoming,this.now(),{receiving,limit:4}).map(c=>({...c,format:this.choices.formats[c.streamKey||c.video]||'',hidden:this.choices.hidden.includes(c.video)}));
-   this.assign();this.discovery={...this.discovery,state:'complete',finishedAt:this.now(),found:this.found.length};
-  }catch(error){this.error=errorText(error,'YouTube');this.discovery={...this.discovery,state:'error',finishedAt:this.now(),found:0};}
-  if(this.finding&&this.live)this.timer('find',()=>this.findLive(),90000+this.random()*20000);
+   const receiving=new Set(keys.length?((await this.api('liveStreams',{query:{part:'id,status',id:keys.join(','),maxResults:'25'}})).items||[]).filter(i=>i.status?.streamStatus==='active').map(i=>i.id):[]);if(!current())return;
+   this.liveOnYouTube=active.length>0;this.candidates=pickBroadcasts(active,upcoming,this.now(),{receiving,limit:4}).map(c=>({...c,format:this.choices.formats[c.streamKey||c.video]||'',hidden:this.choices.hidden.includes(c.video)}));
+   this.assign();this.error=null;this.discovery={...this.discovery,state:'complete',finishedAt:this.now(),found:this.found.length};
+  }catch(error){if(epoch!==this.findEpoch)return;this.error=errorText(error,'YouTube');this.discovery={...this.discovery,state:'error',finishedAt:this.now(),found:0};}
  }
  // Vertical streams take the second slot, everything else the first; hidden streams take neither.
  assign(){const found=assignSlots(this.candidates);if(JSON.stringify(found)!==JSON.stringify(this.found)){this.found=found;this.onFound(found);}}
@@ -117,7 +121,7 @@ export class YouTubeOfficial{
   try{
    if(this.quotaUntil>this.now()){const error=Error(reasons.quotaExceeded);error.reason='quotaExceeded';throw error;}
    const token=await this.access();const r=await this.request(API+'liveChat/messages/stream?'+new URLSearchParams({liveChatId:stream.chat,part:'id,snippet,authorDetails',...(stream.token?{pageToken:stream.token}:{})}),{headers:{Authorization:'Bearer '+token},signal:stream.abort.signal});
-   if(!r.ok){let json={};try{json=await r.json();}catch{}const reason=json.error?.errors?.[0]?.reason;if(reason==='quotaExceeded')this.quotaUntil=nextPacificMidnight(this.now());const error=Error(reasons[reason]||json.error?.message||'YouTube chat returned HTTP '+r.status);error.reason=reason;throw error;}
+   if(!r.ok){let json={};try{json=await r.json();}catch{}const reason=json.error?.errors?.[0]?.reason;if(reason==='quotaExceeded')this.exhaustQuota();const error=Error(reasons[reason]||json.error?.message||'YouTube chat returned HTTP '+r.status);error.reason=reason;throw error;}
    const parser=new JsonObjects();for await(const chunk of r.body){for(const page of parser.push(chunk)){if(stream.stopped)return;stream.failures=0;this.accept(key,stream,page);}}
    if(stream.stopped)return;this.timer('stream-'+key,()=>this.openStream(key),1000+this.random()*1000);
   }catch(error){

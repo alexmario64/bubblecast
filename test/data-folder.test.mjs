@@ -1,33 +1,69 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,rm,readFile} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
+import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import {spawn} from 'node:child_process';
-import {fileURLToPath} from 'node:url';
-const root=fileURLToPath(new URL('..',import.meta.url)),base='http://127.0.0.1:3927';
-const up=()=>fetch(base+'/api/status',{signal:AbortSignal.timeout(1000)}).then(r=>r.ok,()=>false);
+import {isolatedServer} from './server-fixture.mjs';
+import {NetworkFeed,youtubeActions} from '../network-chat.mjs';
 // The installed app points BUBBLECAST_DATA at the user's app data folder; saving must land there.
-test('an installed server saves channels and settings in its data folder',async t=>{
- if(await up())return t.skip('another Bubblecast server is using port 3927');
- const dir=await mkdtemp(join(tmpdir(),'bubblecast-data-'));
- const server=spawn(process.execPath,['server.mjs'],{cwd:root,env:{...process.env,BUBBLECAST_DATA:dir},stdio:'ignore'});
- t.after(async()=>{server.kill();await new Promise(r=>server.once('exit',r));await rm(dir,{recursive:true,force:true});});
- const deadline=Date.now()+10000;while(!await up()){assert.ok(Date.now()<deadline,'server did not start');await new Promise(r=>setTimeout(r,100));}
- const initial=await (await fetch(base+'/api/status')).json();assert.equal(initial.diagnostics.platforms.youtube.state,'not-configured');
+test('an installed server saves channels and settings and relays no-app YouTube chat in its data folder',async t=>{
+ const {dir,request}=await isolatedServer(t);
+ const initial=await (await request('/api/status')).json();assert.equal(initial.diagnostics.platforms.youtube.state,'not-configured');
  const log=await readFile(join(dir,'.local','diagnostics.log'),'utf8');assert.equal(JSON.parse(log.trim()).helper,false);
- const {token}=await (await fetch(base+'/api/pair')).json();
- const post=async(path,body)=>{const r=await fetch(base+path,{method:'POST',headers:{'content-type':'application/json','x-bubblecast-token':token},body:JSON.stringify(body)});assert.equal(r.status,200,path+': '+await r.clone().text());return r.json();};
+ const {token}=await (await request('/api/pair')).json();
+ const post=async(path,body)=>{const r=await request(path,{method:'POST',headers:{'content-type':'application/json','x-bubblecast-token':token},body:JSON.stringify(body)});assert.equal(r.status,200,path+': '+await r.clone().text());return r.json();};
  await post('/api/sources',{tiktokChannel:'samplestreamer'});
  assert.match(await readFile(join(dir,'sources.json'),'utf8'),/samplestreamer/);
- const settings=await (await fetch(base+'/api/settings')).json();await post('/api/settings',settings);
+ const settings=await (await request('/api/settings')).json();await post('/api/settings',settings);
  await readFile(join(dir,'settings.json'),'utf8');
- assert.equal((await (await fetch(base+'/api/status')).json()).youtube.live,false,'YouTube waits for OBS');
- assert.equal((await post('/api/obs/streaming',{streaming:true})).live,true);assert.equal((await (await fetch(base+'/api/status')).json()).youtube.live,true);
- const detected=(await (await fetch(base+'/api/status')).json()).diagnostics.obs;assert.equal(detected.browser,true);assert.equal(detected.main,true);assert.equal(detected.path,'browser');
+ await post('/api/obs/streaming',{streaming:false});const idle=await (await request('/api/status')).json();assert.equal(idle.youtube.live,false,'YouTube waits for a stream, not merely OBS opening');assert.equal(idle.diagnostics.youtube.series.state,'idle');
+ assert.equal((await post('/api/obs/streaming',{streaming:true})).live,true);assert.equal((await (await request('/api/status')).json()).youtube.live,true);
+ const detected=(await (await request('/api/status')).json()).diagnostics.obs;assert.equal(detected.browser,true);assert.equal(detected.main,true);assert.equal(detected.path,'browser');
  await post('/api/sources',{enabled:true,youtubeChannel:'@example'});
- const found=(await post('/api/youtube/page-live',{videos:[{video:'abcdefghijk',vertical:true},{video:'bcdefghijkl',vertical:false}]})).found;
+ assert.equal((await (await request('/api/sources')).json()).urls.youtube,'','channel lookup never becomes a chat window');
+ await post('/api/collector/status',{active:true,version:'1.33.4'});await post('/api/youtube/check',{});
+ const commands=await (await request('/api/collector/commands',{headers:{'X-Bubblecast-Token':token}})).json(),check=commands.commands.find(c=>c.action==='youtube-check');assert.ok(check);
+ const result={id:check.id,channel:check.channel};
+ const found=(await post('/api/youtube/page-live',{...result,videos:[{video:'abcdefghijk',vertical:true},{video:'bcdefghijkl',vertical:false}]})).found;
  assert.deepEqual(found.map(f=>[f.slot,f.video]),[['youtube','bcdefghijkl'],['youtubeShorts','abcdefghijk']],'the page fallback fills both slots by shape');
- const urls=(await (await fetch(base+'/api/sources')).json()).urls;assert.match(urls.youtubeShorts,/v=abcdefghijk/);
- await post('/api/youtube/page-live',{videos:[]});assert.equal((await (await fetch(base+'/api/sources')).json()).urls.youtube,'https://www.youtube.com/@example/live','back to the channel page when nothing is live');
+ const urls=(await (await request('/api/sources')).json()).urls;assert.match(urls.youtubeShorts,/v=abcdefghijk/);
+ const before=(await (await request('/api/sources')).json()).urls;
+ assert.equal((await post('/api/youtube/page-live',{...result,videos:[]})).ignored,true,'a consumed/stale probe cannot replace a chat');assert.deepEqual((await (await request('/api/sources')).json()).urls,before);
+ const messages=[],feed=new NetworkFeed({platform:'youtube',sourceKey:'youtubeShorts',onMessage:m=>messages.push(m)});
+ const batch=id=>({continuationContents:{liveChatContinuation:{actions:[{addChatItemAction:{item:{liveChatTextMessageRenderer:{id,authorName:{simpleText:'Example'},message:{runs:[{text:'fixture chat'},{emoji:{shortcuts:[':dance:'],image:{thumbnails:[{url:'https://yt3.ggpht.com/fixture.gif'}]}}}]}}}}}]}}});
+ feed.accept(youtubeActions(batch('old'),'youtubeShorts'),{baseline:true});feed.accept(youtubeActions(batch('new'),'youtubeShorts'));feed.accept(youtubeActions(batch('new'),'youtubeShorts'));assert.equal(messages.length,2);assert.equal(messages[1].action,'update');
+ for(const m of messages)await post('/api/bridge',{...m,transport:'desktop'});
+ const history=await (await request('/api/chat/history')).json();assert.equal(history.messages.length,1);assert.equal(history.messages[0].id,'new');assert.equal(history.messages[0].sourceKey,'youtubeShorts');assert.equal(history.messages[0].parts[0].text,'fixture chat');assert.equal(history.messages[0].parts[1].src,'https://yt3.ggpht.com/fixture.gif');
+ const status=await (await request('/api/status')).json();assert.equal(status.traffic.youtube.received,1);assert.equal(status.diagnostics.youtube.slots.vertical,true);
+ await post('/api/apps',{platform:'youtube',clientId:'fixture.apps.googleusercontent.com',clientSecret:'fixture-secret'});
+ const signedOut=await (await request('/api/status')).json();assert.equal(signedOut.youtube.readMode,'signin');assert.equal(signedOut.sources.urls.youtube,'');assert.equal((await post('/api/bridge',{...messages[0],id:'must-ignore',transport:'desktop'})).ignored,true);assert.equal((await (await request('/api/chat/history')).json()).messages.length,1);
+});
+
+test('quota exhaustion switches the existing API-discovered chats to read-only page capture without changing URLs',async t=>{
+ const {request}=await isolatedServer(t,{youtubeFixture:true}),{token}=await (await request('/api/pair')).json();
+ const post=async(path,data)=>{const r=await request(path,{method:'POST',headers:{'content-type':'application/json','x-bubblecast-token':token},body:JSON.stringify(data)});assert.equal(r.status,200);return r.json();};
+ await post('/api/sources',{enabled:true});await post('/api/collector/status',{active:true,version:'1.33.4'});await post('/api/youtube/check',{});
+ const api=await (await request('/api/status')).json();assert.equal(api.youtube.readMode,'api');assert.ok(api.sources.urls.youtube);assert.ok(api.sources.urls.youtubeShorts);assert.equal(api.diagnostics.youtube.route,'api');
+ const deadline=Date.now()+5000;let page;
+ do{await new Promise(r=>setTimeout(r,25));page=await (await request('/api/status')).json();assert.ok(Date.now()<deadline,'mock quota did not switch the read mode');}while(page.youtube.readMode!=='page');
+ assert.deepEqual(page.sources.urls,api.sources.urls,'the helper retains both existing chat windows');assert.equal(page.diagnostics.platforms.youtube.route,'none','an API chat ID does not imply an active API reader after quota exhaustion');
+ const commands=await (await request('/api/collector/commands',{headers:{'x-bubblecast-token':token}})).json();assert.equal(commands.commands.length,0,'fallback for known streams needs no discovery or reload command');
+ await post('/api/bridge',{platform:'youtube',sourceKey:'youtube',transport:'desktop',id:'quota-page-message',user:'Example',parts:[{type:'text',text:'fixture after quota'}]});assert.equal((await (await request('/api/chat/history')).json()).messages.length,1);
+});
+
+for(const change of ['channel','disconnect','expiry'])test('a page probe cannot replace chats after '+change,async t=>{
+ const {request,advance}=await isolatedServer(t),{token}=await (await request('/api/pair')).json();
+ const post=async(path,data)=>{const r=await request(path,{method:'POST',headers:{'content-type':'application/json','x-bubblecast-token':token},body:JSON.stringify(data)});assert.equal(r.status,200);return r.json();};
+ await post('/api/sources',{youtubeChannel:'@first'});await post('/api/collector/status',{active:true,version:'1.33.4'});await post('/api/youtube/check',{});
+ const commands=await (await request('/api/collector/commands',{headers:{'x-bubblecast-token':token}})).json(),check=commands.commands[0];assert.equal(check.action,'youtube-check');
+ if(change==='channel')await post('/api/sources',{youtubeChannel:'@second'});else if(change==='disconnect')await post('/api/sources',{youtubeChannel:'@first',enabled:false});else await advance(55001);
+ assert.equal((await post('/api/youtube/page-live',{id:check.id,channel:check.channel,videos:[{video:'aaaaaaaaaaa'}]})).ignored,true);
+ const sources=await (await request('/api/sources')).json();assert.equal(sources.urls.youtube,'');assert.deepEqual(sources.youtubeFound,[]);
+});
+test('an ordinary API permission failure never enables page-chat fallback',async t=>{
+ const {request}=await isolatedServer(t,{youtubeFixture:'forbidden'}),{token}=await (await request('/api/pair')).json();
+ const post=async(path,data)=>{const r=await request(path,{method:'POST',headers:{'content-type':'application/json','x-bubblecast-token':token},body:JSON.stringify(data)});assert.equal(r.status,200);return r.json();};
+ await post('/api/sources',{enabled:true});await post('/api/collector/status',{active:true,version:'1.33.4'});await post('/api/youtube/check',{});
+ const deadline=Date.now()+5000;let status;do{await new Promise(r=>setTimeout(r,25));status=await (await request('/api/status')).json();assert.ok(Date.now()<deadline);}while(!status.youtube.error);
+ assert.equal(status.youtube.readMode,'api');assert.equal(status.youtube.quotaUntil,null);assert.equal(status.sources.youtubeLive,undefined);
+ assert.equal((await post('/api/bridge',{platform:'youtube',transport:'desktop',id:'blocked-fallback',user:'Example',parts:[{type:'text',text:'fixture'}]})).ignored,true);assert.equal((await (await request('/api/chat/history')).json()).messages.length,0);
 });

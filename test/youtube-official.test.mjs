@@ -92,12 +92,12 @@ function broadcasts(g,{active=[],upcoming=[],sending=[]}={}){const asked=[];cons
  if(u.pathname.endsWith('/liveStreams')){asked.push('streams:'+u.searchParams.get('id'));return {ok:true,status:200,json:async()=>({items:u.searchParams.get('id').split(',').map(id=>({id,status:{streamStatus:sending.includes(id)?'active':'inactive'}}))})};}
  return original(url,options);}};}
 const bc=(id,state,extra={},key='')=>({id:id.repeat(11).slice(0,11),snippet:{title:id,...extra},status:{lifeCycleStatus:state},contentDetails:{boundStreamId:key}});
-async function find(yt,timers){const h=timers.find(h=>!h.cancelled&&h.ms===1000&&!h.ran);h.ran=true;await h.fn();}
+async function find(yt){await yt.findLive();}
 test('with no links entered, live streams are found first and fill the YouTube slots by title, oldest first',async t=>{
  const {yt,g,timers}=await signedIn(t),b=broadcasts(g,{active:[bc('v','live',{actualStartTime:'2026-10-22T10:05:00Z'}),bc('m','live',{actualStartTime:'2026-10-22T10:00:00Z'}),{id:'bad'}]});yt.request=b.request;const found=[];yt.onFound=f=>found.push(f);
  yt.autoFind(true);await find(yt,timers);
  assert.deepEqual(found.at(-1),[{video:'mmmmmmmmmmm',title:'m',slot:'youtube',format:''},{video:'vvvvvvvvvvv',title:'v',slot:'youtubeShorts',format:''}]);assert.deepEqual(b.asked,['active'],'with two live there is no upcoming lookup');
- assert.equal(timers.at(-1).ms,90000);yt.autoFind(false);assert.deepEqual(found.at(-1),[]);
+ assert.ok(!timers.some(h=>!h.cancelled&&h.ms===90000),'discovery never schedules another lookup');yt.autoFind(false);assert.deepEqual(found.at(-1),[]);
 });
 test('before going live, the broadcast OBS is already sending to wins over YouTube’s always-ready placeholder',async t=>{
  const {yt,g,timers}=await signedIn(t),b=broadcasts(g,{upcoming:[bc('p','ready',{title:'Channel Live Stream'},'default-key'),bc('k','created',{title:'Evening Stream',scheduledStartTime:new Date(Date.now()+3600000).toISOString()},'main-key')],sending:['main-key']});yt.request=b.request;
@@ -131,7 +131,7 @@ test('nothing is read from YouTube while OBS is offline, and reading resumes whe
  const {yt,g,timers}=await signedIn(t);yt.setLive(false);const before=g.calls.length;
  yt.configure({youtube:'aaaaaaaaaaa'});yt.autoFind(true);assert.ok(!timers.some(h=>!h.cancelled&&!h.ran),'no reads are scheduled offline');
  assert.equal(g.calls.length,before);assert.equal(yt.status().live,false);
- yt.setLive(true);const pending=timers.filter(h=>!h.cancelled&&!h.ran);assert.ok(pending.length>=2,'chat and stream finding start when live');
+ yt.setLive(true);const pending=timers.filter(h=>!h.cancelled&&!h.ran);assert.equal(pending.length,1,'only chat metadata starts when live; discovery waits for an explicit bounded check');
  yt.setLive(false);assert.ok(pending.every(h=>h.cancelled),'going offline cancels them');
 });
 test('the quota resets at midnight Pacific time, in summer and winter',()=>{
@@ -144,4 +144,15 @@ test('YouTube diagnostics distinguish an idle lookup, an empty result and an API
  const b=broadcasts(g);yt.request=b.request;yt.autoFind(true);await find(yt,timers);
  const d=yt.status().discovery;assert.equal(d.state,'complete');assert.equal(d.found,0);assert.ok(d.startedAt>0);assert.ok(d.finishedAt>=d.startedAt);assert.deepEqual(b.asked,['active','upcoming']);
  yt.request=async()=>{throw Error('synthetic failure');};await yt.findLive();assert.equal(yt.status().discovery.state,'error');assert.equal(yt.status().discovery.found,0);
+});
+
+test('discovery is single-flight, discards results after stopping, and never reschedules itself',async t=>{
+ const {yt,g}=await signedIn(t);let finish,calls=0;yt.request=async()=>{calls++;return new Promise(resolve=>{finish=()=>resolve({ok:true,status:200,json:async()=>({items:[bc('m','live')]})});});};
+ yt.autoFind(true);const a=yt.findLive(),b=yt.findLive();assert.equal(a,b);await settle();assert.equal(calls,1);yt.setLive(false);finish();await a;assert.deepEqual(yt.found,[]);assert.equal(yt.status().discovery.state,'idle');assert.equal(calls,1,'a stopped lookup does not query upcoming streams');
+});
+test('adding Shorts preserves the existing main API stream and late metadata cannot restart it offline',async t=>{
+ const {yt}=await signedIn(t);yt.configure({youtube:'aaaaaaaaaaa'});const abort=new AbortController(),stream={chat:'chat-main',abort};yt.streams.youtube=stream;yt.chats.youtube='chat-main';
+ yt.configure({youtube:'aaaaaaaaaaa',youtubeShorts:'bbbbbbbbbbb'});assert.equal(yt.streams.youtube,stream);assert.equal(abort.signal.aborted,false);assert.equal(yt.chats.youtube,'chat-main');
+ let finish;yt.request=async()=>new Promise(resolve=>{finish=()=>resolve({ok:true,status:200,json:async()=>({items:[{id:'aaaaaaaaaaa',liveStreamingDetails:{activeLiveChatId:'late'}}]})});});
+ const pending=yt.pollChats(yt.generation);await settle();yt.setLive(false);finish();await pending;assert.deepEqual(yt.streams,{});assert.deepEqual(yt.chats,{});
 });
