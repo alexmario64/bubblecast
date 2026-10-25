@@ -2,11 +2,13 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Window} from 'happy-dom';
 import {readFile} from 'node:fs/promises';
+import {diagnosticSnapshot} from '../../diagnostics.mjs';
 import {defaults,knownBots} from '../../core.mjs';
 const root=new URL('../../public/',import.meta.url);
 const status={settings:{...defaults,ignoredBots:['MyBot']},bridge:{},traffic:{twitch:{received:12}},sources:{configured:true,enabled:true,twitchChannel:'test',youtubeVideo:'normal',urls:{twitch:'t',youtube:'y'}},collector:{active:true,accounts:{youtube:{signedIn:true,canSend:false}}},youtube:{configured:true,connected:true,channel:{title:'My channel'}}};
-async function studio(t,hash=''){
+async function studio(t,hash='',translate=false){
  const w=new Window({url:'http://127.0.0.1:3927/'+hash});t.after(()=>w.happyDOM.abort());w.document.write(await readFile(new URL('index.html',root),'utf8'));
+ if(translate)w.eval(await readFile(new URL('i18n.js',root),'utf8'));
  const calls=[];w.fetch=async(url,options)=>{calls.push([url,options]);return {ok:true,json:async()=>url==='/api/pair'?{token:'test'}:url==='/api/status'?structuredClone(status):url==='/api/settings'?JSON.parse(options.body):{}};};
  const connections=(await readFile(new URL('connections.js',root),'utf8')).replace('export function','function');
  const code='const knownBots='+JSON.stringify(knownBots)+';'+(await readFile(new URL('app.js',root),'utf8')).replace(/^import[^\n]*\n/gm,'');await w.eval('(async()=>{'+connections+'\n'+code+'})()');
@@ -76,4 +78,19 @@ test('found YouTube streams are listed by title and a format choice is sent once
  assert.equal(list.hidden,false);const rows=[...list.querySelectorAll('li')];assert.equal(rows.length,2);assert.equal(rows[0].querySelector('.stream-title').textContent,'Evening Stream');assert.equal(rows[0].querySelector('.stream-state').textContent,'Receiving video');assert.equal(rows[1].querySelector('select').value,'hide');
  const select=rows[0].querySelector('select');select.value='vertical';select.dispatchEvent(new w.Event('change'));await wait(20);
  const sent=calls.filter(([url,o])=>url==='/api/youtube/stream'&&o?.method==='POST');assert.equal(sent.length,1);assert.deepEqual(JSON.parse(sent[0][1].body),{video:'kkkkkkkkkkk',choice:'vertical'});
+});
+
+test('Studio shows per-platform diagnostics and missing detection, channel and log failures safely',async t=>{
+ const prior=status.diagnostics;status.diagnostics={...diagnosticSnapshot({sources:{urls:{tiktok:'t',kick:'k'}},collector:{active:true,accounts:{tiktok:{signedIn:false}},errors:{kick:'private detail'}},traffic:{tiktok:{received:7,displayed:4,lastMessageAt:Date.now()}},obs:{checkedAt:Date.now(),websocket:'unavailable',browserAt:Date.now(),browserStreaming:true}}),log:{error:true}};
+ t.after(()=>{status.diagnostics=prior;});const {doc}=await studio(t);
+ const rows=[...doc.querySelectorAll('#diagnosticPlatforms li')];assert.equal(rows.length,4);
+ assert.match(rows[2].textContent,/Receiving chat.*Not signed in.*Received: 7.*Shown: 4/);assert.match(rows[3].textContent,/Capture or connection error/);assert.ok(!doc.querySelector('#diagnosticPlatforms').textContent.includes('private detail'));
+ assert.match(doc.querySelector('#diagnosticObs').textContent,/OBS: Streaming.*Aitum: Not detected.*OBS browser.*WebSocket unavailable/);
+ assert.match(doc.querySelector('#diagnosticYouTube').textContent,/Add a YouTube channel.*No check yet/);assert.equal(doc.querySelector('#diagnosticLog').textContent,'Local log could not be written.');
+});
+
+test('Studio diagnostics render their first status in Spanish with live counts',async t=>{
+ const prior=status.diagnostics,language=status.settings.language;status.settings.language='es';status.diagnostics=diagnosticSnapshot({sources:{urls:{tiktok:'t'}},collector:{active:true,accounts:{tiktok:{signedIn:false}}},traffic:{tiktok:{received:7,displayed:4,lastMessageAt:Date.now()}}});
+ t.after(()=>{status.diagnostics=prior;status.settings.language=language;});const {doc}=await studio(t,'',true);
+ assert.match(doc.querySelector('#diagnosticPlatforms').textContent,/Recibidos: 7.*Mostrados: 4/);assert.match(doc.querySelector('#diagnosticYouTube').textContent,/No se encontró ninguno/);assert.match(doc.querySelector('#diagnosticLog').textContent,/Registro local/);
 });

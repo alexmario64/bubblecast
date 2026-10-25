@@ -46,12 +46,13 @@ The installed app updates itself: the server (`updates.mjs`) asks the GitHub rel
 
 ### Visual checks
 
-Run `pnpm exec playwright install chromium` once per machine. `pnpm screenshots` then captures every Studio page in all four themes and at phone width, the dock states and every overlay state into `.local/screenshots/` (ignored by Git). Pass name filters to capture a subset (`pnpm screenshots polls dock`). The run fails if a page throws or a request errors. It reuses the server on port 3927 or starts one, and themes are applied in the page only, so no settings are written.
+Run `pnpm exec playwright install chromium` once per machine. `pnpm screenshots` then captures every Studio page in all four themes and at phone width, the dock states and every overlay state into `.local/screenshots/` (ignored by Git). Pass name filters to capture a subset (`pnpm screenshots polls dock`). The run fails if a page throws or a request errors. For isolated Studio checks while a signed-in helper is running, use `pnpm screenshots --offline studio-overview studio-diagnostics`: synthetic API data and checkout assets are served through Playwright routes; it contacts no server or live platform. It reuses the server on port 3927 or starts one, and themes are applied in the page only, so no settings are written.
 
 Never point automated browsers or scripts at live platform sites (Twitch, YouTube, Kick, TikTok, Google). Repeated scripted traffic from one IP triggers their bot protection. Research live behavior through the helper's real windows at a normal pace.
 
 ## Architecture
 
+- `diagnostics.mjs`: privacy-limited status snapshots and a rotating `.local/diagnostics.log` in the data folder (1 MiB plus one backup). Studio → Overview shows platform capture/session states, OBS/Aitum detection and YouTube discovery outcomes. Diagnostics observes existing state without contacting platforms.
 - `server.mjs`: local HTTP/SSE server on 127.0.0.1:3927: settings, sources, relay, poll jobs and the authenticated helper command queue. Static files are served from an explicit allowlist.
 - `core.mjs`: settings validation and defaults, message normalization, bots, stream event model, viewer colors and theme helpers. Shared by the server and the pages.
 - `relay.mjs`, `dock-history.mjs`, `outbox.mjs`: message relay and dedupe, recent dock history, outgoing chat jobs.
