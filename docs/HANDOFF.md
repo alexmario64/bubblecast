@@ -2,7 +2,74 @@
 
 For any coding agent (Codex, Claude) or person picking up this repo. Read `AGENTS.md` (the rules) and `DEVELOPMENT.md` (the architecture) first. This file covers the current state, the next tasks, and lessons from recent work. Update it when those change.
 
-State as of 2026-10-24: v1.33.1 is the latest published release (Windows installer on GitHub Releases, in-app updates). PR #63 prepares 1.33.2. YouTube is checked once, never on a timer, when OBS or Aitum Vertical starts streaming, or when a message is sent to YouTube from the dock. The check uses the API when a Google app is set up and quota remains. Otherwise the helper reads the channel's Streams tab once, then each live stream's page (at most two) to tell horizontal from vertical, and reports them to `/api/youtube/page-live`. The server places them in the `youtube` and `youtubeShorts` slots with the API's `assignSlots`; a single stream counts as vertical while only Aitum Vertical streams. Opening OBS or recording offline spends no quota. The Streams-tab parsing (`YOUTUBE_LIVE_STREAMS` in desktop/main.cjs) has not yet been confirmed on a real live stream; the channel's /live page remains the backup for the main stream. The older notes below are history.
+State as of 2026-10-25: v1.33.2 is the latest published release (Windows installer on GitHub Releases, in-app updates). On the owner's 2026-10-24 Windows stream, four bugs were still present. They are listed below with what was already tried. Fix them one branch and PR at a time, in the order given.
+
+## Open bugs (seen live on Windows, 2026-10-24, v1.33.2)
+
+No logs from that stream were collected. Before changing behaviour, add diagnostics: a short status line per platform in Studio, and a rolling log in the data folder (`%APPDATA%\Bubblecast`). Each fix should show its effect there without needing live-site scripting.
+
+### 1. YouTube stream not found automatically (the owner pasted the link)
+
+What exists now (PRs #61–#63):
+- YouTube is checked once per trigger, never on a timer. The triggers are OBS starting to stream (`/api/obs/streaming` from `public/obs-live.mjs`, or `obsStreams()` in `obs.mjs` over OBS WebSocket every 20 s), Aitum Vertical starting to stream, and a message sent to YouTube from the dock. See `checkYouTube()` and `streamingChanged()` in `server.mjs`.
+- With a Google app and quota, `youtube.setLive(true)` runs `findLive()` (`youtube-official.mjs`).
+- Without an app, or after the quota runs out, the helper's `youtubeCheck()` (`desktop/main.cjs`) reads the channel's Streams tab (`YOUTUBE_LIVE_STREAMS`), then each stream's watch page (`YOUTUBE_STREAM_SHAPE`). It posts the results to `/api/youtube/page-live`, and `pageSlots()` assigns them.
+
+Likely causes, to check in this order:
+- **The single check runs too early.** At "start streaming", YouTube has not yet marked the broadcast live, so the one check finds nothing and nothing tries again. Fix: after a trigger, run a short bounded series of checks (for example at +20 s, +60 s, +120 s, +240 s). Stop as soon as both expected slots are found, and never run open-ended. Expected slots: horizontal if OBS is streaming, vertical if Aitum is streaming. The owner rejected periodic refreshes, not a few spaced checks right after a start. Never reload the chat windows; probe in a hidden window only.
+- **The trigger never fires.** OBS WebSocket may be disabled or have a password Bubblecast can't read (`obsStreams()` returns null silently). `obs-live.mjs` only reports when a Bubblecast dock or browser source is loaded with page permissions. Show in Studio whether OBS streaming and Aitum status were detected, and from which path.
+- **The fallback has no channel.** It needs `youtubeChannel` or a connected Google account (`withFoundVideos` in `source-config.mjs`). If neither is set, it silently does nothing. Studio must say so.
+- **The `/streams` parsing is unverified.** `YOUTUBE_LIVE_STREAMS` was written without access to a real live page. Verify it only through the helper's real signed-in window while the owner is live, and ask the owner first.
+
+### 2. TikTok chat only works after clicking "Manage TikTok"
+
+What exists now: TikTok pages are never reloaded. `desktop/preload.cjs` fakes `visibilityState`, `hidden` and `hasFocus` on tiktok.com. The window is created with `show:false` and `backgroundThrottling:false`.
+
+Likely cause: a window that has never been shown doesn't paint, so TikTok's live room never starts its player and chat socket. Showing the window ("Manage") starts it.
+
+Fix ideas:
+- Create the TikTok window with `paintWhenInitiallyHidden:true`.
+- Or briefly `showInactive()` it off-screen or minimized once after load, then hide it.
+- Then confirm through diagnostics that messages arrive without any user click.
+- Also check whether the sign-in cookie exists before the room loads. If the session is missing, show "Sign in to TikTok" instead of failing silently.
+
+### 3. Chat overlay stopped until "Refresh cache of current page" in OBS
+
+Static files are already served with `Cache-Control: no-store`, so stale files are unlikely. More likely, the overlay's `EventSource('/api/events')` in `public/overlay.js` (and in `tts.js` and `poll-overlay.js`) gave up after the server restarted. An update, a helper restart or the Host check can answer with an error, which closes an EventSource permanently.
+
+Fix:
+- The server sends a heartbeat event every 15–20 s.
+- Each overlay watches it. On a closed stream, or no heartbeat for about 45 s, it reconnects; after repeated failures it reloads itself with `location.reload()`.
+- On reconnect, ask the server for current settings so the overlay repaints.
+- Add a browser test with a fake server restart.
+
+### 4. Shorts (vertical) live vs normal live mixed up
+
+What exists now:
+- With the API, the format is not known (`pickBroadcasts`: "Format isn't knowable from the API"). `assignSlots` puts the first live stream in the horizontal slot unless the streamer saved a choice.
+- Without the API, the watch page's `adaptiveFormats` aspect ratio is used. That data may be missing on live streams.
+- A single stream counts as vertical only while Aitum alone is streaming.
+
+Fix: match stream keys.
+- OBS WebSocket `GetStreamServiceSettings` gives the main output's key. The Aitum Vertical vendor request (check which requests it supports) or its config file gives the vertical key.
+- With the API, `liveStreams` (part `cdn`) gives `cdn.ingestionInfo.streamName` for each `boundStreamId`. Equal to the OBS key means horizontal; equal to the Aitum key means vertical.
+- Without the API, use the order in which OBS and Aitum started streaming as a tiebreak, plus the aspect ratio when it is available.
+- Remember the result per stream key in `youtube-streams.json`, as manual choices are now.
+- Never send stream keys anywhere or log them.
+
+## What was done in this round (for context)
+
+- **v1.33.0–1.33.2:**
+  - TikTok pages are never reloaded.
+  - YouTube moves to a new chat only when the old stream ended.
+  - YouTube is checked once per stream start, API first, never on a timer, and no quota is spent just because OBS is open or recording offline.
+  - The no-API fallback reads the Streams tab and fills both slots.
+  - Aitum counts only while `streaming===true`.
+  - Twitch token refresh is single-flight, and only a 400 or 401 response forgets the token.
+  - A Lua script in the current OBS scene collection starts Bubblecast when OBS opens (`addObsLauncher` in `obs-dock.mjs`).
+- **Earlier:** Windows installer and updater; text to speech with Twitch reward cooldown sync; Classic and Modern chat styles; themed dropdowns; the setup guide; the website.
+
+The older notes below are history.
 
 ## Open PRs and checkout at handoff
 
