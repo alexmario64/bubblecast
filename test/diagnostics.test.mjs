@@ -59,3 +59,12 @@ test('a channel landing page does not count as a filled YouTube chat slot',()=>{
  assert.equal(diagnosticSnapshot({sources},now).youtube.slots.horizontal,false);
  sources.urls.youtube='https://www.youtube.com/live_chat?v=abcdefghijk&is_popout=1';assert.equal(diagnosticSnapshot({sources},now).youtube.slots.horizontal,true);
 });
+
+test('TikTok diagnostics expose missing sessions and bounded startup states without blocking anonymous reception',()=>{
+ const input={sources:{urls:{tiktok:'t'}},collector:{active:true,accounts:{tiktok:{signedIn:false}},feeds:{tiktok:{transport:'network',startup:'painted'}}}};
+ let row=diagnosticSnapshot(input,now).platforms.tiktok;assert.equal(row.state,'signin-required');assert.equal(row.startup,'painted');assert.equal(row.session,'signed-out');
+ row=diagnosticSnapshot({...input,traffic:{tiktok:{received:1,lastMessageAt:now}}},now).platforms.tiktok;assert.equal(row.state,'receiving');assert.equal(row.session,'signed-out');
+ input.collector.accounts.tiktok.signedIn=null;input.collector.feeds.tiktok.startup='private-cookie-value';row=diagnosticSnapshot(input,now).platforms.tiktok;assert.equal(row.state,'waiting');assert.equal(row.session,'unknown');assert.equal(row.startup,'not-started');
+ input.collector.feeds.tiktok.startup='failed';assert.equal(diagnosticSnapshot(input,now).platforms.tiktok.state,'error');
+ input.collector.active=false;assert.equal(diagnosticSnapshot(input,now).platforms.tiktok.state,'helper-offline');
+});

@@ -12,6 +12,7 @@ const studioPages=['overview','connections','appearance','chat','polls','tts','d
 const shots=[
  ...['rose','red','midnight','white'].flatMap(theme=>studioPages.map(page=>({name:`studio-${page}-${theme}`,path:'/#'+page,viewport:desktop,theme,full:true}))),
  ...[{name:'studio-youtube-no-app',viewport:desktop},{name:'studio-youtube-no-app-narrow',viewport:{width:420,height:880}},{name:'studio-youtube-no-app-spanish',viewport:desktop,language:'es'}].map(s=>({...s,path:'/#connections',scenario:'no-app',offlineOnly:true,full:true})),
+ ...[{name:'studio-tiktok-session',viewport:desktop},{name:'studio-tiktok-session-narrow',viewport:{width:420,height:880}},{name:'studio-tiktok-session-spanish',viewport:desktop,language:'es'}].map(s=>({...s,path:'/#connections',offlineOnly:true,scroll:'[data-platform="tiktok"]',full:true})),
  {name:'studio-diagnostics-narrow',path:'/#overview',viewport:{width:420,height:880},scroll:'.diagnostics-card'},
  {name:'studio-diagnostics-spanish',path:'/#overview',viewport:desktop,language:'es',full:true},
  {name:'studio-overview-narrow',path:'/#overview',viewport:{width:420,height:880}},
