@@ -138,3 +138,10 @@ test('the quota resets at midnight Pacific time, in summer and winter',()=>{
  assert.equal(new Date(nextPacificMidnight(Date.parse('2026-10-23T20:00:00.500Z'))).toISOString(),'2026-10-24T07:00:00.000Z');
  assert.equal(new Date(nextPacificMidnight(Date.parse('2026-01-10T12:00:00Z'))).toISOString(),'2026-01-11T08:00:00.000Z');
 });
+
+test('YouTube diagnostics distinguish an idle lookup, an empty result and an API failure without extra requests',async t=>{
+ const {yt,g,timers}=await signedIn(t);assert.equal(yt.status().discovery.state,'idle');
+ const b=broadcasts(g);yt.request=b.request;yt.autoFind(true);await find(yt,timers);
+ const d=yt.status().discovery;assert.equal(d.state,'complete');assert.equal(d.found,0);assert.ok(d.startedAt>0);assert.ok(d.finishedAt>=d.startedAt);assert.deepEqual(b.asked,['active','upcoming']);
+ yt.request=async()=>{throw Error('synthetic failure');};await yt.findLive();assert.equal(yt.status().discovery.state,'error');assert.equal(yt.status().discovery.found,0);
+});

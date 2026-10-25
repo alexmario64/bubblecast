@@ -4,11 +4,24 @@ For any coding agent (Codex, Claude) or person picking up this repo. Read `AGENT
 
 State as of 2026-10-25: v1.33.2 is the latest published release (Windows installer on GitHub Releases, in-app updates). On the owner's 2026-10-24 Windows stream, four bugs were still present. They are listed below with what was already tried. Fix them one branch and PR at a time, in the order given.
 
+## Diagnostics prerequisite — helper 1.33.3 (2026-10-25)
+
+- Implemented in [PR #65](https://github.com/alexmario64/bubblecast/pull/65), branch `feature/platform-diagnostics`, updated with `main` after handoff PR #64 merged. Studio → Overview now has a Diagnostics card: capture/session state, route, received/shown counts, last message time, OBS main/Aitum detection and its path, YouTube slots, latest API/page discovery outcome and trigger, live-page connections and latest reported paint.
+- The server writes `.local/diagnostics.log` under the data folder: `%APPDATA%\Bubblecast\.local\diagnostics.log` for an installed Windows app. JSON lines record changes (sampled every 5 s) and minute summaries. Rotation keeps at most 1 MiB plus one 1 MiB `.1` backup. Write failures appear in Studio and recover when storage is available.
+- Log fields are explicitly allowed enums, booleans, counts, times and version numbers. No chat text, names, IDs, page URLs/titles, raw errors, credentials, cookies or stream keys. Each server start writes a fresh status entry; old log files survive restarts and updates.
+- OBS WebSocket and browser reports are shown separately from missing detection. Aitum's missing/unsupported status reply is unknown, rather than idle. YouTube reports check start/end/outcome without adding requests. Capture, discovery, chat reload and quota behavior have not been changed in this prerequisite.
+- **Audit for fix 1 below:** despite older wording saying “never on a timer”, `YouTubeOfficial.findLive()` still reschedules at 90–110 s while live. Replace that discovery timer with the requested bounded stream-start checks in the next PR; diagnostics does not fix it.
+- All three helper version locations are **1.33.3**. Tests cover log privacy, rotation, failure recovery, detection freshness, API outcomes, Studio status and Spanish. `pnpm screenshots --offline studio-overview studio-diagnostics` uses synthetic data and serves checkout assets through Playwright routes, contacting neither the running helper nor live sites. Local full suite: **403 passed, 0 failed, 3 skipped** (the running helper owns port 3927, so the isolated server test is skipped locally; Windows CI runs it). Seven offline screenshots passed with no page errors and were visually reviewed in all four themes, at phone width and in Spanish. The initial Windows CI passed **406 tests, 0 failed, 0 skipped**, including the installed-server test; the Windows installer build also passed. Pulling in the documentation merge triggers fresh checks, so verify the latest PR head before merging.
+- Deployment is pending the owner's merge and Windows install/update. Restart the Windows helper and refresh the Studio/OBS sources after deploying. The running macOS helper has been left running; no live platform window was inspected or automated. No Windows stream validation is claimed.
+- Next: after the owner merges this PR, return to `main`, pull with `--ff-only`, then implement YouTube bounded discovery, TikTok hidden painting/session, overlay recovery, and stream-key matching in that order, one branch and PR each. The four live bugs below remain open.
+
 ## Open bugs (seen live on Windows, 2026-10-24, v1.33.2)
 
-No logs from that stream were collected. Before changing behaviour, add diagnostics: a short status line per platform in Studio, and a rolling log in the data folder (`%APPDATA%\Bubblecast`). Each fix should show its effect there without needing live-site scripting.
+No logs from that stream were collected. Diagnostics are implemented in the prerequisite above, awaiting deployment. Use Studio and the rolling log to check each fix on Windows without live-site scripting.
 
 ### 1. YouTube stream not found automatically (the owner pasted the link)
+
+The owner clarified on 2026-10-25 that YouTube **chat reading without a Google app is also still broken**. The next YouTube PR must cover fallback discovery and actual page-chat ingestion together, with offline fixtures for the no-app path. Keep the API first when an app is configured and quota is available; page fallback is for no app or exhausted quota.
 
 What exists now (PRs #61–#63):
 - YouTube is checked once per trigger, never on a timer. The triggers are OBS starting to stream (`/api/obs/streaming` from `public/obs-live.mjs`, or `obsStreams()` in `obs.mjs` over OBS WebSocket every 20 s), Aitum Vertical starting to stream, and a message sent to YouTube from the dock. See `checkYouTube()` and `streamingChanged()` in `server.mjs`.
@@ -71,7 +84,7 @@ Fix: match stream keys.
 
 The older notes below are history.
 
-## Open PRs and checkout at handoff
+## Historical PRs and checkout at earlier handoff
 
 - [#23 — Document streamer app setup and future Kick permissions](https://github.com/alexmario64/bubblecast/pull/23): merged. Google project quota isolation, secret replacement, the observed Kick app form, current permissions versus future features, and local credential setup.
 - [#24 — Connect own channels automatically and unify Kick sign-in](https://github.com/alexmario64/bubblecast/pull/24), branch `feature/own-channel-connections`: the implementation and UI changes below, including helper **1.24.0**. Open and pushed; latest functional commit `d370efe` passed Windows CI. Latest local full suite: **337 passed, 0 failed**. Connection screenshots were reviewed using offline fixtures, including the final text/button alignment. The final documentation-only handoff commit will trigger fresh CI; check the latest PR checks before merging.

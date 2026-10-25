@@ -14,14 +14,17 @@ test('an installed server saves channels and settings in its data folder',async 
  const server=spawn(process.execPath,['server.mjs'],{cwd:root,env:{...process.env,BUBBLECAST_DATA:dir},stdio:'ignore'});
  t.after(async()=>{server.kill();await new Promise(r=>server.once('exit',r));await rm(dir,{recursive:true,force:true});});
  const deadline=Date.now()+10000;while(!await up()){assert.ok(Date.now()<deadline,'server did not start');await new Promise(r=>setTimeout(r,100));}
+ const initial=await (await fetch(base+'/api/status')).json();assert.equal(initial.diagnostics.platforms.youtube.state,'not-configured');
+ const log=await readFile(join(dir,'.local','diagnostics.log'),'utf8');assert.equal(JSON.parse(log.trim()).helper,false);
  const {token}=await (await fetch(base+'/api/pair')).json();
  const post=async(path,body)=>{const r=await fetch(base+path,{method:'POST',headers:{'content-type':'application/json','x-bubblecast-token':token},body:JSON.stringify(body)});assert.equal(r.status,200,path+': '+await r.clone().text());return r.json();};
- await post('/api/sources',{twitchChannel:'samplestreamer'});
+ await post('/api/sources',{tiktokChannel:'samplestreamer'});
  assert.match(await readFile(join(dir,'sources.json'),'utf8'),/samplestreamer/);
  const settings=await (await fetch(base+'/api/settings')).json();await post('/api/settings',settings);
  await readFile(join(dir,'settings.json'),'utf8');
  assert.equal((await (await fetch(base+'/api/status')).json()).youtube.live,false,'YouTube waits for OBS');
  assert.equal((await post('/api/obs/streaming',{streaming:true})).live,true);assert.equal((await (await fetch(base+'/api/status')).json()).youtube.live,true);
+ const detected=(await (await fetch(base+'/api/status')).json()).diagnostics.obs;assert.equal(detected.browser,true);assert.equal(detected.main,true);assert.equal(detected.path,'browser');
  await post('/api/sources',{enabled:true,youtubeChannel:'@example'});
  const found=(await post('/api/youtube/page-live',{videos:[{video:'abcdefghijk',vertical:true},{video:'bcdefghijkl',vertical:false}]})).found;
  assert.deepEqual(found.map(f=>[f.slot,f.video]),[['youtube','bcdefghijkl'],['youtubeShorts','abcdefghijk']],'the page fallback fills both slots by shape');

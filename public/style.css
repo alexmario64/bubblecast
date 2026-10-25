@@ -351,3 +351,12 @@ body[data-theme=red] .page-actions .button.primary{background:#fff;color:var(--a
 .wn-tag.fresh{color:var(--on-accent);background:var(--accent-grad);animation:wn-pulse 1.8s ease-in-out infinite}
 @keyframes wn-pulse{50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 22%,transparent)}}
 @media(prefers-reduced-motion:reduce){.whats-new::before,.wn-spark,.wn-list li,.wn-tag.fresh{animation:none}}
+
+/* Local diagnostics wrap at every Studio width; never truncate a failure state. */
+.diagnostics-card{margin-top:18px}
+.diagnostics-list{list-style:none;margin:0;padding:0 18px}
+.diagnostics-list li{display:grid;grid-template-columns:85px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.6}
+.diagnostics-list strong{font-weight:600}.diagnostics-list span,.diagnostics-notes{color:var(--text-2)}
+.diagnostics-list [data-state="error"] span,.diagnostic-error{color:var(--bad)}
+.diagnostics-notes{padding:8px 18px 14px;font-size:12px;line-height:1.6;overflow-wrap:anywhere}.diagnostics-notes p{margin:4px 0}
+@media(max-width:540px){.diagnostics-list li{grid-template-columns:1fr;gap:0}}

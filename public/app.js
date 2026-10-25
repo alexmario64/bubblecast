@@ -172,6 +172,23 @@ function paintPlatforms(j){const list=$('#platformList');list.replaceChildren();
  const label=$('#account-'+p);if(p==='twitch')paintTwitch(j.twitch||{});else if(p==='youtube')paintYouTube(j.youtube||{});else{if(p==='kick')paintKick(j.kick||{},account);label.textContent=p==='kick'?(account?.signedIn?'Polls ready':'Connect Kick for chat and polls.'):accountText(account);label.classList.toggle('connected',account?.signedIn===true);const button=$('[data-setup-signin="'+p+'"]');if(button){button.textContent=account?.signedIn?'Manage account':'Sign in';button.disabled=!j.collector?.active;}}
  const row=document.createElement('li');row.dataset.state=st;const logo=document.createElement('img');logo.src=logos[p];logo.alt='';const text=document.createElement('div');const title=document.createElement('strong');title.textContent=names[p];const sub=document.createElement('span');sub.textContent=channelText(j,p)||'Not set up';text.append(title,sub);const badge=document.createElement('span');badge.className='pill';badge.dataset.state=st;badge.textContent=stateLabel[st];const count=document.createElement('span');count.className='count';const received=j.traffic?.[p]?.received||0;count.textContent=received?received+' msgs':'';row.append(logo,text,count,badge);list.append(row);}
  $('#connectionCount').textContent=connected?String(connected):'';}
+// Diagnostics use fixed states from the local server; personal chat and account details stay out.
+function paintDiagnostics(d){if(!d)return;
+ const states={disabled:'Sources disconnected','not-configured':'Not set up',waiting:'Waiting for chat',receiving:'Receiving chat',connected:'Chat connected','helper-offline':'Background app offline',error:'Capture or connection error','signin-required':'Connect YouTube in Connections'};
+ const routes={irc:'Twitch chat',api:'YouTube API',network:'Network capture',page:'Page capture',none:'No capture yet'};
+ const sessions={'signed-in':'Signed in','signed-out':'Not signed in',unknown:'Session not checked'};
+ const list=$('#diagnosticPlatforms');list.replaceChildren();
+ for(const p of platforms){const row=d.platforms?.[p];if(!row)continue;const li=document.createElement('li'),name=document.createElement('strong'),detail=document.createElement('span');name.textContent=names[p];li.dataset.state=row.state;
+ const when=row.lastMessageAt?new Date(row.lastMessageAt).toLocaleTimeString():tr('No messages yet');
+ detail.textContent=[tr(states[row.state]||'Waiting for chat'),tr(routes[row.route]||'No capture yet'),tr(sessions[row.session]||'Session not checked'),tr('Received')+': '+row.received,tr('Shown')+': '+row.displayed,tr('Last message')+': '+when].join(' · ');li.append(name,detail);list.append(li);}
+ const obs=d.obs||{},on=value=>tr(value===true?'Streaming':value===false?'Not streaming':'Not detected'),paths={both:'WebSocket + OBS browser',websocket:'WebSocket',browser:'OBS browser',none:'No detection path'};
+ $('#diagnosticObs').textContent=['OBS: '+on(obs.main),'Aitum: '+on(obs.vertical),tr(paths[obs.path]||'No detection path'),obs.websocket==='unavailable'?tr('OBS WebSocket unavailable'):null].filter(Boolean).join(' · ');
+ const y=d.youtube||{},checks={idle:'No check yet',checking:'Checking',complete:'Check finished',error:'Check failed'},latest=(y.api?.startedAt||0)>=(y.page?.startedAt||0)?y.api:y.page;
+ const yt=[!y.channel&&!y.slots?.horizontal&&!y.slots?.vertical?tr('Add a YouTube channel or connect YouTube in Connections.'):null,y.app&&!y.connected?tr('Connect YouTube in Connections'):null,y.quotaExhausted?tr('YouTube quota used up'):null,tr('YouTube slots')+': '+([y.slots?.horizontal?tr('Horizontal'):null,y.slots?.vertical?tr('Vertical'):null].filter(Boolean).join(' + ')||tr('None found')),tr(y.trigger==='stream-start'?'Stream-start check':y.trigger==='dock-send'?'Dock-send check':'Waiting for a stream-start trigger'),y.route==='api'?tr('YouTube API'):y.route==='page'?tr('Page capture'):null,tr(checks[latest?.state]||'No check yet')+(latest?.finishedAt?' · '+new Date(latest.finishedAt).toLocaleTimeString()+' · '+tr('Found')+': '+latest.found:'')];
+ $('#diagnosticYouTube').textContent=yt.filter(Boolean).join(' · ');
+ const lastPaint=Math.max(0,...Object.values(d.overlays?.lastPaint||{}));$('#diagnosticPages').textContent=tr('Live page connections')+': '+(d.overlays?.clients||0)+' · '+tr('Last page paint')+': '+(lastPaint?new Date(lastPaint).toLocaleTimeString():tr('Not detected'));
+ $('#diagnosticLog').textContent=tr(d.log?.error?'Local log could not be written.':'Local log: .local/diagnostics.log');$('#diagnosticLog').classList.toggle('diagnostic-error',!!d.log?.error);
+}
 // Live viewers: total, per-platform split and a trend since this page opened.
 const viewerKeys=['twitch','youtube','youtubeShorts','tiktok','kick'],viewerNames={...names,youtube:'YouTube Live',youtubeShorts:'YouTube Shorts'},viewerLogos={...logos,youtubeShorts:logos.youtube},viewerHistory=[];
 function paintViewers(j){const viewers=j.collector?.viewers||{},urls=j.sources?.enabled===false?{}:j.sources?.urls||{},rows=viewerKeys.filter(k=>urls[k]||viewers[k]),live=k=>viewers[k]?.live===true&&Number.isFinite(viewers[k].viewers)?viewers[k].viewers:null,counts=rows.map(live),known=counts.filter(n=>n!==null),total=known.length?known.reduce((a,b)=>a+b,0):null;
@@ -215,7 +232,7 @@ $('#twitchConnect').onclick=async()=>{const button=$('#twitchConnect');button.di
 async function status(){try{const j=await(await fetch('/api/status')).json();lastStatus=j;paintViewers(j);paintUpdate(j.update);paintTts(j.tts);
  if(!loaded){fill(j.settings);loaded=true;}else if(((j.settings.uiTheme||'rose')!==(state.uiTheme||'rose')||(j.settings.language||'en')!==(state.language||'en'))&&!saveTimer){state.uiTheme=j.settings.uiTheme;state.language=j.settings.language;fill({...collect(),uiTheme:j.settings.uiTheme,language:j.settings.language||'en'});}
  const online=!!j.collector?.active;$('#studioStatus').textContent=online?'Background app connected':'Background app offline';$('#helperChip').dataset.state=online?'online':'offline';$('#helperBanner').hidden=online;
- paintPlatforms(j);
+ paintPlatforms(j);paintDiagnostics(j.diagnostics);
  if(!sourceFieldsLoaded){if(j.sources?.configured)for(const id of sourceIds)$('#'+id).value=(j.sources.entered||j.sources)[id]||'';sourceFieldsLoaded=true;}
  $('#sourceFeedback').textContent=j.sources?.enabled===false?'Sources are disconnected. Save connections to reconnect.':'';steps();
 }catch{$('#studioStatus').textContent='Server not responding';$('#helperChip').dataset.state='offline';}}

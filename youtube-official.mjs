@@ -17,7 +17,7 @@ export const sourceKeys=['youtube','youtubeShorts'];
 export class YouTubeOfficial{
  constructor({file,live=true,clientId='',clientSecret='',request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{},onMessage=()=>{},onFound=()=>{},choicesFile=''}){
   Object.assign(this,{file,live,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth,onMessage,onFound,choicesFile});this.found=[];this.candidates=[];this.choices={formats:{},hidden:[]};this.finding=false;
-  this.auth=null;this.pending=null;this.videos={};this.chats={};this.viewers={};this.polls={};this.error=null;this.timers={};this.generation=0;this.streams={};this.quotaUntil=0;this.liveOnYouTube=false;
+  this.auth=null;this.pending=null;this.videos={};this.chats={};this.viewers={};this.polls={};this.error=null;this.timers={};this.generation=0;this.streams={};this.quotaUntil=0;this.liveOnYouTube=false;this.discovery={state:'idle',startedAt:0,finishedAt:0,found:0};
  }
  // Background reading (finding streams, chat, viewers) only runs while the streamer is live in OBS, so no
  // quota is spent offline. Sending chat and running polls are the streamer's own actions and always allowed.
@@ -31,7 +31,7 @@ export class YouTubeOfficial{
  async load(){if(this.choicesFile)try{const c=JSON.parse(await readFile(this.choicesFile,'utf8'));this.choices={formats:c.formats&&typeof c.formats==='object'?c.formats:{},hidden:Array.isArray(c.hidden)?c.hidden.slice(-50):[]};}catch{}try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}if(this.auth&&this.auth.client_id!==this.clientId)this.auth=null;}
  async save(){await mkdir(dirname(this.file),{recursive:true});await writeFile(this.file,JSON.stringify(this.auth),{mode:0o600});}
  timer(name,fn,ms){this.cancel(this.timers[name]);this.timers[name]=this.schedule(()=>{this.timers[name]=null;return fn();},ms);}
- status(){return {configured:this.configured,connected:this.connected,live:this.live,quotaUntil:this.quotaUntil>this.now()?this.quotaUntil:null,channel:this.auth?.channel||null,ready:this.connected,error:this.error,found:this.finding?this.found:null,candidates:this.finding?this.candidates:null,chats:Object.fromEntries(sourceKeys.map(k=>[k,{video:this.videos[k]||'',live:!!this.chats[k]}]))};}
+ status(){return {discovery:{...this.discovery},configured:this.configured,connected:this.connected,live:this.live,quotaUntil:this.quotaUntil>this.now()?this.quotaUntil:null,channel:this.auth?.channel||null,ready:this.connected,error:this.error,found:this.finding?this.found:null,candidates:this.finding?this.candidates:null,chats:Object.fromEntries(sourceKeys.map(k=>[k,{video:this.videos[k]||'',live:!!this.chats[k]}]))};}
 
  // ---- Sign-in: Google opens in the default browser and returns to this local server. ----
  startSignIn(){
@@ -85,14 +85,15 @@ export class YouTubeOfficial{
  autoFind(on){on=!!on&&this.connected;if(on===this.finding)return;this.finding=on;this.cancel(this.timers.find);if(on&&this.live)this.timer('find',()=>this.findLive(),1000);else if(this.found.length){this.found=[];this.onFound([]);}}
  async findLive(){
   if(!this.finding||!this.connected||!this.live)return;
+  this.discovery={state:'checking',startedAt:this.now(),finishedAt:0,found:0};
   try{const list=async status=>(await this.api('liveBroadcasts',{query:{part:'id,snippet,status,contentDetails',broadcastStatus:status,broadcastType:'all',maxResults:'25'}})).items||[];
    const active=await list('active');this.liveOnYouTube=active.length>0;const upcoming=active.length>=2?[]:await list('upcoming');
    // A stream key that is already receiving video from OBS marks the real broadcast before it goes live (1 unit).
    const keys=[...new Set(upcoming.map(i=>i.contentDetails?.boundStreamId).filter(id=>/^[\w-]{1,100}$/.test(id||'')))].slice(0,25);
    const receiving=new Set(keys.length?((await this.api('liveStreams',{query:{part:'id,status',id:keys.join(','),maxResults:'25'}})).items||[]).filter(i=>i.status?.streamStatus==='active').map(i=>i.id):[]);
    this.candidates=pickBroadcasts(active,upcoming,this.now(),{receiving,limit:4}).map(c=>({...c,format:this.choices.formats[c.streamKey||c.video]||'',hidden:this.choices.hidden.includes(c.video)}));
-   this.assign();
-  }catch(error){this.error=errorText(error,'YouTube');}
+   this.assign();this.discovery={...this.discovery,state:'complete',finishedAt:this.now(),found:this.found.length};
+  }catch(error){this.error=errorText(error,'YouTube');this.discovery={...this.discovery,state:'error',finishedAt:this.now(),found:0};}
   if(this.finding&&this.live)this.timer('find',()=>this.findLive(),90000+this.random()*20000);
  }
  // Vertical streams take the second slot, everything else the first; hidden streams take neither.
