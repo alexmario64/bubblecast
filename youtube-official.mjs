@@ -1,10 +1,11 @@
+import {streamKeyFingerprint,validFingerprint,validFormat,matchStreamKey} from './youtube-slot-matching.mjs';
 // Official YouTube connection: Google sign-in for desktop apps (loopback + PKCE) and the YouTube Data API.
 // Reads chat through YouTube's official live chat stream and sends chat, runs polls and reads viewer counts.
 // Custom emojis arrive as :name: text; youtube-merge.mjs adds their images from the signed-out chat page.
 import {youtubeReadMode} from './youtube-discovery.mjs';
 import {errorText} from './net-errors.mjs';
 import {randomBytes,createHash} from 'node:crypto';
-import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,rm,rename} from 'node:fs/promises';
 import {dirname} from 'node:path';
 // Each streamer uses their own Google "Desktop app" client (see docs/own-apps.md), so the quota is theirs.
 export const YOUTUBE_SCOPE='https://www.googleapis.com/auth/youtube.force-ssl';
@@ -16,8 +17,9 @@ const reasons={quotaExceeded:'The YouTube API daily quota is used up. It resets 
 export const sourceKeys=['youtube','youtubeShorts'];
 
 export class YouTubeOfficial{
+ #bindings=new Map();#outputKeys={main:[],vertical:[]};#choiceWrite=Promise.resolve();
  constructor({file,live=true,clientId='',clientSecret='',request=fetch,now=Date.now,schedule=setTimeout,cancel=clearTimeout,random=Math.random,onPoll=()=>{},onAuth=()=>{},onMessage=()=>{},onFound=()=>{},onQuota=()=>{},choicesFile=''}){
-  Object.assign(this,{file,live,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth,onMessage,onFound,onQuota,choicesFile});this.found=[];this.candidates=[];this.choices={formats:{},hidden:[]};this.finding=false;
+  Object.assign(this,{file,live,clientId,clientSecret,request,now,schedule,cancel,random,onPoll,onAuth,onMessage,onFound,onQuota,choicesFile});this.found=[];this.candidates=[];this.choices={formats:{},hidden:[],matches:{}};this.formatMemory='ready';this.finding=false;
   this.auth=null;this.pending=null;this.videos={};this.chats={};this.viewers={};this.polls={};this.error=null;this.timers={};this.generation=0;this.streams={};this.quotaUntil=0;this.liveOnYouTube=false;this.findEpoch=0;this.findPromise=null;this.discovery={state:'idle',startedAt:0,finishedAt:0,found:0};
  }
  // Background reading (finding streams, chat, viewers) only runs while the streamer is live in OBS, so no
@@ -32,10 +34,10 @@ export class YouTubeOfficial{
  get pageFallback(){return this.readMode==='page';}
  exhaustQuota(){if(this.quotaUntil>this.now())return;this.quotaUntil=nextPacificMidnight(this.now());this.onQuota();}
  get connected(){return !!this.auth?.refresh_token;}
- async load(){if(this.choicesFile)try{const c=JSON.parse(await readFile(this.choicesFile,'utf8'));this.choices={formats:c.formats&&typeof c.formats==='object'?c.formats:{},hidden:Array.isArray(c.hidden)?c.hidden.slice(-50):[]};}catch{}try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}if(this.auth&&this.auth.client_id!==this.clientId)this.auth=null;}
+ async load(){if(this.choicesFile)try{const c=JSON.parse(await readFile(this.choicesFile,'utf8'));this.choices={formats:c.formats&&typeof c.formats==='object'?c.formats:{},hidden:Array.isArray(c.hidden)?c.hidden.slice(-50):[],matches:Object.fromEntries(Object.entries(c.matches||{}).filter(([key,format])=>validFingerprint(key)&&validFormat(format)).slice(-100))};}catch{}try{this.auth=JSON.parse(await readFile(this.file,'utf8'));}catch{this.auth=null;}if(this.auth&&this.auth.client_id!==this.clientId)this.auth=null;}
  async save(){await mkdir(dirname(this.file),{recursive:true});await writeFile(this.file,JSON.stringify(this.auth),{mode:0o600});}
  timer(name,fn,ms){this.cancel(this.timers[name]);this.timers[name]=this.schedule(()=>{this.timers[name]=null;return fn();},ms);}
- status(){return {readMode:this.readMode,discovery:{...this.discovery},configured:this.configured,connected:this.connected,live:this.live,quotaUntil:this.quotaUntil>this.now()?this.quotaUntil:null,channel:this.auth?.channel||null,ready:this.connected,error:this.error,found:this.finding?this.found:null,candidates:this.finding?this.candidates:null,chats:Object.fromEntries(sourceKeys.map(k=>[k,{video:this.videos[k]||'',live:!!this.chats[k],reading:this.reading(k)}]))};}
+ status(){return {readMode:this.readMode,discovery:{...this.discovery},configured:this.configured,connected:this.connected,live:this.live,quotaUntil:this.quotaUntil>this.now()?this.quotaUntil:null,channel:this.auth?.channel||null,ready:this.connected,error:this.error,found:this.finding?this.found:null,candidates:this.finding?this.candidates.map(({video,title,live,receiving,format,formatSource,hidden})=>({video,title,live,receiving,format,formatSource,hidden})):null,matching:{main:this.#outputKeys.main.length>0,vertical:this.#outputKeys.vertical.length>0,memory:this.formatMemory},chats:Object.fromEntries(sourceKeys.map(k=>[k,{video:this.videos[k]||'',live:!!this.chats[k],reading:this.reading(k)}]))};}
 
  // ---- Sign-in: Google opens in the default browser and returns to this local server. ----
  startSignIn(){
@@ -68,7 +70,7 @@ export class YouTubeOfficial{
   const token=await this.access();
   const r=await this.request(API+resource+'?'+new URLSearchParams(query),{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(15000)});
   if(r.status===204)return {};let json={};try{json=await r.json();}catch{}
-  if(!r.ok){const reason=json.error?.errors?.[0]?.reason;if(reason==='quotaExceeded')this.exhaustQuota();const error=Error(reasons[reason]||json.error?.message||'YouTube returned HTTP '+r.status);error.reason=reason;throw error;}
+  if(!r.ok){const reason=json.error?.errors?.[0]?.reason;if(reason==='quotaExceeded')this.exhaustQuota();const error=Error(reasons[reason]||(resource==='liveStreams'?'YouTube stream metadata could not be read.':json.error?.message)||'YouTube returned HTTP '+r.status);error.reason=reason;throw error;}
   return json;
  }
 
@@ -94,22 +96,43 @@ export class YouTubeOfficial{
   this.discovery={state:'checking',startedAt:this.now(),finishedAt:0,found:0};
   try{const list=async status=>(await this.api('liveBroadcasts',{query:{part:'id,snippet,status,contentDetails',broadcastStatus:status,broadcastType:'all',maxResults:'25'}})).items||[];
    const active=await list('active');if(!current())return;const upcoming=active.length>=2?[]:await list('upcoming');if(!current())return;
-   const keys=[...new Set(upcoming.map(i=>i.contentDetails?.boundStreamId).filter(id=>/^[\w-]{1,100}$/.test(id||'')))].slice(0,25);
-   const receiving=new Set(keys.length?((await this.api('liveStreams',{query:{part:'id,status',id:keys.join(','),maxResults:'25'}})).items||[]).filter(i=>i.status?.streamStatus==='active').map(i=>i.id):[]);if(!current())return;
-   this.liveOnYouTube=active.length>0;this.candidates=pickBroadcasts(active,upcoming,this.now(),{receiving,limit:4}).map(c=>({...c,format:this.choices.formats[c.streamKey||c.video]||'',hidden:this.choices.hidden.includes(c.video)}));
-   this.assign();this.error=null;this.discovery={...this.discovery,state:'complete',finishedAt:this.now(),found:this.found.length};
+   const keys=[...new Set([...active,...upcoming].map(i=>i.contentDetails?.boundStreamId).filter(id=>/^[\w-]{1,100}$/.test(id||'')))].slice(0,50);
+   const streams=keys.length?(await this.api('liveStreams',{query:{part:'id,status,cdn',id:keys.join(','),maxResults:'50',fields:'items(id,status/streamStatus,cdn/ingestionInfo/streamName)'}}).catch(error=>{const safe=Error(reasons[error.reason]||'YouTube stream metadata could not be read.');safe.reason=error.reason;throw safe;})).items||[]:[];if(!current())return;
+   const receiving=new Set(streams.filter(i=>i.status?.streamStatus==='active').map(i=>i.id));
+   this.#bindings=new Map(streams.filter(i=>keys.includes(i.id)).map(i=>[i.id,streamKeyFingerprint(i.cdn?.ingestionInfo?.streamName)]));
+   this.liveOnYouTube=active.length>0;this.candidates=pickBroadcasts(active,upcoming,this.now(),{receiving,limit:4});this.formatCandidates();
+   await this.saveChoices();if(!current())return;this.assign();this.error=null;this.discovery={...this.discovery,state:'complete',finishedAt:this.now(),found:this.found.length};
   }catch(error){if(epoch!==this.findEpoch)return;this.error=errorText(error,'YouTube');this.discovery={...this.discovery,state:'error',finishedAt:this.now(),found:0};}
  }
  // Vertical streams take the second slot, everything else the first; hidden streams take neither.
  assign(){const found=assignSlots(this.candidates);if(JSON.stringify(found)!==JSON.stringify(this.found)){this.found=found;this.onFound(found);}}
- // The streamer's choice for a found stream: its format is remembered per stream key, hiding per broadcast.
+ setOutputKeys(keys={}){this.#outputKeys={main:(Array.isArray(keys.main)?keys.main:[]).filter(validFingerprint).slice(0,32),vertical:(Array.isArray(keys.vertical)?keys.vertical:[]).filter(validFingerprint).slice(0,32)};}
+ formatCandidates(){
+  const {formats,matches,hidden}=this.choices;
+  this.candidates=this.candidates.map(c=>{
+   const fingerprint=this.#bindings.get(c.streamId),legacy=c.streamId||c.video;
+   // Migrate old boundStreamId choices once. A later ingestion-key rotation must get its own match.
+   if(fingerprint&&validFormat(formats[legacy])){formats[fingerprint]??=formats[legacy];delete formats[legacy];}
+   const manual=formats[fingerprint||legacy]||formats[c.video],match=matchStreamKey(fingerprint,this.#outputKeys);
+   if(fingerprint&&validFormat(match))matches[fingerprint]=match;
+   const format=validFormat(manual)?manual:validFormat(match)?match:match==='ambiguous'?'':matches[fingerprint]||'';
+   const formatSource=validFormat(manual)?'manual':match==='horizontal'?'obs-main':match==='vertical'?'aitum-vertical':match==='ambiguous'?'ambiguous':format?'remembered-key':'unknown';
+   return {...c,format,formatSource,hidden:hidden.includes(c.video)};
+  });
+  this.choices.matches=Object.fromEntries(Object.entries(matches).slice(-100));
+ }
+ async saveChoices(){
+  if(!this.choicesFile)return;const text=JSON.stringify(this.choices),file=this.choicesFile;
+  this.#choiceWrite=this.#choiceWrite.catch(()=>{}).then(async()=>{await mkdir(dirname(file),{recursive:true});await writeFile(file+'.tmp',text,{mode:0o600});await rename(file+'.tmp',file);});
+  try{await this.#choiceWrite;this.formatMemory='ready';}catch{this.formatMemory='unavailable';}
+ }
+ // Manual format choices are remembered by ingestion-key digest, hiding by broadcast ID.
  async choose(video,choice){
   const c=this.candidates.find(c=>c.video===video);if(!c)throw Error('That stream is no longer listed. Refresh and try again.');
   if(!['horizontal','vertical','hide','auto'].includes(choice))throw Error('Unknown choice.');
-  const key=c.streamKey||c.video,{formats}=this.choices;let hidden=this.choices.hidden.filter(v=>v!==video);
-  if(choice==='hide')hidden=[...hidden,video].slice(-50);else if(choice==='auto')delete formats[key];else formats[key]=choice;
-  this.choices={formats,hidden};if(this.choicesFile){await mkdir(dirname(this.choicesFile),{recursive:true});await writeFile(this.choicesFile,JSON.stringify(this.choices));}
-  this.candidates=this.candidates.map(x=>({...x,format:formats[x.streamKey||x.video]||'',hidden:hidden.includes(x.video)}));this.assign();
+  const key=this.#bindings.get(c.streamId)||c.streamId||c.video,{formats}=this.choices;let hidden=this.choices.hidden.filter(v=>v!==video);
+  if(choice==='hide')hidden=[...hidden,video].slice(-50);else if(choice==='auto'){delete formats[key];delete formats[c.video];}else formats[key]=choice;
+  this.choices={...this.choices,formats,hidden};this.formatCandidates();await this.saveChoices();this.assign();
  }
  // ---- Reading chat: YouTube's official server-streaming endpoint (5 units per connection, not per message). ----
  reading(key){return !!this.streams[key];}
@@ -199,15 +222,15 @@ export function youtubePoll(item,sourceKey='youtube'){
 }
 // The channel's streams in priority order: live ones oldest first, then upcoming ones whose stream key OBS is
 // already sending to, then ones ready on the encoder, then ones scheduled to start soon. Streams scheduled for
-// another day are left out. Format isn't knowable from the API, so it comes only from the streamer's choice.
+// another day are left out. Format comes from local ingestion-key matching or the streamer's saved choice.
 export function pickBroadcasts(active=[],upcoming=[],now=Date.now(),{receiving=new Set(),limit=2}={}){
  const valid=i=>/^[\w-]{11}$/.test(i?.id||''),time=v=>{const t=Date.parse(v||'');return Number.isFinite(t)?t:null;},key=i=>i.contentDetails?.boundStreamId||'';
  const live=active.filter(i=>valid(i)&&i.status?.lifeCycleStatus!=='complete').sort((a,b)=>(time(a.snippet?.actualStartTime)??0)-(time(b.snippet?.actualStartTime)??0));
  const soon=upcoming.filter(i=>{if(!valid(i))return false;const state=i.status?.lifeCycleStatus;if(['complete','revoked'].includes(state))return false;if(receiving.has(key(i))||['ready','testStarting','liveStarting','testing'].includes(state))return true;const start=time(i.snippet?.scheduledStartTime);return start===null||start-now<=12*3600000&&now-start<=24*3600000;})
   .sort((a,b)=>{const rank=i=>receiving.has(key(i))?0:i.status?.lifeCycleStatus==='created'?2:1;return rank(a)-rank(b)||Math.abs((time(a.snippet?.scheduledStartTime)??now)-now)-Math.abs((time(b.snippet?.scheduledStartTime)??now)-now);});
- const seen=new Set();return [...live,...soon].filter(i=>!seen.has(i.id)&&seen.add(i.id)).slice(0,limit).map(i=>({video:i.id,title:String(i.snippet?.title||'').slice(0,120),streamKey:key(i),live:live.includes(i),receiving:receiving.has(key(i))}));
+ const seen=new Set();return [...live,...soon].filter(i=>!seen.has(i.id)&&seen.add(i.id)).slice(0,limit).map(i=>({video:i.id,title:String(i.snippet?.title||'').slice(0,120),streamId:key(i),live:live.includes(i),receiving:receiving.has(key(i))}));
 }
 export function assignSlots(candidates=[]){
- const slots={};for(const c of candidates){if(c.hidden)continue;const want=c.format==='vertical'?['youtubeShorts']:c.format==='horizontal'?['youtube']:['youtube','youtubeShorts'];const slot=want.find(s=>!slots[s]);if(slot)slots[slot]=c;}
+ const slots={};for(const c of [...candidates.filter(c=>validFormat(c.format)),...candidates.filter(c=>!validFormat(c.format))]){if(c.hidden||c.formatSource==='ambiguous')continue;const want=c.format==='vertical'?['youtubeShorts']:c.format==='horizontal'?['youtube']:['youtube','youtubeShorts'];const slot=want.find(s=>!slots[s]);if(slot)slots[slot]=c;}
  return ['youtube','youtubeShorts'].filter(s=>slots[s]).map(slot=>({video:slots[slot].video,title:slots[slot].title,slot,format:slots[slot].format||''}));
 }

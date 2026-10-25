@@ -109,7 +109,7 @@ test('a vertical choice is remembered per stream key, hiding is per broadcast, a
  yt.autoFind(true);await find(yt,timers);
  await yt.choose('sssssssssss','vertical');await yt.choose('ppppppppppp','hide');
  assert.deepEqual(yt.found.map(f=>[f.title,f.slot]),[['Main','youtube'],['Vertical','youtubeShorts']]);
- const saved=JSON.parse(await readFile(file,'utf8'));assert.deepEqual(saved,{formats:{'phone-key':'vertical'},hidden:['ppppppppppp']});
+ const saved=JSON.parse(await readFile(file,'utf8'));assert.deepEqual(saved,{formats:{'phone-key':'vertical'},hidden:['ppppppppppp'],matches:{}});
  const next=new YouTubeOfficial({file:join(dir,'youtube-auth.json'),clientId:'client.apps.googleusercontent.com',clientSecret:'installed-secret',choicesFile:file});await next.load();assert.deepEqual(next.choices,saved);
  await yt.choose('ppppppppppp','auto');assert.equal(yt.candidates.find(c=>c.title==='Placeholder').hidden,false,'auto brings a hidden stream back');
  await assert.rejects(yt.choose('zzzzzzzzzzz','vertical'),/no longer listed/);

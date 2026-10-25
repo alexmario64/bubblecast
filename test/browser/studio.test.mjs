@@ -110,3 +110,10 @@ test('TikTok missing-session prompt remains explicit in Connections and diagnost
  doc.querySelector('[data-setup-signin="tiktok"]').click();await wait(10);const actions=calls.filter(([url])=>url==='/api/collector/control');assert.equal(actions.length,1);assert.equal(JSON.parse(actions[0][1].body).action,'signin');
  status.settings.language='es';const spanish=await studio(t,'#connections',true);assert.match(spanish.doc.querySelector('#account-tiktok').textContent,/Inicia sesión en TikTok · leyendo el chat/);assert.match(spanish.doc.querySelector('#diagnosticPlatforms').textContent,/Ventana oculta iniciada/);
 });
+
+test('Studio explains automatic main/vertical matches, ambiguity and missing keys without exposing credentials',async t=>{
+ const previous={youtube:status.youtube,language:status.settings.language};t.after(()=>{status.youtube=previous.youtube;status.settings.language=previous.language;});
+ status.youtube={configured:true,connected:true,candidates:[{video:'mmmmmmmmmmm',title:'Main stream',live:true,format:'horizontal',formatSource:'obs-main'},{video:'vvvvvvvvvvv',title:'Vertical stream',live:true,format:'vertical',formatSource:'aitum-vertical'},{video:'sssssssssss',title:'Unknown stream',format:'',formatSource:'ambiguous'},{video:'uuuuuuuuuuu',title:'Unmatched stream',formatSource:'unknown'}]};
+ const {doc}=await studio(t,'#connections'),rows=doc.querySelectorAll('#youtubeStreams li');assert.match(rows[0].textContent,/Matched OBS main key/);assert.match(rows[1].textContent,/Matched Aitum Vertical key/);assert.equal(rows[0].querySelector('select').value,'auto');assert.equal(rows[1].querySelector('select').value,'auto');assert.match(rows[2].textContent,/Same key on both outputs/);assert.match(rows[3].textContent,/Stream key not matched/);
+ status.settings.language='es';const spanish=await studio(t,'#connections',true);assert.match(spanish.doc.querySelector('#youtubeStreams').textContent,/Coincide con la clave principal de OBS/);assert.match(spanish.doc.querySelector('#youtubeStreams').textContent,/Coincide con la clave de Aitum Vertical/);
+});
