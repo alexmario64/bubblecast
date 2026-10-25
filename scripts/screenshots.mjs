@@ -11,6 +11,7 @@ const desktop={width:1440,height:960},dockNarrow={width:440,height:860},dockWide
 const studioPages=['overview','connections','appearance','chat','polls','tts','dock','obs'];
 const shots=[
  ...['rose','red','midnight','white'].flatMap(theme=>studioPages.map(page=>({name:`studio-${page}-${theme}`,path:'/#'+page,viewport:desktop,theme,full:true}))),
+ ...[{name:'studio-youtube-no-app',viewport:desktop},{name:'studio-youtube-no-app-narrow',viewport:{width:420,height:880}},{name:'studio-youtube-no-app-spanish',viewport:desktop,language:'es'}].map(s=>({...s,path:'/#connections',scenario:'no-app',offlineOnly:true,full:true})),
  {name:'studio-diagnostics-narrow',path:'/#overview',viewport:{width:420,height:880},scroll:'.diagnostics-card'},
  {name:'studio-diagnostics-spanish',path:'/#overview',viewport:desktop,language:'es',full:true},
  {name:'studio-overview-narrow',path:'/#overview',viewport:{width:420,height:880}},
@@ -26,7 +27,7 @@ const shots=[
  {name:'overlay-poll-live',path:'/poll-overlay?preview=1',viewport:canvas,transparent:true},
  {name:'overlay-poll-final',path:'/poll-overlay?preview=1&state=final',viewport:canvas,transparent:true}
 ];
-const offline=process.argv.includes('--offline'),filters=process.argv.slice(2).filter(a=>a!=='--offline'),selected=shots.filter(s=>!filters.length||filters.some(f=>s.name.includes(f)));
+const offline=process.argv.includes('--offline'),filters=process.argv.slice(2).filter(a=>a!=='--offline'),selected=shots.filter(s=>(!s.offlineOnly||offline)&&(!filters.length||filters.some(f=>s.name.includes(f))));
 async function up(){try{return (await fetch(base+'/api/status',{signal:AbortSignal.timeout(1500)})).ok;}catch{return false;}}
 let server=null,problems=0;
 if(!offline&&!await up()){server=spawn(process.execPath,['server.mjs'],{cwd:root,stdio:'ignore'});for(let i=0;i<50&&!await up();i++)await new Promise(r=>setTimeout(r,200));if(!await up())throw Error('Could not start the local server on port 3927.');}
@@ -35,7 +36,7 @@ const browser=await chromium.launch();
 try{
  for(const shot of selected){
   const page=await browser.newPage({viewport:shot.viewport,deviceScaleFactor:2,reducedMotion:'reduce'});
-  if(offline)await (await import('../test/browser/offline-studio.mjs')).offlineStudio(page,{language:shot.language});
+  if(offline)await (await import('../test/browser/offline-studio.mjs')).offlineStudio(page,{language:shot.language,scenario:shot.scenario});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.text().startsWith('Failed to load resource'))errors.push(m.text());});
   // A missing Komika Axis font is reported in the UI, not a page error.
   page.on('response',r=>{if(r.status()>=400&&!r.url().includes('/fonts/'))errors.push(r.status()+' '+r.url());});

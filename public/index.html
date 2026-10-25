@@ -83,8 +83,10 @@
   </article>
   <article class="card platform-card" data-platform="youtube"><div class="platform-head"><img src="/logos/youtube.png" alt=""><h2>YouTube</h2><span class="pill" id="youtubeStatus">Not connected</span></div>
    <div class="account-line"><span id="account-youtube">Not connected</span><button type="button" class="button" id="youtubeConnect">Connect YouTube</button></div>
-   <p class="hint">Leave both links empty and Bubblecast finds your live streams on its own once YouTube is connected.</p>
+   <p class="hint">Leave both stream links empty to find your live streams automatically when streaming starts.</p>
    <p class="hint yt-slow" id="youtubeSlow" hidden></p>
+   <label class="field" id="youtubeChannelField">YouTube channel <span class="optional">Without the Google app</span><input id="youtubeChannel" placeholder="@handle" spellcheck="false"></label>
+   <div class="account-line"><span id="youtubeDiscoveryNote"></span><button type="button" class="button" id="youtubeCheck">Find live streams</button></div>
    <ul class="found-streams" id="youtubeStreams" aria-label="Streams found on your channel" hidden></ul>
    <details class="inline-advanced app-keys" data-app="youtube"><summary>Your Google app</summary><p class="hint">YouTube uses your own Google app, so the daily quota is yours. <a href="#" data-open-guide="youtube">Setup guide</a></p><label class="field">Client ID<input name="clientId" placeholder="….apps.googleusercontent.com" spellcheck="false" autocomplete="off"></label><label class="field">Client secret<input name="clientSecret" type="password" placeholder="Paste the client secret" spellcheck="false" autocomplete="off"></label><button type="button" class="button" data-save-app="youtube">Save Google app</button></details>
   </article>
@@ -100,7 +102,6 @@
  </div>
  <details class="card connection-overrides"><summary>Optional channel overrides</summary><p class="hint">Only fill these in to watch a different channel.</p><div class="connection-grid">
   <label class="field">Twitch<input id="twitchChannel" placeholder="Your connected channel (optional override)" spellcheck="false"></label>
-  <label class="field">YouTube channel <span class="optional">Without the Google app</span><input id="youtubeChannel" placeholder="@handle" spellcheck="false"></label>
   <label class="field">YouTube Live <span class="optional">Optional</span><input id="youtubeVideo" placeholder="Found automatically" spellcheck="false"></label>
   <label class="field">YouTube Shorts Live <span class="optional">Optional · separate chat</span><input id="youtubeShortsVideo" placeholder="Found automatically" spellcheck="false"></label>
   <label class="field">Kick<input id="kickChannel" placeholder="Your connected channel (optional override)" spellcheck="false"></label>

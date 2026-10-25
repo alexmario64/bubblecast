@@ -16,18 +16,20 @@ export function diagnosticSnapshot({version='',sources={},collector={},traffic={
   const configured=enabled&&!!(urls[p]||p==='youtube'&&(urls.youtubeShorts||sources.youtubeChannel||youtube.connected));
   const receiving=configured&&recent(traffic[p]?.lastMessageAt,now,60000),capture=helper&&!!collector.errors?.[p]||!!feed?.error||!!feed?.polling?.error;
   const hasError=!!official?.error||!!capture;
-  const reading=p==='youtube'&&Object.values(youtube.chats||{}).some(c=>c.live);
+  const reading=p==='youtube'&&!['page','signin'].includes(youtube.readMode)&&Object.values(youtube.chats||{}).some(c=>c.reading??c.live);
   const route=!configured?'none':p==='twitch'?'irc':reading?'api':feed?choice(feed.transport,['network','page'],'page'):'none';
   const session=official?(official.connected?'signed-in':'signed-out'):choice(account?.signedIn,[true,false],null)===null?'unknown':account.signedIn?'signed-in':'signed-out';
   const state=!enabled?'disabled':!configured?'not-configured':capture?'error':receiving?'receiving':hasError?'error':p==='youtube'&&youtube.configured&&!youtube.connected?'signin-required':p==='twitch'&&twitchChatReady||reading?'connected':['tiktok','kick'].includes(p)&&!helper?'helper-offline':'waiting';
   return [p,{state,route,session,hasError,heartbeat:configured&&recent(bridge[p],now,25000),received:count(traffic[p]?.received),displayed:count(traffic[p]?.displayed),lastMessageAt:count(traffic[p]?.lastMessageAt)}];
  }));
  const ws=recent(obs.checkedAt,now,45000)?choice(obs.websocket,['ready','unavailable'],'unavailable'):'not-checked',browser=recent(obs.browserAt,now,75000);
- const detection={websocket:ws,browser,browserStreaming:browser?obs.browserStreaming===true:null,websocketMain:ws==='ready'?obs.main===true:null,main:ws==='ready'?obs.main===true:browser?obs.browserStreaming===true:null,vertical:ws==='ready'&&obs.verticalDetected?obs.vertical===true:null,path:ws==='ready'?(browser?'both':'websocket'):browser?'browser':'none'};
- const api=discoveryStatus(youtube.discovery),page=discoveryStatus(collector.youtubeDiscovery);
+ const detection={websocket:ws,browser,browserStreaming:browser?obs.browserStreaming===true:null,websocketMain:ws==='ready'?obs.main===true:null,main:browser&&(ws!=='ready'||obs.browserAt>=obs.checkedAt)?obs.browserStreaming===true:ws==='ready'?obs.main===true:null,vertical:ws==='ready'&&obs.verticalDetected?obs.vertical===true:null,path:ws==='ready'?(browser?'both':'websocket'):browser?'browser':'none'};
+ const api=discoveryStatus(youtube.discovery),page=discoveryStatus(collector.youtubeDiscovery),series=trigger.series||{};
+ const bounded={state:choice(series.state,['idle','scheduled','checking','complete','exhausted','stopped'],'idle'),attempt:Math.min(count(series.attempt),4),startedAt:count(series.startedAt),nextAt:count(series.nextAt),expected:{horizontal:series.expected?.horizontal===true,vertical:series.expected?.vertical===true}};
+ const blocked=choice(trigger.blocked,['none','disabled','manual-links','signin-required','missing-channel','helper-offline'],'none');
  const slot=k=>enabled&&!!(sources.youtubeFound?.some(f=>f.slot===k)||/\/live_chat\?v=[\w-]{11}(?:&|$)/.test(urls[k]||''));
  const safeVersion=v=>typeof v==='string'&&/^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(v)?v:null;
- return {version:safeVersion(version),helperVersion:safeVersion(collector.version),helper,platforms:rows,obs:detection,youtube:{app:youtube.configured===true,connected:youtube.connected===true,quotaExhausted:count(youtube.quotaUntil)>now,channel:!!(sources.youtubeChannel||youtube.channel),slots:{horizontal:slot('youtube'),vertical:slot('youtubeShorts')},trigger:choice(trigger.reason,['stream-start','dock-send'],'none'),triggerAt:count(trigger.at),route:choice(trigger.route,['api','page'],'none'),api,page},overlays:{clients:count(clients),lastPaint:Object.fromEntries(['overlay','vertical','webcam','dock'].map(view=>[view,Math.max(0,...platforms.map(p=>count(renderTiming[view]?.[p]?.updatedAt)))]))}};
+ return {version:safeVersion(version),helperVersion:safeVersion(collector.version),helper,platforms:rows,obs:detection,youtube:{app:youtube.configured===true,connected:youtube.connected===true,quotaExhausted:count(youtube.quotaUntil)>now,channel:!!(sources.youtubeChannel||youtube.channel),slots:{horizontal:slot('youtube'),vertical:slot('youtubeShorts')},series:bounded,blocked,trigger:choice(trigger.reason,['stream-start','dock-send','manual'],'none'),triggerAt:count(trigger.at),route:choice(trigger.route,['api','page'],'none'),api,page},overlays:{clients:count(clients),lastPaint:Object.fromEntries(['overlay','vertical','webcam','dock'].map(view=>[view,Math.max(0,...platforms.map(p=>count(renderTiming[view]?.[p]?.updatedAt)))]))}};
 }
 
 export class Diagnostics{

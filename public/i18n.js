@@ -3,6 +3,23 @@
 // pages add later. Brand names, URLs, chat messages and platform error details stay as they are.
 (()=>{
 const es={
+ "Leave both stream links empty to find your live streams automatically when streaming starts.":"Deja ambos enlaces de stream vacíos para encontrar tus streams automáticamente al iniciar la transmisión.",
+ "The YouTube quota is used up. Reading continues from the public chat page until it resets; sending and polls are unavailable.":"Se agotó la cuota de YouTube. La lectura continúa desde la página pública hasta que se reinicie; no puedes enviar mensajes ni hacer encuestas.",
+ "Enter your YouTube channel below to read chat without a Google app. Sending messages and running polls need your Google app.":"Escribe tu canal de YouTube abajo para leer el chat sin una app de Google. Para enviar mensajes y hacer encuestas necesitas tu app de Google.",
+
+ 'Read-only YouTube chat':'Chat de YouTube de solo lectura',
+ "Find live streams":"Buscar streams en vivo",
+ "Using your stream links":"Usando tus enlaces de stream",
+ "Start the background app to read YouTube page chat.":"Abre la app en segundo plano para leer el chat de YouTube desde la página.",
+ "Stream checks scheduled":"Comprobaciones del stream programadas",
+ "Expected streams found":"Se encontraron los streams esperados",
+ "Automatic checks finished":"Comprobaciones automáticas terminadas",
+ "Stream checks stopped":"Comprobaciones del stream detenidas",
+ "Next check":"Próxima comprobación",
+ "Manual check":"Comprobación manual",
+ "Attempts":"Intentos",
+ "Without the Google app, chat is read from YouTube’s public chat page. It works, but messages arrive a few seconds later and you can’t send messages or run polls on YouTube. Enter your YouTube channel below, or add your Google app for instant chat.":"Sin la app de Google, el chat se lee desde la página pública de YouTube. Funciona, pero los mensajes llegan unos segundos más tarde y no puedes enviar mensajes ni hacer encuestas en YouTube. Escribe tu canal de YouTube abajo, o agrega tu app de Google para un chat instantáneo.",
+
  'None found':'No se encontró ninguno','Stream-start check':'Comprobación al iniciar el stream','Dock-send check':'Comprobación al enviar desde el dock','Waiting for a stream-start trigger':'Esperando la señal de inicio del stream','Live page connections':'Conexiones de páginas en vivo','Last page paint':'Último renderizado de página',
  "Diagnostics":"Diagnóstico",
  "Local log: .local/diagnostics.log":"Registro local: .local/diagnostics.log",

@@ -94,3 +94,11 @@ test('Studio diagnostics render their first status in Spanish with live counts',
  t.after(()=>{status.diagnostics=prior;status.settings.language=language;});const {doc}=await studio(t,'',true);
  assert.match(doc.querySelector('#diagnosticPlatforms').textContent,/Recibidos: 7.*Mostrados: 4/);assert.match(doc.querySelector('#diagnosticYouTube').textContent,/No se encontró ninguno/);assert.match(doc.querySelector('#diagnosticLog').textContent,/Registro local/);
 });
+
+test('no-app YouTube exposes its channel and explicit discovery control; configured sign-out keeps the API policy',async t=>{
+ const prior={youtube:status.youtube,diagnostics:status.diagnostics};status.youtube={configured:false,connected:false,readMode:'page'};status.diagnostics=diagnosticSnapshot({sources:{youtubeChannel:'@example'},collector:{active:true},trigger:{blocked:'none',series:{state:'scheduled',attempt:1,nextAt:Date.now()+20000}}});
+ t.after(()=>{status.youtube=prior.youtube;status.diagnostics=prior.diagnostics;});const {doc,calls}=await studio(t,'#connections');
+ assert.equal(doc.querySelector('#youtubeChannelField').hidden,false);assert.match(doc.querySelector('#account-youtube').textContent,/Read-only YouTube chat/);assert.match(doc.querySelector('#youtubeDiscoveryNote').textContent,/Stream checks scheduled.*Next check/);
+ await doc.querySelector('#youtubeCheck').onclick();assert.equal(calls.filter(([url])=>url==='/api/youtube/check').length,1);assert.ok(!calls.some(([url])=>url==='/api/youtube/connect'));
+ status.youtube={configured:true,connected:false,readMode:'signin'};status.diagnostics=diagnosticSnapshot({trigger:{blocked:'signin-required'}});const signedOut=await studio(t,'#connections');assert.equal(signedOut.doc.querySelector('#youtubeSlow').hidden,true);assert.equal(signedOut.doc.querySelector('#youtubeCheck').disabled,true);
+});
