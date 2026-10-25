@@ -18,6 +18,7 @@ jobs:
         with:
           path: ${{ runner.temp }}/piper
           key: piper-2023.11.14-2-es_MX-claude-high
+      - run: pnpm exec playwright install chromium
       - run: pnpm test
         env:
           BUBBLECAST_PIPER_CACHE: ${{ runner.temp }}/piper

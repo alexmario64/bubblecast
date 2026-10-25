@@ -33,7 +33,7 @@ function next(){if(current||!queue.length)return;const item=queue.shift(),entry=
  const a=new Audio(item.url);a.volume=Math.max(0,Math.min(1,(item.volume??80)/100));entry.audio=a;a.onended=()=>finish(entry);a.onerror=()=>finish(entry);
  a.play().then(start).catch(()=>{entry.card.remove();current=null;queue.unshift(item);hint.hidden=false;});}
 hint.onclick=()=>{hint.hidden=true;next();};
-const events=new EventSource('/api/events');
+const events=window.bubblecastEvents.connect();
 let ready;const settingsLoaded=new Promise(r=>ready=r);
 events.addEventListener('settings',e=>{applySettings(JSON.parse(e.data));ready();});
 events.addEventListener('tts',e=>{queue.push(JSON.parse(e.data));while(queue.length>10)queue.shift();paintQueue();next();});

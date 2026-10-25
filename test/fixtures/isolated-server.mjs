@@ -17,6 +17,18 @@ globalThis.WebSocket=class{constructor(){throw Error('External sockets are disab
 const listen=http.Server.prototype.listen;
 http.Server.prototype.listen=function(_port,host,callback){
  this.once('listening',()=>console.log('BUBBLECAST_TEST_PORT='+this.address().port));
- return listen.call(this,0,host,callback);
+ return listen.call(this,Number(process.env.BUBBLECAST_TEST_PORT)||0,host,callback);
 };
+// Only this isolated browser fixture accepts its random loopback port. Production Host/Origin
+// validation stays unchanged. Track SSE responses so tests can inject synthetic TTS without voices.
+if(process.env.BUBBLECAST_TEST_BROWSER){
+ const create=http.createServer,streams=new Set();
+ http.createServer=function(handler){return create.call(this,(req,res)=>{
+  const origin='http://127.0.0.1:'+req.socket.localPort;
+  if(req.headers.host==='127.0.0.1:'+req.socket.localPort){req.headers.host='127.0.0.1:3927';if(req.headers.origin===origin)req.headers.origin='http://127.0.0.1:3927';}
+  if(req.url==='/api/events'){streams.add(res);res.on('close',()=>streams.delete(res));}
+  return handler(req,res);
+ });};
+ process.on('message',m=>{if(m.broadcast){const {type,data}=m.broadcast;for(const res of streams)res.write('event: '+type+'\ndata: '+JSON.stringify(data)+'\n\n');process.send?.({broadcast:true});}});
+}
 await import('../../server.mjs');
