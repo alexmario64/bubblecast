@@ -67,6 +67,14 @@ No logs from that stream were collected. Diagnostics are implemented in the prer
 
 Implementation references checked through public source only: [OBS WebSocket GetStreamServiceSettings](https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.json), [Aitum vendor requests and saved config](https://github.com/Aitum/obs-vertical-canvas/blob/main/vertical-canvas.cpp), and [Google's YouTube API schema mirror](https://github.com/googleapis/google-api-go-client/blob/main/youtube/v3/youtube-api.json). No live platform inspection was used.
 
+## Studio/dock appearance follow-up — helper 1.33.8
+
+- The owner selected the rose Studio Connections screenshot as the visual reference and requested that the dock match it. This is a separate appearance change on `style/dock-studio-cards`, targeting `main` and depending on [PR #69](https://github.com/alexmario64/bubblecast/pull/69). The branch includes #69 until it merges; merge #69 first. #69 is verified at `016730b`: both Windows test jobs passed **521 tests**, and the Windows 1.33.7 installer build passed.
+- `public/connection-cards.css` is loaded by both views: cream theme surfaces over the rose background, rounded platform cards, transparent logo assets in tiles, status pills and account buttons. Red, Midnight and White retain their selected palette. Studio and the dock share the platform-status presenter as well as the connection presenters; appearance parity is now explicit in `AGENTS.md`.
+- The dock groups YouTube channel/discovery/key-match controls into its YouTube card and the Creator field into its TikTok card. Moved fields keep their `sources` form association, Enter-to-save and existing node identity. Account changes update card content without detaching source fields or losing typing focus/selection. Four platform cards remain available before any channel is saved. Dock chat layout, filters and independent poll/iframe sessions remain intact.
+- Local `pnpm test`: **520 passed, 0 failed, 2 Windows-only skips** (522 total). New coverage verifies stable field identity, form ownership, focus/selection and no automatic account actions across account changes. The actual Chromium two-view/restart test now also uses the 320px dock in Spanish and submits its moved YouTube field with Enter. Fourteen offline screenshots cover both views, all four dock themes, Spanish, compact layouts and expanded diagnostics. Windows checks are recorded on the appearance PR; verify its latest head before merge.
+- All three helper version locations are **1.33.8**. No live platform was contacted or inspected, and the signed-in macOS helper was left running unchanged. After merge/deployment, restart the Windows helper and refresh Studio and the dock. Real Windows/OBS appearance and stream validation remain pending.
+
 ## What was done in this round (for context)
 
 - **v1.33.0–1.33.2:**

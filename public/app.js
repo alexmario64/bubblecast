@@ -162,10 +162,10 @@ for(const button of $$('[data-copy]'))button.onclick=async()=>{const url=locatio
 
 // Live status
 function steps(){const status=lastStatus,done={connect:!!status?.sources?.configured&&platforms.some(p=>status.sources?.urls?.[p]||p==='youtube'&&status.sources?.urls?.youtubeShorts),obs:store.get('bubblecast-obs')==='1',style:store.get('bubblecast-styled')==='1'};for(const [k,v] of Object.entries(done))$('#step-'+k)?.classList.toggle('done',v);$('#setupGuide').hidden=Object.values(done).every(Boolean);}
-function platformState(j,p){const configured=!!(j.sources?.enabled!==false&&(j.sources?.urls?.[p]||p==='youtube'&&(j.sources?.urls?.youtubeShorts||j.sources?.youtubeLive||j.youtube?.connected))),live=Date.now()-(j.bridge?.[p]||0)<25000;return live?'live':configured?'waiting':'off';}
+const platformState=window.bubblecastConnections.platformState;
 function accountText(account){return window.bubblecastConnections.tiktokAccount(account);}
 function channelText(j,p){const s=j.sources||{};return p==='twitch'?s.twitchChannel:p==='youtube'?([s.youtubeVideo,s.youtubeShortsVideo].filter(Boolean).join(' + ')||(s.youtubeFound||[]).map(f=>{const t=[...String(f.title||f.video)];return t.length>24?t.slice(0,23).join('').trimEnd()+'…':t.join('');}).join(' + ')||s.youtubeChannel||(j.youtube?.connected?'Waiting for you to go live':'')):p==='tiktok'?s.tiktokChannel:s.kickChannel;}
-const stateLabel={live:'Receiving chat',waiting:'Waiting for stream',off:'Not connected'};
+const stateLabel=window.bubblecastConnections.stateLabel;
 function paintPlatforms(j){const list=$('#platformList');list.replaceChildren();let connected=0;for(const p of platforms){const st=platformState(j,p),account=j.collector?.accounts?.[p];if(st!=='off')connected++;
  const pill=$('#'+p+'Status');pill.textContent=stateLabel[st];pill.dataset.state=st;
  const nav=$('#nav-'+p);nav.dataset.state=st;nav.title=names[p]+' · '+stateLabel[st];

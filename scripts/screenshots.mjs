@@ -19,6 +19,7 @@ const shots=[
  {name:'studio-overview-narrow',path:'/#overview',viewport:{width:420,height:880}},
  ...['rose','red','midnight','white'].flatMap(theme=>[{name:`dock-${theme}`,path:'/dock?preview=1',viewport:dockNarrow,theme},{name:`dock-wide-${theme}`,path:'/dock?preview=1',viewport:dockWide,theme}]),
  ...['no-app','key-matches'].flatMap(scenario=>['rose','red','midnight','white','spanish'].map(theme=>({name:`dock-connections-${scenario}-${theme}`,path:'/dock?preview=1',viewport:{width:360,height:880},scenario,theme:theme==='spanish'?'rose':theme,language:theme==='spanish'?'es':'en',offlineOnly:true,click:'#connections'}))),
+ {name:'dock-connections-compact-spanish',path:'/dock',viewport:{width:320,height:880},language:'es',scenario:'no-app',offlineOnly:true,click:'#connections'},
  ...['en','es'].map(language=>({name:`dock-diagnostics-${language}`,path:'/dock',viewport:{width:360,height:880},language,offlineOnly:true,click:'#connections',reveal:'.diagnostics-card'})),
  {name:'dock-connections',path:'/dock?preview=1',viewport:dockNarrow,click:'#connections'},
  {name:'dock-new-poll',path:'/dock?preview=1',viewport:dockNarrow,click:'#newPoll'},

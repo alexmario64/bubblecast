@@ -52,6 +52,7 @@ Never point automated browsers or scripts at live platform sites (Twitch, YouTub
 
 ## Architecture
 
+- `public/connection-cards.css`: shared Studio/dock platform cards, headers/logos, status pills and account buttons. The dock adapts spacing to its compact sheet using the same theme tokens; account updates retain source inputs, form ownership and typing focus.
 - `public/connection-status.js`: shared Studio/dock YouTube policy, TikTok session copy, discovery/format controls and diagnostics presenters. Both views synchronize clean saved fields while preserving local drafts. Authenticated `PATCH /api/settings` and `PATCH /api/sources` merge only edited fields on the server; existing full-form POST clients remain supported. Studio refreshes saved settings after autosaves; the dock receives settings through the shared local event transport.
 - `diagnostics.mjs`: privacy-limited status snapshots and a rotating `.local/diagnostics.log` in the data folder (1 MiB plus one backup). Studio → Overview and dock → Connections → Diagnostics show platform capture/session states, OBS/Aitum detection and YouTube discovery outcomes. Diagnostics observes existing state without contacting platforms.
 - `server.mjs`: local HTTP/SSE server on 127.0.0.1:3927: settings, sources, relay, poll jobs and the authenticated helper command queue. Static files are served from an explicit allowlist.
