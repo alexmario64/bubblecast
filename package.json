@@ -2,6 +2,7 @@
   "name": "bubblecast",
   "version": "1.34.1",
   "private": true,
+  "license": "MIT",
   "description": "Combined Twitch, YouTube, TikTok and Kick chat for OBS",
   "author": "Bubblecast",
   "main": "desktop/main.cjs",
