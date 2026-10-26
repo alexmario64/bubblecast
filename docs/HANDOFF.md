@@ -2,7 +2,42 @@
 
 For any coding agent (Codex, Claude) or person picking up this repo. Read `AGENTS.md` (the rules) and `DEVELOPMENT.md` (the architecture) first. This file covers the current state, the next tasks, and lessons from recent work. Update it when those change.
 
-State as of 2026-10-25: v1.33.2 is the latest published release (Windows installer on GitHub Releases, in-app updates). On the owner's 2026-10-24 Windows stream, four bugs were still present. They are listed below with what was already tried. Fix them one branch and PR at a time, in the order given.
+## Current review handoff — 2026-10-25 (America/Puerto_Rico)
+
+**All five requested items (diagnostics plus four stream bugs) have implementations; real Windows stream/OBS validation is still pending.** The latest published release is [v1.33.2](https://github.com/alexmario64/bubblecast/releases/tag/v1.33.2). Checkout/helper version 1.33.8 is development code, not a published release. The owner requested a handoff for independent review; do not begin another feature or assume the fixes are proven live.
+
+### Repository and PR state
+
+- Authoritative checkout: `/Users/truealex/bubblecast`; one Git worktree. Active branch: `style/dock-studio-cards`, tracking `origin/style/dock-studio-cards`. At this audit it was clean and synchronized at functional head `919e0fc`; this documentation-only handoff follows that commit on the same PR. No work is committed or pushed directly to `main`.
+- [#65 diagnostics](https://github.com/alexmario64/bubblecast/pull/65), [#66 bounded YouTube/no-app discovery](https://github.com/alexmario64/bubblecast/pull/66), [#67 TikTok startup/session](https://github.com/alexmario64/bubblecast/pull/67) and [#68 overlay recovery](https://github.com/alexmario64/bubblecast/pull/68) are merged.
+- [#69 — encoder-key matching and Studio/dock synchronization](https://github.com/alexmario64/bubblecast/pull/69) is **open**, branch `fix/youtube-stream-key-slots`, head `016730b`, helper 1.33.7. Both Windows test runs passed **521 tests, 0 failures/skips**, and its installer build passed.
+- [#70 — shared Studio/dock appearance and unavailable-status repair](https://github.com/alexmario64/bubblecast/pull/70) is **open**, branch `style/dock-studio-cards`, functional head `919e0fc`, helper 1.33.8. It targets `main` and includes #69 until that PR merges. **Review/merge #69 first, then #70; the owner merges.** To review only the appearance change, compare `016730b...style/dock-studio-cards`.
+- All three helper version spots (`package.json`, `desktop/package.json`, `desktop/main.cjs`, including its four reports) agree at 1.33.8 on the current branch. After owner merges, return to `main` and `git pull --ff-only` before new work. Preserve local sessions/settings; do not recreate or copy them.
+
+### Work completed and review targets
+
+1. **Diagnostics:** fixed-enum platform/session/transport status, OBS/Aitum detection, bounded discovery progress and a rotating data-folder `.local/diagnostics.log`. Audit the strict public/log allowlists: no raw errors, chat, URLs, credentials, stream keys or digests may leak. Studio and the dock now share diagnostics presentation.
+2. **YouTube discovery/no app:** one bounded series per stream-start edge (+20/+60/+120/+240 s), early completion only for expected current live/receiving slots; single-flight checks and cancellation/stale-result guards. API first; page reading only without a Google app or after quota exhaustion. A configured app awaiting sign-in stays on the API path. Opening OBS or recording offline must spend no YouTube quota. Channel discovery probes do not reload chat windows. Review missing watch metadata, explicit-ended decisions, quota handoff and reader/history/animated-media preservation. No-app reading is implemented with synthetic coverage, not verified against a current live stream.
+3. **TikTok:** initially hidden painting plus one bounded off-screen inactive activation; Manage/destruction/disconnect cancel cleanup safely. Bounded cookie metadata checks expose missing/unknown session states without cookie values. Removed automatic sign-in-close reloads. Audit native window lifecycle and session timeouts; actual hidden painting still needs Windows confirmation.
+4. **Overlay recovery:** server SSE heartbeat, watchdog/backoff, fresh-settings reads and guarded overlay reload. Real Chromium tests kill/restart an isolated server and exercise HTTP 204/403. Dock panes additionally fork their parent transport to avoid the six-connection HTTP limit when Studio previews are open. Review subscription cleanup, cached poll/settings replay and event ordering; preserve mounted chat/media, iframe sessions and the independent poll pane. Recovery must stay local and never queue discovery, sends or polls.
+5. **Main/Shorts matching:** compare immediately hashed `liveStreams.cdn.ingestionInfo.streamName` with local OBS main/Aitum portrait keys; normal status polling does not read keys. Aitum keys come from detected-vendor local config because the published vendor interface lacks a key-read action. Audit current/legacy config filtering, ambiguous same-key outputs, rotated keys, manual precedence, atomic remembered matches and error/privacy boundaries. Exact ingestion matching requires the API; no-app aspect/start-order assignment remains best effort for simultaneous/unknown starts.
+6. **Studio/dock parity and appearance:** shared `public/connection-status.js` and `public/connection-cards.css`; changed-field PATCH saves preserve other-view state and local drafts, including in-flight edits. The Studio autosave timer no longer blocks remote refreshes. The owner selected the rose/cream Studio Connections screenshot; the dock now uses its card/header/button/pill treatment with compact layouts and all four palettes. Account updates preserve source-field node identity, form ownership, focus and selection. Review PATCH normalization/races and long Spanish/narrow layouts in both views.
+
+### Screenshot failure and app recovery — do not lose this context
+
+- The owner rejected a desktop dock screenshot with missing platform cards and an overflowing Language control. Initial screenshots had covered connected states but missed a fresh-page/status-failure state. The repair mounts complete disabled placeholder cards before status arrives and shows Server not responding on failure. The overflow was a `label > span` optional-note float accidentally matching `.bc-select`; that wrapper is now excluded. A real browser regression reproduces the fresh failed-status state, checks containment and recovery, and preserves the same Creator field. The owner has **not yet confirmed** the repaired desktop appearance is satisfactory.
+- Separately, when the owner reported **THE APP IS DOWN**, localhost:3927 refused connections and no helper process was running. The cause of that shutdown was not established. Restored the normal app with `pnpm start:background`; the helper starts its configured readers normally. Latest handoff health check: local HTTP **200**, helper active, version **1.33.8**. Studio, dock and both shared asset routes also returned 200 in the preceding verification. Do not stop the restored helper just to run tests or screenshots.
+- No real platform page was inspected or controlled for development, and no test messages/polls were sent to real accounts. Starting the normal helper at the owner's request is distinct from permission to inspect or script platform pages. **Ask first** before real signed-in-window study; never use scripts/curl/headless/automated browsers against live platform sites. The owner is particularly concerned about bans/shadow bans; do not promise a platform classification guarantee or add platform retries to fix local problems.
+
+### Verification and next steps
+
+- Latest full local `pnpm test` at functional head `919e0fc`: **521 passed, 0 failed, 2 Windows-only skips** (523 total). Both Windows runs passed **523/523**, with no skips: [push run](https://github.com/alexmario64/bubblecast/actions/runs/40249368777), [PR run](https://github.com/alexmario64/bubblecast/actions/runs/40249372763). The [1.33.8 Windows installer build](https://github.com/alexmario64/bubblecast/actions/runs/40249372819) passed. This handoff-only commit triggers fresh checks; confirm the latest PR head before merging.
+- Sixteen offline appearance/state screenshots cover Studio/dock, all dock themes, compact Spanish, diagnostics and unavailable-status desktop/compact states. Synthetic screenshots/logs live under ignored `.local/`; production code/tests/fixtures stay in the repository. Prefer `pnpm screenshots --offline ...`; do not use account-connected pages as automated fixtures.
+- First independently review #69 and #70 with the priorities above, then report findings to the owner. Run `pnpm test` after any behavioral correction. Keep one fix branch/PR at a time, target `main`, and keep Studio and dock in sync. No new version bump is needed for this documentation-only handoff.
+- After review and owner merges/deployment, validate on the **Windows streaming PC**: diagnostics/log privacy and counts; main-only, vertical-first and later-second-output discovery; no Google app and quota-exhausted reading; missing channel/detection/sign-in; offline OBS/recording with zero discovery quota; TikTok without Manage; overlays receiving new chat/TTS/polls after a local server restart; distinct/reused/rotated main/Aitum keys and restart memory; Studio + multi-pane dock settings/source sync and repaired desktop/Spanish appearance. Refresh local Studio/dock/affected OBS sources once after deployment. Do not invent real account messages/polls for validation.
+
+The detailed implementation notes below record each stage. Sections marked historical describe older PRs and obsolete next-task plans; they are not instructions to restart PR #24 work. Older credential/sign-in/deployment questions remain unverified unless later evidence explicitly resolves them.
+
 
 ## Diagnostics prerequisite — helper 1.33.3 (2026-10-25)
 
@@ -118,7 +153,7 @@ Lessons from this session:
 - **Never contact live platform sites from scripts**, including api.kick.com and Google APIs. Read docs from GitHub mirrors instead (Kick's docs are at github.com/KickEngineering/KickDevDocs). Live behavior is checked only by the owner, in a real signed-in session.
 - **Don't retry a send, poll start or poll end automatically when its result is unknown.** Report it as `unknown`.
 
-## What the app is now
+## Historical app snapshot (PR #24)
 
 - **Twitch:** official API (Device Code sign-in, Helix, EventSub) plus Twitch's official IRC chat. The helper never opens Twitch.
 - **YouTube:** official API on the streamer's own Google app (`.local/app-keys.json`), giving each install its own 10,000-unit daily quota.
@@ -131,7 +166,7 @@ Lessons from this session:
 - **Language:** English and Spanish for Studio and the dock, one shared `language` setting.
 - **Setup guide for streamers:** `docs/own-apps.md`.
 
-## Next tasks, in order
+## Historical next tasks (PR #24; superseded by current review handoff)
 
 1. **Verify and deploy helper 1.24.0 from PR #24.** After merge, pull and restart the helper. Verify the shared-session Kick flow with the owner, including whether OAuth reuses the page login without a second credentials prompt. Pull/restart on Windows and refresh OBS sources when deploying there.
 2. **Verify Kick against a real sign-in.** The field names in `kick-official.mjs` come from Kick's docs and haven't been confirmed live: `data[0].user_id`, `name`, `broadcaster_user_id`, `stream.is_live`, `stream.viewer_count`, and `data.is_sent` on `POST /public/v1/chat`. Ask the owner for the error text if Connect Kick, the viewer count or sending fails, and adjust the code and tests.
@@ -168,7 +203,7 @@ Lessons from this session:
 - **Kick app setup:** the owner created the app and reported pasting the client ID and secret on macOS. Whether Save/Connect completed successfully has not been confirmed. Do not recreate or replace the app without evidence it is necessary.
 - **Deployment:** helper 1.24.0 restart on macOS, Windows pull/restart and affected OBS source refreshes are unconfirmed. macOS is for development; Windows remains the streaming target. The Windows installer from PR #34 has not been run on Windows yet.
 
-## What was about to happen next
+## Historical continuation plan (PR #24)
 
 The next functional step was an owner-approved real-session check of the new Kick connection flow after restarting helper 1.24.0, followed by the outstanding Kick identity/viewer/send/poll checks. That check was not started. PR review/owner merges and any documentation conflict resolution remain pending. After those, the existing prioritized backlog above still applies: Windows installer, overlay Spanish, then carefully scoped cleanups. Do not begin those as part of this wrap-up; the owner asked to hand the repo back and stop.
 
