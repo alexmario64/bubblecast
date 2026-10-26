@@ -219,7 +219,16 @@ async function checkYouTube(reason='stream-start'){
  if(youtube.pageFallback&&discoveryBlocked()==='none'&&collectorCommands.length<64&&(!pageCheck||Date.now()>pageCheck.until)){
   const id=randomBytes(12).toString('hex');pageCheck={id,reason,channel:sources.youtubeLive,until:Date.now()+55000};queueCollector({action:'youtube-check',...pageCheck,current:pageFound.map(f=>({video:f.video,title:f.title,vertical:f.format==='vertical'?true:f.format==='horizontal'?false:null}))});}
 }
-function streamingChanged(){const outputs=outputState();outputStarts.update(outputs,Date.now());verticalLive=outputs.vertical;if(outputs.main||outputs.vertical)obsStreamingAt=Date.now();else if(pageCheck?.reason==='stream-start')pageCheck=null;youtube.setLive(obsLive()||Date.now()<checkUntil);discovery.update(outputs);}
+function streamingChanged(){const outputs=outputState();tiktokStreamStart(outputs);outputStarts.update(outputs,Date.now());verticalLive=outputs.vertical;if(outputs.main||outputs.vertical)obsStreamingAt=Date.now();else if(pageCheck?.reason==='stream-start')pageCheck=null;youtube.setLive(obsLive()||Date.now()<checkUntil);discovery.update(outputs);}
+// A TikTok page opened while the streamer was offline never joins the live room by itself. Reload it once,
+// shortly after OBS or Aitum starts streaming, unless its chat is already arriving. Never on a timer.
+const tiktokReloadDelay=Number(process.env.BUBBLECAST_TIKTOK_RELOAD_MS)||30000;
+let tiktokStart=null,tiktokOutputs={main:false,vertical:false};
+function tiktokStreamStart(outputs){
+ const started=outputs.main&&!tiktokOutputs.main||outputs.vertical&&!tiktokOutputs.vertical;tiktokOutputs={main:!!outputs.main,vertical:!!outputs.vertical};
+ if(!outputs.main&&!outputs.vertical){clearTimeout(tiktokStart);tiktokStart=null;return;}if(!started)return;
+ clearTimeout(tiktokStart);tiktokStart=setTimeout(()=>{tiktokStart=null;if(!sources.enabled||!sources.urls?.tiktok||!collectorActive()||Date.now()-traffic.tiktok.lastMessageAt<60000)return;try{queueCollector({action:'refresh',sourceKey:'tiktok'});}catch{}},tiktokReloadDelay);tiktokStart.unref?.();
+}
 // Detect main and Aitum starts independently. Repeated idle/recording status spends no YouTube quota.
 let obsChecking=false;setInterval(async()=>{if(obsChecking)return;obsChecking=true;try{const s=await obsStreams().catch(()=>null);Object.assign(obsDetection,{checkedAt:Date.now(),websocket:s?'ready':'unavailable',main:s?.streaming===true,vertical:s?.vertical===true,verticalDetected:s?.verticalDetected===true});streamingChanged();}finally{obsChecking=false;}},20000).unref();
 let quotaOut=false;setInterval(()=>{streamingChanged();const out=youtube.quotaUntil>Date.now();if(out!==quotaOut){quotaOut=out;refreshSources();}},15000).unref();
