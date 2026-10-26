@@ -64,7 +64,9 @@ For any coding agent (Codex, Claude) or person picking up this repo. Read `AGENT
   - **Studio preview:** a scaled 1280×720 canvas that updates while editing. The embedded preview never opens its own event stream, which would starve the real overlays of the browser's six connections.
   - **Bug fixed:** `#subathonOverlay[hidden]` now really hides the overlay.
   - **Tests:** full suite gives 553 tests, 551 passed, 0 failed, 2 skipped.
-- **Review of PRs #65–#70 (Codex):** no blocking bugs found in diagnostics, bounded YouTube discovery, the TikTok warm-up, overlay recovery or stream-key matching. One open risk needs the owner's decision: a TikTok page loaded before the streamer goes live is never reloaded, so chat may not start without Manage.
+- **Overlay styles (second round, owner request):** Bubbles, Classic (white outlined text like classic Twitch chat) and Modern (dark Twitch-like panel with a colored edge and platform-colored chips). Classic and Modern use the chat overlay's Twitch font rule. New options: six positions, card width, title on or off, float amount, entrance animation (pop, slide, fade, none). Motion: floating card, digits that slide in, counter bumps, gliding bars.
+- **Separate timer and goal (owner request for Classic and Modern):** each piece has its own position. `?part=timer` and `?part=goal` give one OBS source per piece. Choosing Classic or Modern defaults to the timer alone, with no counters, and the goal on its own. Full suite: 555 tests, 553 passed, 0 failed, 2 skipped.
+- **Review of PRs #65–#70 (Codex):** no blocking bugs found in diagnostics, bounded YouTube discovery, the TikTok warm-up, overlay recovery or stream-key matching. The owner approved one TikTok reload 30 seconds after a stream starts; that is PR #73, separate from this branch.
 - **Still pending:**
   - Windows CI and installer checks on the PR.
   - The owner's merge.

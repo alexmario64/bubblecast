@@ -75,3 +75,14 @@ test('overlay look settings are validated, saved, and default for older saved st
  const saved=JSON.parse(await readFile(f.timer.file,'utf8'));for(const k of Object.keys(saved.config))if(k.startsWith('overlay'))delete saved.config[k];await writeFile(f.timer.file,JSON.stringify(saved));
  const {Subathon:Fresh}=await import('../subathon.mjs');const old=new Fresh({file:f.timer.file});old.load();assert.equal(old.snapshot().config.overlayLayout,'card');assert.equal(old.snapshot().blocked,false);
 });
+test('overlay style, motion and placement settings validate, and older positions move to the top row',async t=>{
+ const f=await fixture(t);const s=f.command('settings',{patch:{overlayStyle:'modern',overlayAnimation:'slide',overlayPosition:'bottom-right',overlayWidth:600,overlayFloat:false,overlayFloatAmount:12,overlayTitleShown:false}});
+ assert.equal(s.config.overlayStyle,'modern');assert.equal(s.config.overlayPosition,'bottom-right');assert.equal(s.config.overlayWidth,600);assert.equal(s.config.overlayFloat,false);
+ assert.equal(f.command('settings',{patch:{overlayPosition:'center'}}).config.overlayPosition,'top-center','a position saved by the first overlay version still loads');
+ for(const patch of [{overlayStyle:'neon'},{overlayAnimation:'spin'},{overlayPosition:'middle'},{overlayWidth:100},{overlayFloatAmount:99},{overlayTitleShown:1}])assert.throws(()=>f.command('settings',{patch}),undefined,JSON.stringify(patch));
+});
+test('the goal can be its own piece with its own position',async t=>{
+ const f=await fixture(t);assert.equal(f.timer.snapshot().config.overlaySplit,false,'Bubbles keeps one card by default');
+ const s=f.command('settings',{patch:{overlaySplit:true,overlayGoalPosition:'bottom-right',overlayPosition:'top-right'}});assert.equal(s.config.overlaySplit,true);assert.equal(s.config.overlayGoalPosition,'bottom-right');
+ for(const patch of [{overlaySplit:'yes'},{overlayGoalPosition:'middle'}])assert.throws(()=>f.command('settings',{patch}),undefined,JSON.stringify(patch));
+});

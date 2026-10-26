@@ -1,44 +1,93 @@
 @font-face{font-family:'Komika Axis';src:local('Komika Axis'),url('/fonts/komika-axis.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
 html,body{margin:0;background:transparent;overflow:hidden}
-#subathonOverlay{--accent:#35aaa8;--card:#fff8ee;--ink:#493a50;--size:1;position:absolute;top:calc(28px*var(--size));left:calc(28px*var(--size));right:calc(28px*var(--size));display:flex;flex-direction:column;align-items:flex-start;gap:.6em;font-family:var(--font,'Komika Axis',sans-serif);font-size:calc(20px*var(--size));line-height:1.2;color:var(--ink)}
-#subathonOverlay.position-center{align-items:center}#subathonOverlay.position-right{align-items:flex-end}
-.so-card{position:relative;box-sizing:border-box;width:min(21em,100%);margin-top:.9em;padding:1.25em 1.2em 1.05em;border:.16em solid var(--accent);border-radius:1.3em;background:var(--card);box-shadow:0 .3em .9em #0003}
+#subathonOverlay{--accent:#35aaa8;--card:#fff8ee;--ink:#493a50;--size:1;--width:420px;--float:8px;--edge:var(--accent);position:absolute;inset:calc(28px*var(--size));font-family:var(--font,'Komika Axis',sans-serif);font-size:calc(20px*var(--size));line-height:1.2;color:var(--ink);pointer-events:none}
+#subathonOverlay[hidden]{display:none}
+/* Each piece (the timer, and the goal when it is shown on its own) is placed independently. */
+.so-piece{position:absolute;display:flex;flex-direction:column;align-items:flex-start;gap:.6em;max-width:100%}.so-piece[hidden]{display:none}
+.so-piece[class*=pos-top]{top:0}.so-piece[class*=pos-bottom]{bottom:0;flex-direction:column-reverse}
+.so-piece[class*=-left]{left:0}.so-piece[class*=-right]{right:0;align-items:flex-end}.so-piece[class*=-center]{left:50%;transform:translateX(-50%);align-items:center}
+#subathonOverlay .so-goal-piece .so-card{margin-top:0;width:calc(var(--width)*var(--size))}#subathonOverlay .so-goal-piece .so-goals{margin-top:0;padding-top:0;border-top:0}
+.style-classic .so-piece[class*=-right] .so-card{text-align:right}.style-classic .so-piece[class*=-center] .so-card{text-align:center}
+/* The card floats on its own layer so entrance and float animations never fight each other. */
+.so-float{max-width:100%}.float .so-float{animation:so-float 6.5s ease-in-out infinite}
+.so-card{position:relative;box-sizing:border-box;width:min(calc(var(--width)*var(--size)),100%);margin-top:.9em;padding:1.25em 1.2em 1.05em;border:.16em solid var(--accent);border-radius:1.3em;background:var(--card);box-shadow:0 .3em .9em #0003}
+.no-title .so-title,.so-title:empty{display:none}.no-title .so-card{margin-top:0}
 .so-title{position:absolute;top:0;left:1em;max-width:calc(100% - 2em);transform:translateY(-58%);padding:.32em .8em .28em;border-radius:1em;background:var(--accent);color:var(--card);font-size:.8em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.so-title:empty{display:none}
 .so-main{display:flex;flex-direction:column;align-items:center;gap:.2em}
 .so-status{display:flex;align-items:center;gap:.4em;font-size:.62em;letter-spacing:.06em;opacity:.75}
 .so-status i{width:.7em;height:.7em;border-radius:50%;background:#e0a33a}
 .running .so-status i{background:#3cc47c;animation:so-pulse 1.6s ease-in-out infinite}.ended .so-status i,.stale .so-status i{background:color-mix(in srgb,var(--ink) 40%,transparent)}
-.so-clock{display:flex;font-size:3em;line-height:1;letter-spacing:0}
-.so-clock .d{display:inline-block;width:.64em;text-align:center}.so-clock .c{display:inline-block;width:.3em;text-align:center;transform:translateY(-.05em)}
+.so-clock{display:flex;font-size:3em;line-height:1.05;padding:.04em .1em .12em;margin:-.04em -.1em -.12em;overflow:hidden}
+.so-clock span{display:inline-block;text-align:center}.so-clock .d{width:.64em}.so-clock .c{width:.3em;transform:translateY(-.05em)}
+.so-clock .d.tick{animation:so-digit .38s cubic-bezier(.2,1.3,.4,1)}
 .ended .so-clock,.stale .so-clock{opacity:.55}
 .so-counters{display:flex;flex-wrap:wrap;justify-content:center;gap:.35em;margin-top:.85em}
 .so-counters:empty,.so-goals:empty{display:none}
 .so-chip{display:flex;align-items:center;gap:.35em;padding:.32em .65em .28em;border-radius:1em;background:color-mix(in srgb,var(--accent) 16%,var(--card));font-size:.7em;white-space:nowrap}
+.so-chip.bump{animation:so-bump .55s cubic-bezier(.2,1.6,.4,1)}
 .so-chip img{height:1.05em;width:auto}.so-chip b{font-weight:normal}.so-chip small{font-size:.78em;opacity:.7}
 .so-goals{display:flex;flex-direction:column;gap:.7em;margin-top:.95em;padding-top:.85em;border-top:.08em dashed color-mix(in srgb,var(--ink) 22%,transparent)}
 .so-goal-label{font-size:.55em;letter-spacing:.1em;opacity:.65}
 .so-goal-row{display:flex;flex-direction:column;gap:.15em;font-size:.78em}
 .so-goal-row span{overflow-wrap:anywhere}.so-goal-row small{font-size:.78em;opacity:.7}
-.so-bar{height:.5em;margin-top:.3em;border-radius:1em;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}
-.so-bar i{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.so-bar{position:relative;height:.5em;margin-top:.3em;border-radius:1em;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}
+.so-bar i{position:relative;display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width .9s cubic-bezier(.2,.8,.2,1);overflow:hidden}
+.so-bar i::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#fff7 50%,transparent 70%);transform:translateX(-100%);animation:so-shine 3.2s ease-in-out infinite}
 .so-goal.done .so-goal-row span::before{content:'✓ ';color:var(--accent)}.so-goal.done .so-bar{display:none}.so-goal.done{opacity:.7}
 .so-done{font-size:.6em;opacity:.65}
 .so-toast{display:none;align-items:baseline;gap:.5em;padding:.45em .95em .4em;border-radius:1.2em;background:var(--accent);color:var(--card);box-shadow:0 .25em .7em #0003}
 .so-toast strong{font-weight:normal;font-size:1.15em}.so-toast span{font-size:.72em}
-.so-toast.show{display:flex;animation:so-in .45s cubic-bezier(.2,1.4,.4,1),so-out .4s ease-in 5.6s forwards}
+.so-toast.show{display:flex;animation:so-in .5s cubic-bezier(.2,1.4,.4,1),so-rise 5.6s ease-in-out .5s,so-out .4s ease-in 5.6s forwards}
+/* Entrance when the overlay appears. */
+.enter-pop .so-float{animation:so-pop .6s cubic-bezier(.2,1.5,.4,1) both}.enter-slide .so-float{animation:so-slide .55s cubic-bezier(.2,1,.3,1) both}.enter-fade .so-float{animation:so-fade .5s ease-out both}
+/* Classic: no card, white outlined text like classic Twitch chat. */
+.style-classic .so-card{border:0;background:none;box-shadow:none;padding:.4em .2em;color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,1px 1px 2px #000,0 0 6px #000a}
+.style-classic .so-title{position:static;transform:none;display:inline-block;margin:0 0 .3em;padding:0;background:none;color:var(--accent);font-size:.85em;max-width:100%}
+.style-classic .so-main{align-items:flex-start}.style-classic .so-status{opacity:.95}
+.style-classic .so-counters{justify-content:flex-start;margin-top:.5em}
+.style-classic .so-chip{background:none;padding:0 .5em 0 0;font-size:.72em}.style-classic .so-chip img{filter:drop-shadow(0 1px 1px #000c)}
+.style-classic .so-goals{border-top:0;padding-top:0;margin-top:.7em}.style-classic .so-goal-label,.style-classic .so-done{opacity:.9}
+.style-classic .so-bar{height:.45em;background:#0008;box-shadow:0 0 0 .08em #000a}
+.style-classic .so-toast{background:none;box-shadow:none;color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,1px 1px 2px #000;padding:0}.style-classic .so-toast strong{color:var(--accent)}
+.style-classic .so-piece[class*=-center] .so-main{align-items:center}.style-classic .so-piece[class*=-center] .so-counters{justify-content:center}.style-classic .so-piece[class*=-right] .so-main{align-items:flex-end}.style-classic .so-piece[class*=-right] .so-counters{justify-content:flex-end}.style-classic .so-piece[class*=-right] .so-goal-row{align-items:flex-end}
+/* Modern: dark glass panel with a colored edge; chips take each platform's color. */
+.style-modern .so-card{border:0;border-left:.22em solid var(--edge);border-radius:.6em;background:#0e0e10d9;color:#efeff1;box-shadow:0 .35em 1em #0006;padding:1em 1.1em .9em;margin-top:0}
+.style-modern .so-title{position:static;transform:none;display:inline-block;margin:0 0 .5em;padding:.2em .6em;border-radius:.35em;background:var(--edge);color:#0e0e10;font-size:.7em}
+.style-modern .so-main{align-items:flex-start}
+.style-modern .so-counters{justify-content:flex-start}
+.style-modern .so-chip{border-radius:.4em;background:#ffffff14;border-left:.18em solid var(--chip,var(--edge))}
+.style-modern .so-chip[data-metric=bits]{--chip:#9146ff}.style-modern .so-chip[data-metric=tiktokGifts]{--chip:#fe2c55}.style-modern .so-chip[data-metric=kicks]{--chip:#53fc18}.style-modern .so-chip[data-metric=money]{--chip:#ff0033}
+.style-modern .so-goals{border-top:.06em solid #ffffff1f}.style-modern .so-bar{border-radius:.2em;background:#ffffff1a}
+.style-modern .so-toast{border-radius:.5em;background:#0e0e10e6;color:#efeff1;border-left:.22em solid var(--edge)}.style-modern .so-toast strong{color:var(--edge)}
+.style-modern .so-piece[class*=-center] .so-main{align-items:center}.style-modern .so-piece[class*=-center] .so-counters{justify-content:center}
+/* Twitch-like type for Classic and Modern. */
+#subathonOverlay.style-classic,#subathonOverlay.style-modern{font-family:var(--classic-font,Inter,'Segoe UI',Roboto,Arial,sans-serif)}
+.style-classic .so-clock,.style-modern .so-clock{font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}.style-classic .so-clock .d,.style-modern .so-clock .d{width:.62em}
+.style-classic .so-title,.style-modern .so-title,.style-classic .so-chip b,.style-modern .so-chip b,.style-classic .so-goal-row span,.style-modern .so-goal-row span,.style-classic .so-toast strong,.style-modern .so-toast strong{font-weight:700}
+.style-classic .so-status,.style-modern .so-status,.style-classic .so-goal-label,.style-modern .so-goal-label{font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.style-classic .so-chip small,.style-modern .so-chip small,.style-classic .so-goal-row small,.style-modern .so-goal-row small,.style-classic .so-done,.style-modern .so-done{font-weight:600}
+.style-modern .so-card{background:#18181bf0}.style-modern .so-title{color:#fff;text-shadow:0 1px 1px #0006}
 /* Bar: one horizontal strip for the bottom or top of a scene. */
-.layout-bar .so-card{display:flex;align-items:center;flex-wrap:wrap;gap:.5em 1em;width:auto;max-width:100%;padding:.75em 1.1em .65em;border-radius:2em}
-.layout-bar .so-title{position:static;transform:none;font-size:.7em}
-.layout-bar .so-main{flex-direction:row;gap:.6em}.layout-bar .so-clock{font-size:1.9em}.layout-bar .so-status span{display:none}
-.layout-bar .so-counters{margin:0}.layout-bar .so-goals{flex:1 1 12em;margin:0;padding:0 0 0 1em;border-top:0;border-left:.08em dashed color-mix(in srgb,var(--ink) 22%,transparent)}.layout-bar .so-goal-row{flex-direction:row;justify-content:space-between;align-items:baseline;gap:.6em}.layout-bar .so-goal-row span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.layout-bar .so-goal-row small{flex:none}
+.layout-bar .so-timer-piece .so-card{display:flex;align-items:center;flex-wrap:wrap;gap:.5em 1em;width:auto;max-width:100%;padding:.75em 1.1em .65em;border-radius:2em}
+.layout-bar.style-modern .so-card{border-radius:.6em}
+.layout-bar .so-title{position:static;transform:none;font-size:.7em;margin:0}
+.layout-bar .so-main{flex-direction:row;gap:.6em;align-items:center}.layout-bar .so-clock{font-size:1.9em}.layout-bar .so-status span{display:none}
+.layout-bar .so-counters{margin:0}.layout-bar .so-goals{flex:1 1 12em;margin:0;padding:0 0 0 1em;border-top:0;border-left:.08em dashed color-mix(in srgb,currentColor 25%,transparent)}
 .layout-bar .so-goal-label,.layout-bar .so-done{display:none}
+.layout-bar .so-goal-row{flex-direction:row;justify-content:space-between;align-items:baseline;gap:.6em}.layout-bar .so-goal-row span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.layout-bar .so-goal-row small{flex:none}
 /* Timer: only the countdown. */
-.layout-timer .so-card{width:auto;padding:.85em 1.15em .7em;margin-top:0}.layout-timer .so-counters,.layout-timer .so-goals,.layout-timer .so-title{display:none}
-.layout-timer .so-main{flex-direction:row;gap:.6em}.layout-timer .so-status span{display:none}
+.layout-timer .so-timer-piece .so-card{width:auto;padding:.85em 1.15em .7em;margin-top:0}.layout-timer .so-timer-piece .so-counters,.layout-timer .so-timer-piece .so-goals,.layout-timer .so-title{display:none}
+.layout-timer .so-main{flex-direction:row;gap:.6em;align-items:center}.layout-timer .so-status span{display:none}
 .no-status .so-status{display:none}
+@keyframes so-float{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translate(.06em,calc(-.6*var(--float))) rotate(-.25deg)}70%{transform:translate(-.05em,calc(-1*var(--float))) rotate(.2deg)}}
 @keyframes so-pulse{50%{box-shadow:0 0 0 .3em color-mix(in srgb,#3cc47c 30%,transparent)}}
-@keyframes so-in{from{opacity:0;transform:translateY(-.5em) scale(.85)}}
-@keyframes so-out{to{opacity:0;transform:translateY(-.3em)}}
-@media(prefers-reduced-motion:reduce){.so-toast.show{animation:so-out .01s linear 6s forwards}.running .so-status i{animation:none}.so-bar i{transition:none}}
-#subathonOverlay[hidden]{display:none}
+@keyframes so-digit{from{transform:translateY(-.45em);opacity:0}to{transform:none;opacity:1}}
+@keyframes so-bump{40%{transform:scale(1.18) rotate(-2deg)}}
+@keyframes so-shine{0%,55%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+@keyframes so-pop{from{opacity:0;transform:scale(.6) translateY(.6em)}}
+@keyframes so-slide{from{opacity:0;transform:translateX(-1.5em)}}
+@keyframes so-fade{from{opacity:0}}
+@keyframes so-in{from{opacity:0;transform:translateY(.6em) scale(.8)}}
+@keyframes so-rise{50%{transform:translateY(-.25em)}}
+@keyframes so-out{to{opacity:0;transform:translateY(-.6em)}}
+@media(prefers-reduced-motion:reduce){.float .so-float,.so-bar i::after,.running .so-status i,.so-clock .d.tick,.so-chip.bump,[class*=enter-] .so-float{animation:none}.so-toast.show{animation:so-out .01s linear 6s forwards}.so-bar i{transition:none}}

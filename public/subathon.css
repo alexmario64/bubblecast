@@ -3,3 +3,4 @@
 @media(max-width:360px){.sub-fields{grid-template-columns:1fr}.sub-card{padding:16px}.sub-timer-actions{gap:6px}.sub-timer-actions>[data-action=toggle]{min-width:0;flex:1}.sub-counters strong{font-size:20px}.sub-counters span{font-size:10px}}
 
 .sub-preview{margin:0 0 16px;border-radius:16px;overflow:hidden;background:repeating-conic-gradient(var(--accent-soft) 0 25%,transparent 0 50%) 0 0/20px 20px;border:1px solid var(--border)}.sub-preview{position:relative;aspect-ratio:16/9;max-width:100%}.sub-preview iframe{position:absolute;top:0;left:0;width:1280px;height:720px;border:0;background:transparent;transform-origin:0 0;transform:scale(var(--preview-scale,.4));pointer-events:none}.sub-look{margin-bottom:18px}.sub-card .sub-colors input[type=color]{height:42px;padding:4px}.sub-url-title{margin-top:6px}
+.sub-overlay-link code.sub-part{margin-bottom:8px}
