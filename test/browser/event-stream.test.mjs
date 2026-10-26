@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {Window} from 'happy-dom';
 const script=await readFile(new URL('../../public/event-stream.js',import.meta.url),'utf8');
-function fixture(t,{fetcher=async()=>({ok:true,json:async()=>({accent:'#123456'})}),storage,construct=()=>{}}={}){
+function fixture(t,{fetcher=async()=>({ok:true,json:async()=>({accent:'#123456'})}),storage,construct=()=>{},allowReload=true}={}){
  const w=new Window({url:'http://127.0.0.1:3927/overlay'});t.after(()=>w.happyDOM.abort());let time=1000000,reloads=0,watch,id=0;const timers=new Map(),sources=[],fetches=[];
  class Source{constructor(url){construct();this.url=url;this.listeners={};this.readyState=0;sources.push(this);}addEventListener(type,fn){(this.listeners[type]??=[]).push(fn);}emit(type,data={}){if(type==='open')this.readyState=1;for(const fn of this.listeners[type]||[])fn({data:JSON.stringify(data)});}close(){this.closed=true;this.readyState=2;}}
- w.eval(script);const events=w.bubblecastEvents.connect({EventSource:Source,fetcher:(...a)=>{fetches.push(a);return fetcher(...a);},now:()=>time,later:(fn,ms)=>{timers.set(++id,{fn,at:time+ms,ms});return id;},clearLater:n=>timers.delete(n),repeat:fn=>{watch=fn;return 1;},clearRepeat:()=>{watch=null;},reload:()=>reloads++,storage:storage||w.sessionStorage});
+ w.eval(script);const events=w.bubblecastEvents.connect({EventSource:Source,fetcher:(...a)=>{fetches.push(a);return fetcher(...a);},now:()=>time,later:(fn,ms)=>{timers.set(++id,{fn,at:time+ms,ms});return id;},clearLater:n=>timers.delete(n),repeat:fn=>{watch=fn;return 1;},clearRepeat:()=>{watch=null;},reload:allowReload?()=>reloads++:null,storage:storage||w.sessionStorage});
  const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
  const advance=async ms=>{time+=ms;for(const [key,timer] of [...timers])if(timer.at<=time){timers.delete(key);timer.fn();}await flush();};
  return {w,events,sources,fetches,timers,flush,advance,watch:()=>watch?.(),get reloads(){return reloads;}};
@@ -58,4 +58,17 @@ test('handler registration stays single across reconnects and all recovery reque
  const f=fixture(t);let calls=0;const handler=()=>calls++;f.events.addEventListener('tts',handler);f.events.addEventListener('tts',handler);
  f.sources[0].emit('tts');f.sources[0].emit('error');await f.advance(1000);f.sources[1].emit('open');await f.flush();f.sources[1].emit('tts');assert.equal(calls,2);
  assert.ok(f.sources.every(s=>s.url==='/api/events'));assert.ok(f.fetches.every(([url,options])=>url==='/api/settings'&&options.method===undefined));
+});
+
+test('dock mode reconnects after repeated failures without navigating or losing iframe sessions',async t=>{
+ const f=fixture(t,{allowReload:false}),errors=[];f.events.addEventListener('error',()=>errors.push('error'));for(const delay of [1000,2000,4000,8000,10000,10000]){f.sources.at(-1).emit('error');await f.advance(delay);}assert.equal(f.reloads,0);assert.equal(f.sources.length,7);assert.equal(errors.length,6);assert.equal(f.w.sessionStorage.length,0);
+});
+
+test('dock forks share one connection, replay current settings and polls, and detach independently',async t=>{
+ const f=fixture(t),seen=[],other=[],opens=[];f.events.addEventListener('polls',()=>{});f.events.addEventListener('poll',()=>{});f.events.addEventListener('poll-remove',()=>{});f.events.addEventListener('open',()=>{});
+ f.sources[0].emit('open');await f.flush();f.sources[0].emit('polls',[{sourceKey:'kick',id:'old'},{sourceKey:'youtube',id:'keep'}]);f.sources[0].emit('poll',{sourceKey:'kick',id:'new'});
+ const pane=f.events.fork();pane.addEventListener('settings',e=>seen.push(JSON.parse(e.data)));pane.addEventListener('polls',e=>other.push(JSON.parse(e.data)));pane.addEventListener('open',()=>opens.push('open'));await f.advance(0);
+ assert.equal(f.sources.length,1);assert.deepEqual(seen,[{accent:'#123456'}]);assert.deepEqual(other,[[{sourceKey:'youtube',id:'keep'},{sourceKey:'kick',id:'new'}]]);assert.equal(opens.length,1);
+ f.sources[0].emit('poll-remove',{sourceKey:'kick',id:'new'});const second=f.events.fork(),current=[];second.addEventListener('polls',e=>current.push(JSON.parse(e.data)));await f.advance(0);assert.deepEqual(current,[[{sourceKey:'youtube',id:'keep'}]]);
+ pane.close();pane.close();f.sources[0].emit('settings',{accent:'#abcdef'});assert.equal(seen.length,1);assert.notEqual(f.sources[0].closed,true);f.sources[0].emit('error');await f.advance(1000);f.sources[1].emit('open');await f.flush();assert.equal(f.sources.length,2);assert.equal(opens.length,1,'closed pane does not receive reconnection');second.close();
 });

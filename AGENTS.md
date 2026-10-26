@@ -13,6 +13,7 @@ The user has directed that all work from now on happens in https://github.com/al
 - Use the shared poll helpers for native actions. Never automatically retry a publish/end/send action whose result is unknown. Do not publish invented test messages or polls on real platforms.
 - Run pnpm test after behavioral changes. Browser DOM fixtures live in test/browser; the fixture suite does not prove live platform compatibility.
 - Bump package.json, desktop/package.json and desktop/main.cjs together when shipping a helper update. Restart the background helper and refresh affected OBS sources.
+- Keep Studio and the dock in sync: shared connection behavior, settings, platform status, diagnostics and controls must ship in both interfaces together. Prefer shared presenters/helpers over duplicated logic, and verify both views (including Spanish and narrow layouts). Preserve edits in progress when synchronizing saved state.
 - Keep the dock's independent poll pane separate from chat filters and preserve existing iframe sessions when opening or resizing it.
 - This project targets Windows for streaming (OBS runs on Windows). macOS is supported for development only: the server, UI, tests and background helper run there, but every change must keep the Windows paths working. The Windows CI workflow must pass on each PR.
 - Browser sources are transparent; platform logos must remain transparent. Komika Axis is the default overlay font (users may choose any installed font); keep the established bubble style for overlays.

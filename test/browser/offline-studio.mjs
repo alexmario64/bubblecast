@@ -16,8 +16,8 @@ export async function offlineStudio(page,{language='en',scenario=''}={}){
  await page.route('**/*',async route=>{
   const url=new URL(route.request().url());if(url.origin!=='http://127.0.0.1:3927')return route.abort('blockedbyclient');
   const path=url.pathname;
-  if(path==='/api/events')return route.fulfill({contentType:'text/event-stream',body:'event: settings\ndata: '+JSON.stringify(defaults)+'\n\n'});
-  if(path.startsWith('/api/'))return route.fulfill({json:path==='/api/status'?status:path==='/api/pair'?{token:'offline-fixture'}:path==='/api/settings'?defaults:path==='/api/apps'?{}:path==='/api/polls'?{polls:[]}:path==='/api/emotes'?{emotes:{}}:path.startsWith('/api/tts/')?{voices:[]}: {}});
+  if(path==='/api/events')return route.fulfill({contentType:'text/event-stream',body:'event: settings\ndata: '+JSON.stringify(status.settings)+'\n\n'});
+  if(path.startsWith('/api/'))return route.fulfill({json:path==='/api/status'?status:path==='/api/pair'?{token:'offline-fixture'}:path==='/api/settings'?status.settings:path==='/api/sources'?sources:path==='/api/apps'?{}:path==='/api/polls'?{polls:[]}:path==='/api/emotes'?{emotes:{}}:path.startsWith('/api/tts/')?{voices:[]}: {}});
   const alias={'/':'public/index.html','/core.mjs':'core.mjs','/logos/twitch.png':'logos/twitch-purple-logo-png-transparent.png','/logos/youtube.png':'logos/Youtube_logo.png','/tts':'public/tts.html','/dock':'public/dock.html','/overlay':'public/overlay.html','/poll-overlay':'public/poll-overlay.html'};
   const target=new URL(alias[path]||(path.startsWith('/logos/')?'public/'+path.split('/').at(-1):'public'+path),root);
   if(!target.href.startsWith(root.href))return route.abort('blockedbyclient');

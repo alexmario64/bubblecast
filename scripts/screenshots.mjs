@@ -18,6 +18,8 @@ const shots=[
  {name:'studio-diagnostics-spanish',path:'/#overview',viewport:desktop,language:'es',full:true},
  {name:'studio-overview-narrow',path:'/#overview',viewport:{width:420,height:880}},
  ...['rose','red','midnight','white'].flatMap(theme=>[{name:`dock-${theme}`,path:'/dock?preview=1',viewport:dockNarrow,theme},{name:`dock-wide-${theme}`,path:'/dock?preview=1',viewport:dockWide,theme}]),
+ ...['no-app','key-matches'].flatMap(scenario=>['rose','red','midnight','white','spanish'].map(theme=>({name:`dock-connections-${scenario}-${theme}`,path:'/dock?preview=1',viewport:{width:360,height:880},scenario,theme:theme==='spanish'?'rose':theme,language:theme==='spanish'?'es':'en',offlineOnly:true,click:'#connections'}))),
+ ...['en','es'].map(language=>({name:`dock-diagnostics-${language}`,path:'/dock',viewport:{width:360,height:880},language,offlineOnly:true,click:'#connections',reveal:'.diagnostics-card'})),
  {name:'dock-connections',path:'/dock?preview=1',viewport:dockNarrow,click:'#connections'},
  {name:'dock-new-poll',path:'/dock?preview=1',viewport:dockNarrow,click:'#newPoll'},
  {name:'dock-bots',path:'/dock?preview=1',viewport:dockNarrow,click:'#botMenuButton'},
@@ -51,6 +53,7 @@ try{
   if(shot.scroll){await page.locator(shot.scroll).scrollIntoViewIfNeeded().catch(()=>{});await page.waitForTimeout(400);}
   if(shot.focus){await page.keyboard.press('Tab');await page.focus(shot.focus).catch(()=>{});await page.waitForTimeout(300);}
   if(shot.click){await page.click(shot.click).catch(()=>{});await page.waitForTimeout(500);}
+  if(shot.reveal)await page.locator(shot.reveal).evaluate(el=>{el.open=true;el.scrollIntoView({block:'center'});});
   if(shot.select){await page.selectOption(...shot.select).catch(()=>{});await page.waitForTimeout(1500);}
   await page.screenshot({path:out+shot.name+'.png',omitBackground:!!shot.transparent,fullPage:!!shot.full});
   await page.close();console.log(errors.length?'⚠':'✓',shot.name);for(const e of errors)console.log('   ',e);problems+=errors.length;
