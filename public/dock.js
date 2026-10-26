@@ -122,3 +122,5 @@ updateComposer();
 // Render a complete connection sheet before the first status request, including while the server is down.
 function connectionPlaceholders(){const accounts=$('#accounts');for(const k of ['twitch','youtube','tiktok','kick']){const row=document.createElement('div'),label=document.createElement('span'),button=document.createElement('button');row.className='account-row'+(k==='kick'?' kick-account':'');label.textContent=labels[k]+' · Connecting…';button.type='button';button.textContent=k==='tiktok'?'Sign in':'Connect';button.disabled=true;row.append(label,button);accounts.append(alignAccountLabel(row,k));}for(const pill of accounts.querySelectorAll('.pill')){pill.textContent='Connecting…';pill.dataset.state='off';}$('#captureControls').hidden=false;$('.youtube-connection').hidden=true;$('#youtubeCheck').disabled=true;}
 connectionPlaceholders();
+
+if(!dockLayout.pane){window.bubblecastSubathon?.mount(document.querySelector('[data-subathon-controls]'),{events});$('#openSubathon').onclick=()=>$('#subathonDialog').showModal();$('#closeSubathon').onclick=()=>$('#subathonDialog').close();}

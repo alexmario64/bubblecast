@@ -207,11 +207,11 @@ export function chatMessage(item,sourceKey='youtube'){
  const base={id:item.id,sourceId:item.id,platform:'youtube',sourceKey,user:a.displayName||'YouTube viewer',userId:a.channelId||s.authorChannelId||'',parts:[],badges:[],...(roles.length?{roles}:{}),sourceTime:Date.parse(s.publishedAt)||Date.now()};
  if(!item?.id)return null;
  if(type==='textMessageEvent')return {...base,parts:text(s.textMessageDetails?.messageText??s.displayMessage)};
- if(type==='superChatEvent')return {...base,parts:s.superChatDetails?.userComment?text(s.superChatDetails.userComment):[],event:{kind:'superchat',title:s.superChatDetails?.amountDisplayString||'Super Chat'}};
- if(type==='superStickerEvent')return {...base,event:{kind:'superchat',title:s.superStickerDetails?.amountDisplayString||'Super Sticker'}};
- if(type==='newSponsorEvent')return {...base,event:{kind:'membership',title:s.newSponsorDetails?.isUpgrade?'Upgraded membership':'New member'+(s.newSponsorDetails?.memberLevelName?' · '+s.newSponsorDetails.memberLevelName:'')}};
+ if(type==='superChatEvent')return {...base,support:{metric:'money',amount:Number(s.superChatDetails?.amountMicros)/1e6,currency:s.superChatDetails?.currency},parts:s.superChatDetails?.userComment?text(s.superChatDetails.userComment):[],event:{kind:'superchat',title:s.superChatDetails?.amountDisplayString||'Super Chat'}};
+ if(type==='superStickerEvent')return {...base,support:{metric:'money',amount:Number(s.superStickerDetails?.amountMicros)/1e6,currency:s.superStickerDetails?.currency},event:{kind:'superchat',title:s.superStickerDetails?.amountDisplayString||'Super Sticker'}};
+ if(type==='newSponsorEvent')return {...base,...(!s.newSponsorDetails?.isUpgrade?{support:{metric:'subscriptions',amount:1}}:{}),event:{kind:'membership',title:s.newSponsorDetails?.isUpgrade?'Upgraded membership':'New member'+(s.newSponsorDetails?.memberLevelName?' · '+s.newSponsorDetails.memberLevelName:'')}};
  if(type==='memberMilestoneChatEvent'){const d=s.memberMilestoneChatDetails||{};return {...base,parts:d.userComment?text(d.userComment):[],event:{kind:'membership',title:'Member for '+(d.memberMonth||1)+(d.memberMonth===1?' month':' months')}};}
- if(type==='membershipGiftingEvent'){const n=s.membershipGiftingDetails?.giftMembershipsCount||1;return {...base,event:{kind:'giftmembership',title:'Gifted '+n+(n===1?' membership':' memberships')}};}
+ if(type==='membershipGiftingEvent'){const n=s.membershipGiftingDetails?.giftMembershipsCount;return {...base,...(Number.isSafeInteger(n)&&n>0?{support:{metric:'subscriptions',amount:n}}:{}),event:{kind:'giftmembership',title:n?'Gifted '+n+(n===1?' membership':' memberships'):'Gifted memberships'}};}
  return null;
 }
 // Maps a poll message to the shared poll model; YouTube reports per-option tallies while the poll runs.

@@ -8,8 +8,13 @@ import {mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url)),out=root+'.local/screenshots/',base='http://127.0.0.1:3927';
 const desktop={width:1440,height:960},dockNarrow={width:440,height:860},dockWide={width:1180,height:780},canvas={width:1280,height:720};
-const studioPages=['overview','connections','appearance','chat','polls','tts','dock','obs'];
+const studioPages=['overview','connections','appearance','chat','polls','tts','subathon','dock','obs'];
 const shots=[
+ ...[{name:'studio-subathon-narrow-spanish',path:'/#subathon',viewport:{width:360,height:880}},{name:'dock-subathon-spanish',path:'/dock',viewport:{width:320,height:880},click:'#openSubathon'},{name:'subathon-overlay-spanish',path:'/subathon-overlay?preview=1',viewport:canvas,transparent:true}].map(s=>({...s,language:'es',offlineOnly:true,full:true})),
+ {name:'studio-subathon-settings-spanish',path:'/#subathon',viewport:{width:360,height:880},language:'es',offlineOnly:true,reveal:'.sub-configuration',full:true},
+ {name:'dock-subathon-settings-spanish',path:'/dock',viewport:{width:320,height:880},language:'es',offlineOnly:true,click:'#openSubathon',reveal:'.sub-configuration'},
+ {name:'dock-subathon-desktop',path:'/dock',viewport:desktop,click:'#openSubathon',offlineOnly:true},
+ {name:'subathon-overlay',path:'/subathon-overlay?preview=1',viewport:canvas,transparent:true,offlineOnly:true},
  ...['rose','red','midnight','white'].flatMap(theme=>studioPages.map(page=>({name:`studio-${page}-${theme}`,path:'/#'+page,viewport:desktop,theme,full:true}))),
  ...[{name:'studio-youtube-no-app',viewport:desktop},{name:'studio-youtube-no-app-narrow',viewport:{width:420,height:880}},{name:'studio-youtube-no-app-spanish',viewport:desktop,language:'es'}].map(s=>({...s,path:'/#connections',scenario:'no-app',offlineOnly:true,full:true})),
  ...[{name:'studio-tiktok-session',viewport:desktop},{name:'studio-tiktok-session-narrow',viewport:{width:420,height:880}},{name:'studio-tiktok-session-spanish',viewport:desktop,language:'es'}].map(s=>({...s,path:'/#connections',offlineOnly:true,scroll:'[data-platform="tiktok"]',full:true})),

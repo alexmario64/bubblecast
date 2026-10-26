@@ -2,7 +2,69 @@
 
 For any coding agent (Codex, Claude) or person picking up this repo. Read `AGENTS.md` (the rules) and `DEVELOPMENT.md` (the architecture) first. This file covers the current state, the next tasks, and lessons from recent work. Update it when those change.
 
-## Current review handoff — 2026-10-25 (America/Puerto_Rico)
+## Current handoff to Claude — 2026-10-26 (America/Puerto_Rico)
+
+**Owner explicitly stopped implementation and asked Claude to finish. The subathon is work in progress, not a finished or published feature.** Read this section before the older released-work notes below. Do not start over or discard the checkout changes.
+
+### Checkout and release state
+
+- Work remains in the canonical `/Users/truealex/bubblecast` checkout, branch **`feature/subathon`**, based on merged `main` **`931fccd`** (handoff PR #71). The feature changes and this handoff are **uncommitted and unpushed** at this stopping point; no subathon PR exists. Preserve tracked modifications and the new untracked files. Continue this feature branch, review and verify it, then commit/push and open its PR into `main`; the owner merges. Do not pull over the dirty tree, reset it, or switch to a fresh branch and lose the work.
+- **Yesterday, October 25 local time:** diagnostics and the four stream fixes (#65–#69), plus the dock appearance/status-failure repair (#70), were merged. Released **v1.33.8**, verified installer/checksum/download links and the website's latest-release links. Release handoff #71 was also merged. The detailed review and real Windows validation matrix below still apply. GitHub timestamps after midnight UTC correspond to October 25 in Puerto Rico.
+- **Today:** built the subathon locally, then expanded it for Twitch, YouTube, TikTok LIVE and Kick. All three version spots currently say **1.34.0** in the working tree, including the helper's four version reports. This is only a proposed version: the latest published release is still **v1.33.8**. No 1.34.0 tag, installer release, deployment, or Windows CI run exists yet.
+- The running normal helper was not deliberately stopped or restarted for this feature. Tests use isolated servers and screenshots use offline synthetic routes; do not assume the normal helper is running this new backend. Do not interrupt the normal app merely to run tests.
+
+### Owner requirements that supersede earlier answers
+
+- The owner initially selected “keep counting while closed,” then explicitly corrected it: **closing Bubblecast must pause the timer.** Restore the saved remaining time on reopening, in **paused** state until Resume. Closing only Studio, a dock panel, or an OBS source does not close the background app and must not pause it.
+- One subathon must work across **all four platforms**, with the same state and controls in Studio and the dock and a transparent OBS overlay. Preserve the selected rose/cream card appearance, all existing themes, Spanish and narrow layouts. Preserve drafts during synchronization.
+- Add useful failure/regression tests, not just a few happy paths. Never automate live platform sites, add retries/probes to platform pages, or send test messages/polls. Ask before studying real signed-in helper windows. No hosted services, currency guesses, stream-key logging or native follow capture.
+
+### Implemented locally so far
+
+- **`subathon.mjs`:** monotonic countdown with idle/running/paused/ended states; Start/Pause/Resume/End/Reset, manual time adjustment and remaining-time cap; configurable support rules; five counters (subscriptions, bits, money, TikTok gift count and Kicks); up to 12 goals; overlay visibility. Automatic capture is **off by default**. Supports manual entry for all counters.
+- State is stored only in the data folder's **`.local/subathon.json`**, with a small **`.clock`** checkpoint once per running second. Atomic replacements use mode 600. A session/revision pair prevents stale checkpoints from undoing a later command. Graceful shutdown saves exact remaining time; forced shutdown restores the last checkpoint (up to roughly one second behind), always paused and without deducting downtime. Saved event IDs are hashed and bounded; no usernames/chat bodies are saved in this state. Command IDs prevent duplicate local actions. Corrupt saved state is blocked rather than overwritten; checkpoint failure pauses and reports an error.
+- **`server.mjs`:** paired POST and public read-only GET `/api/subathon`, SSE snapshots, local checkpoint timer and shutdown hook. Only newly relayed captured messages count; updates and `/api/test` bubbles do not. Adds static routes for the new shared controls and `/subathon-overlay`. Recovery uses the existing local transport; no new platform requests.
+- **`desktop/main.cjs`:** embedded-server shutdown calls the synchronous pause hook before destroying windows. For a separate development server, an explicit bounded local pairing/pause request must succeed before quit; failure leaves the helper open with an error. Repeated Quit clicks share the pending request. This needs independent review, including Windows lifecycle/installer behavior.
+- **Shared UI:** `public/subathon.js` and `.css` mount in both Studio and the dock. Timer controls, goals, manual support, editable rules and the OBS URL use one implementation. Dirty settings survive remote updates and saves in flight. Actions are sent once; uncertain responses tell the user to inspect the timer before retrying. Studio polls local state while visible; the dock consumes its existing shared event stream. The independent poll pane/iframe sessions are not intentionally changed.
+- **OBS:** `public/subathon-overlay.html/.js/.css` use transparent surroundings, the established bubble style and default Komika Axis. Displays timer/status, counters, goals and recent additions; follows saved font/colors and language. Uses the shared heartbeat/reconnect transport and restores from the server snapshot after restart. A preview is available at `/subathon-overlay?preview=1`. Studio's OBS setup lists the source URL.
+- `public/i18n.js`, navigation, dock controls and `public/event-stream.js` are updated. Offline screenshots now use an in-memory EventSource fixture; simply fulfilling an SSE response previously closed it immediately and falsely showed Reconnecting.
+
+### Platform coverage and limits — do not claim complete live support
+
+| Platform | Local implementation | Remaining limit |
+| --- | --- | --- |
+| Twitch | Existing IRC sub/resub/single gift/bundle events plus structured bits tag. Resubs count once, not cumulative months; existing bundle recipient suppression stays intact. | Needs normal Windows stream validation. |
+| YouTube | Official chat metadata supplies Super Chat/Super Sticker amountMicros + currency, new memberships and gift quantities. Upgrades and milestone posts do not count. Missing gift quantity is not guessed. | Automatic paid amounts/memberships need the Google app/API path. Page-only reading remains available for chat, but displayed currency/text is not parsed into support amounts; record unsupported support manually. |
+| TikTok LIVE | Passive parsing of already-arriving WebcastGiftMessage and WebcastSubNotifyMessage frames. Streakable gifts count only repeatEnd=1 with positive repeatCount; room/group/sender/gift identity deduplicates repeated finals even if message ID changes. Non-streak gifts retain native message IDs/artwork. Active subscription status 1/2 counts once, not subMonth; cancellations/refunds/grace notices/joins are ignored. | Requires the expected structured fields. Missing final/group/quantity metadata is ignored. Schema-based fixtures, not live compatibility proof. Gift count has its own seconds rule, with no diamond/money conversion. |
+| Kick | Existing KicksGifted transaction ID + validated gift.amount adds Kicks using a separate seconds-per-100 rule. SubscriptionEvent/GiftedSubscriptionsEvent parsing requires an actual event ID and structured sender/recipient quantity. | Common ID-less subscription payloads intentionally do not auto-count because reliable deduplication is unavailable. The UI says these must be recorded manually. Review the accepted subscription shapes independently; do not manufacture receive-time IDs or promise every Kick subscription is captured. |
+
+- `core.mjs` preserves structured support metadata. `network-chat.mjs` prevents support events with empty/similar bodies from merging into unrelated page chat rows. Review stable IDs, existing media/history suppression and the network/page dedupe boundaries carefully.
+- Reference schemas were read on GitHub only; no live platform was queried. TikTok field numbers came from [TikTokLiveJava webcast.proto](https://github.com/jwdeveloper/TikTokLiveJava/blob/81f54d7a89722325fc2bf174881d693288ed42c0/API/src/main/proto/webcast.proto), its sibling `data.proto` and `enums.proto`. Kick payload references included the [Kick-Live-Connector README](https://github.com/LOX-X/kick-live-connector/blob/main/README.md) and [chat-downloader-fork synthetic/sanitized fixtures](https://github.com/75ohmantenna/chat-downloader-fork/tree/master/tests/fixtures/kick). These are unofficial schema references, not official platform guarantees. No extra connector/dependency was installed.
+
+### Verification at the stopping point
+
+- Latest full **`pnpm test` passed 546, failed 0, skipped 2 Windows-only tests (548 total)**. Log: `.local/subathon-full-test.log`. This includes the expanded four-platform local-server test and actual Chromium Studio/dock/overlay restart test.
+- **After that full run**, the final small edits stopped guessing a missing YouTube gift quantity, validated persisted goal data and counted positive manual time adjustments in Time added; two unit regressions were added. A final targeted run of `test/subathon.test.mjs`, `test/subathon-shutdown.test.mjs`, `test/network-chat.test.mjs`, `test/stream-events.test.mjs` and `test/twitch-live.test.mjs` passed **58/58**. Log: `.local/subathon-handoff-test.log`. **The complete suite must be rerun on the final tree**; do not describe the earlier 548-test run as verification of these last edits.
+- New feature tests: **15** subathon state/persistence/support unit tests, **3** actual helper-shutdown orchestration tests with inert dependencies, and **3** real-browser/server regressions. Existing network, stream-event and Twitch suites were extended. Coverage includes pairing, duplicate events/commands, all four platform inputs, unsupported/test messages, cap/expiry, money currency matching, storage failure/corruption, paused restart, drafts/in-flight edits, Spanish narrow containment and no external traffic. There are **no new Windows CI results yet**.
+- **11 offline screenshots**, no page errors: four Studio themes; narrow Spanish Studio/dock; desktop dock; overlay English/Spanish; expanded Spanish settings in Studio/dock. Files are in ignored `.local/screenshots/`; logs `.local/subathon-screenshots.log` and `.local/subathon-settings-screenshots.log`. Studio rose, compact Spanish dock and Spanish overlay were visually inspected after the gift counters were added. The two expanded-settings captures and the remaining variants still need final visual review. These screenshots are synthetic, not the owner's real stream or approval.
+- `git diff --check` passed at handoff. Nothing was committed, pushed, tagged or deployed for this feature.
+
+### Review and verification by Claude (2026-10-26)
+
+- **Independent review fixes:**
+  - **Support shown first on the page:** when the Twitch page shows a cheer before IRC, the IRC copy only updates that row. The relay dropped it whenever the row looked the same, so the bits never counted. `relay.mjs` now reports the added `support` (`type:'support'` or `supportAdded`), and `relayed()` in `server.mjs` counts it once. A regression test is in `test/relay.test.mjs`.
+  - **Quitting with a stopped dev server:** a helper attached to a separate dev server that had already stopped could never quit, because every Quit showed the pause error. A refused connection now quits normally. A regression test is in `test/subathon-shutdown.test.mjs`.
+- **Reviewed with no change needed:** timer persistence and checkpoint revisions, pause on close, action IDs, YouTube amounts (`amountMicros`) and gift counts, the page/API merge for YouTube (the API copy is emitted as a new message and counted), and the Twitch bits tag.
+- **Docs:** `DEVELOPMENT.md` now has a Subathon architecture section.
+- **Screenshots reviewed:** the Spanish settings at 360 px in Studio and 320 px in the dock, the Spanish dock, the desktop dock and the Spanish overlay. No layout problems. In the full-page Studio capture the sticky header appears mid-page; that's a capture artifact.
+- **Tests:** the full `pnpm test` on the final tree gives **552 tests: 550 passed, 0 failed, 2 skipped** (Windows-only). Log: `.local/subathon-final-test.log`.
+- **Still pending:**
+  - Windows CI and installer checks on the PR.
+  - The owner's merge.
+  - Releasing 1.34.0 (not tagged).
+  - Real Windows stream validation of incoming support and of pause and reopen, asking the owner before any real-window inspection.
+
+## Previous released-work handoff — 2026-10-25 (America/Puerto_Rico)
 
 **All five requested items (diagnostics plus four stream bugs) are merged; real Windows stream/OBS validation is still pending.** The owner approved publishing helper 1.33.8 after merging #69 and #70. The review and validation notes below still apply; do not assume automated checks prove live compatibility.
 

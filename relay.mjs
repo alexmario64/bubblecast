@@ -21,8 +21,10 @@ export class MessageRelay {
    const previous=this.seen.get(key);if(semantic(previous.parts)===semantic(message.parts)&&previous.parts.filter(p=>p.type!=='text').length>message.parts.filter(p=>p.type!=='text').length)message.parts=previous.parts;
    message.parts=message.parts.map((part,index)=>{const old=previous.parts[index];return part.type==='image'&&old?.type==='image'&&sameMediaSource(old.src,part.src)?{...part,src:old.src}:part;});
    if(previous.event&&!message.event)message.event=previous.event;
-   if(appearance(previous)===appearance(message))return null;
-   this.seen.set(key,message);return {type:'update',message};
+   // A faster page copy can be shown first; the native copy then only adds the support amount.
+   const supportAdded=!!message.support&&!previous.support;if(previous.support&&!message.support)message.support=previous.support;
+   if(appearance(previous)===appearance(message)){if(!supportAdded)return null;const counted={...previous,support:message.support};this.seen.set(key,counted);return {type:'support',message:counted};}
+   this.seen.set(key,message);return {type:'update',message,...(supportAdded?{supportAdded:true}:{})};
   }
   if(known)return null;
   this.seen.set(key,message);
