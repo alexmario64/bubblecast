@@ -28,7 +28,7 @@
   const showLook=()=>{q('.sub-colors').hidden=q('[data-config=overlayColors]').value!=='custom';if(preview)try{frame.contentWindow?.postMessage({type:'bubblecast-subathon-look',look:draft()},location.origin);}catch{}};
   frame.addEventListener('load',showLook);
   root.addEventListener('change',e=>{if(!e.target.matches('[data-config=overlayStyle]'))return;const twitch=e.target.value!=='bubbles';
-   for(const [key,v] of [['overlayCounters',twitch?'none':'used'],['overlaySplit',twitch],['overlayGoalPosition',twitch?'bottom-left':q('[data-config=overlayGoalPosition]').value]]){const el=q('[data-config='+key+']');if(el.type==='checkbox')el.checked=v;else el.value=v;dirty.add(el);el.dispatchEvent(new Event('input',{bubbles:true}));}});for(const type of ['input','change'])root.addEventListener(type,e=>{if(e.target.closest('.sub-look'))showLook();});
+   for(const [key,v] of [['overlayCounters',twitch?'none':'used'],['overlaySplit',twitch],['overlayTitleShown',false],['overlayStatus',false],['overlayGoalPosition',twitch?'bottom-left':q('[data-config=overlayGoalPosition]').value]]){const el=q('[data-config='+key+']');if(el.type==='checkbox')el.checked=v;else el.value=v;dirty.add(el);el.dispatchEvent(new Event('input',{bubbles:true}));}});for(const type of ['input','change'])root.addEventListener(type,e=>{if(e.target.closest('.sub-look'))showLook();});
   let state=null,received=0,connected=false,busy=false,stopped=false,fetching=false,token='',goalsSignature='',lastId='';
   const value=el=>el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value)*(Number(el.dataset.multiplier)||1):el.value;
   function feedback(s){q('.sub-feedback').textContent=t(s);}

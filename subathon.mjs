@@ -4,7 +4,7 @@ import {createHash,randomUUID} from 'node:crypto';
 
 const MAX=30*86400,metrics=['subscriptions','bits','money','tiktokGifts','kicks'];
 export const subathonDefaults={title:'Subathon',initialSeconds:3600,capSeconds:86400,automatic:false,subscriptionSeconds:180,bitsSeconds:60,moneySeconds:60,tiktokGiftSeconds:10,kicksSeconds:60,currency:'USD',visible:true,
- overlayStyle:'bubbles',overlayLayout:'card',overlayPosition:'top-left',overlaySplit:false,overlayGoalPosition:'bottom-left',overlaySize:100,overlayWidth:420,overlayTitleShown:true,overlayFloat:true,overlayFloatAmount:8,overlayAnimation:'pop',overlayCounters:'used',overlayGoals:'next',overlayStatus:true,overlayAdditions:true,overlayColors:'chat',overlayAccent:'#35aaa8',overlayCard:'#fff8ee',overlayText:'#493a50'};
+ overlayStyle:'bubbles',overlayLayout:'card',overlayPosition:'top-left',overlaySplit:false,overlayGoalPosition:'bottom-left',overlaySize:100,overlayWidth:420,overlayTitleShown:false,overlayFloat:true,overlayFloatAmount:8,overlayAnimation:'pop',overlayCounters:'used',overlayGoals:'next',overlayStatus:false,overlayAdditions:true,overlayColors:'chat',overlayAccent:'#35aaa8',overlayCard:'#fff8ee',overlayText:'#493a50'};
 // The OBS overlay's look. Colors follow the chat overlay unless the streamer picks custom ones.
 const positions=['top','bottom'].flatMap(y=>['left','center','right'].map(x=>y+'-'+x));
 const overlayChoices={overlayStyle:['bubbles','classic','modern'],overlayAnimation:['pop','slide','fade','none'],overlayLayout:['card','bar','timer'],overlayPosition:positions,overlayGoalPosition:positions,overlayCounters:['used','all','none'],overlayGoals:['next','all','none'],overlayColors:['chat','custom']};
