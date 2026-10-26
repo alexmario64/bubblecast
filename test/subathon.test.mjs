@@ -67,3 +67,11 @@ test('manual adjustments respect the cap, accumulate only added time, and cannot
 test('invalid saved goals stop loading safely rather than breaking every connected control surface',async t=>{
  const f=await fixture(t);f.command('goal-add',{title:'Goal',metric:'money',target:10});const d=JSON.parse(await readFile(f.options.file,'utf8'));d.goals[0].metric='not-a-counter';const original=JSON.stringify(d);await writeFile(f.options.file,original);const next=new Subathon(f.options);next.load();assert.equal(next.snapshot().blocked,true);assert.throws(()=>next.command({id:'restart-fixture',action:'start'}));assert.equal(await readFile(f.options.file,'utf8'),original);
 });
+test('overlay look settings are validated, saved, and default for older saved state',async t=>{
+ const f=await fixture(t);const s=f.command('settings',{patch:{overlayLayout:'bar',overlayPosition:'right',overlaySize:150,overlayCounters:'all',overlayGoals:'none',overlayColors:'custom',overlayAccent:'#FF8800',overlayStatus:false,overlayAdditions:false}});
+ assert.equal(s.config.overlayLayout,'bar');assert.equal(s.config.overlayAccent,'#ff8800','colors are stored lowercase');assert.equal(s.config.overlaySize,150);
+ for(const patch of [{overlayLayout:'giant'},{overlaySize:20},{overlaySize:500},{overlayAccent:'red'},{overlayAccent:'#12345'},{overlayStatus:'yes'}])assert.throws(()=>f.command('settings',{patch}),undefined,JSON.stringify(patch));
+ assert.equal(f.timer.snapshot().config.overlayLayout,'bar','a rejected change keeps the saved look');
+ const saved=JSON.parse(await readFile(f.timer.file,'utf8'));for(const k of Object.keys(saved.config))if(k.startsWith('overlay'))delete saved.config[k];await writeFile(f.timer.file,JSON.stringify(saved));
+ const {Subathon:Fresh}=await import('../subathon.mjs');const old=new Fresh({file:f.timer.file});old.load();assert.equal(old.snapshot().config.overlayLayout,'card');assert.equal(old.snapshot().blocked,false);
+});

@@ -3,7 +3,10 @@ import {dirname} from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 
 const MAX=30*86400,metrics=['subscriptions','bits','money','tiktokGifts','kicks'];
-export const subathonDefaults={title:'Subathon',initialSeconds:3600,capSeconds:86400,automatic:false,subscriptionSeconds:180,bitsSeconds:60,moneySeconds:60,tiktokGiftSeconds:10,kicksSeconds:60,currency:'USD',visible:true};
+export const subathonDefaults={title:'Subathon',initialSeconds:3600,capSeconds:86400,automatic:false,subscriptionSeconds:180,bitsSeconds:60,moneySeconds:60,tiktokGiftSeconds:10,kicksSeconds:60,currency:'USD',visible:true,
+ overlayLayout:'card',overlayPosition:'left',overlaySize:100,overlayCounters:'used',overlayGoals:'next',overlayStatus:true,overlayAdditions:true,overlayColors:'chat',overlayAccent:'#35aaa8',overlayCard:'#fff8ee',overlayText:'#493a50'};
+// The OBS overlay's look. Colors follow the chat overlay unless the streamer picks custom ones.
+const overlayChoices={overlayLayout:['card','bar','timer'],overlayPosition:['left','center','right'],overlayCounters:['used','all','none'],overlayGoals:['next','all','none'],overlayColors:['chat','custom']};
 const number=(value,min,max)=>{if(typeof value!=='number'||!Number.isFinite(value)||value<min||value>max)throw Error('Enter a number within the allowed range.');return value;};
 const label=value=>String(value??'').trim().slice(0,100);
 function configuration(patch,previous=subathonDefaults){
@@ -12,7 +15,10 @@ function configuration(patch,previous=subathonDefaults){
   if(k==='title'){if(!label(v))throw Error('Enter a title.');c.title=label(v);}
   else if(['initialSeconds','capSeconds'].includes(k))c[k]=Math.round(number(v,1,MAX));
   else if(['subscriptionSeconds','bitsSeconds','moneySeconds','tiktokGiftSeconds','kicksSeconds'].includes(k))c[k]=number(v,0,86400);
-  else if(['automatic','visible'].includes(k)){if(typeof v!=='boolean')throw Error('Invalid switch.');c[k]=v;}
+  else if(overlayChoices[k]){if(!overlayChoices[k].includes(v))throw Error('Choose one of the listed overlay options.');c[k]=v;}
+  else if(['overlayAccent','overlayCard','overlayText'].includes(k)){if(!/^#[0-9a-f]{6}$/i.test(v||''))throw Error('Use a color like #35aaa8.');c[k]=v.toLowerCase();}
+  else if(k==='overlaySize')c[k]=Math.round(number(v,50,200));
+  else if(['automatic','visible','overlayStatus','overlayAdditions'].includes(k)){if(typeof v!=='boolean')throw Error('Invalid switch.');c[k]=v;}
   else if(k==='currency'){if(!/^[A-Z]{3}$/.test(v))throw Error('Use a three-letter currency code.');c.currency=v;}
   else throw Error('Unknown subathon setting.');
  }

@@ -42,7 +42,9 @@ One shared countdown for all four platforms.
 - **Closing a view doesn't pause:** closing Studio, a dock panel or an OBS source leaves the timer running.
 - **External dev server:** a helper attached to a separately running dev server must get a confirmed pause before it quits. If that server has already stopped, it quits normally.
 - **Controls:** `POST /api/subathon` (paired) takes `{id, action, ...}` with the actions `start`, `pause`, `resume`, `end`, `reset`, `adjust`, `support`, `settings`, `goal-add` and `goal-remove`. Request IDs make retries harmless. `GET /api/subathon` and the `subathon` SSE event carry the snapshot.
-- **Shared UI:** `public/subathon.js` and `.css` are used by both Studio and the dock. `/subathon-overlay` is the transparent OBS source (`?preview=1` shows sample data).
+- **Shared UI:** `public/subathon.js` and `.css` are used by both Studio and the dock. `/subathon-overlay` is the transparent OBS source.
+- **Overlay look:** the `overlay*` settings in `subathonDefaults` control it: card, bar or timer-only layout, position, size, which counters and goals show, the status dot, the time-added pop-up, and colors (the chat overlay's, or custom).
+- **Preview:** `?preview=1` shows sample numbers with the saved look; `&layout=` overrides the layout. Studio embeds that preview as a scaled 1280×720 canvas and posts unsaved edits to it (`bubblecast-subathon-look`, same origin only).
 - **Automatic support (off by default):** only new messages relayed from capture count, through `relayed()` in `server.mjs`; `/api/test` bubbles never count. `relay.mjs` also reports a native copy that adds `support` to a row the page showed first, so a cheer seen on the Twitch page before IRC still counts once. Amounts come only from structured fields, normalized in `core.mjs` as `support: {metric, amount, currency?}`, or from Twitch sub event kinds. Chat text and display strings are never parsed.
 - **Sources per platform:**
   - Twitch: IRC `bits` and sub notices.

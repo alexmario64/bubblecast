@@ -58,6 +58,13 @@ For any coding agent (Codex, Claude) or person picking up this repo. Read `AGENT
 - **Docs:** `DEVELOPMENT.md` now has a Subathon architecture section.
 - **Screenshots reviewed:** the Spanish settings at 360 px in Studio and 320 px in the dock, the Spanish dock, the desktop dock and the Spanish overlay. No layout problems. In the full-page Studio capture the sticky header appears mid-page; that's a capture artifact.
 - **Tests:** the full `pnpm test` on the final tree gives **552 tests: 550 passed, 0 failed, 2 skipped** (Windows-only). Log: `.local/subathon-final-test.log`.
+- **Overlay redesign (owner said the first one "looks horrible"):**
+  - **Look:** one font throughout, digits that keep their width, a status dot, counters as chips with platform logos, a "Next goal" focus with "✓ N goals reached" instead of crossed-out lines, and a pop-up when time is added.
+  - **New options in Studio and the dock:** layout (card, bar, timer only), position, size, which counters and goals show, the status dot, the pop-up, and the chat overlay's colors or custom ones.
+  - **Studio preview:** a scaled 1280×720 canvas that updates while editing. The embedded preview never opens its own event stream, which would starve the real overlays of the browser's six connections.
+  - **Bug fixed:** `#subathonOverlay[hidden]` now really hides the overlay.
+  - **Tests:** full suite gives 553 tests, 551 passed, 0 failed, 2 skipped.
+- **Review of PRs #65–#70 (Codex):** no blocking bugs found in diagnostics, bounded YouTube discovery, the TikTok warm-up, overlay recovery or stream-key matching. One open risk needs the owner's decision: a TikTok page loaded before the streamer goes live is never reloaded, so chat may not start without Manage.
 - **Still pending:**
   - Windows CI and installer checks on the PR.
   - The owner's merge.

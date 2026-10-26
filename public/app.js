@@ -224,4 +224,4 @@ if('queryLocalFonts' in window){$('#browseFonts').hidden=false;$('#browseFonts')
 
 token=(await(await fetch('/api/pair')).json()).token;window.dispatchEvent(new CustomEvent('bubblecast-pair',{detail:token}));route();await status();setInterval(status,4000);initConnections(api,toast);
 
-window.bubblecastSubathon?.mount(document.querySelector('[data-subathon-controls]'));
+window.bubblecastSubathon?.mount(document.querySelector('[data-subathon-controls]'),{preview:true});
