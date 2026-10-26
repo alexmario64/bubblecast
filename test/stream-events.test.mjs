@@ -24,7 +24,7 @@ test('Twitch chat redemptions carry the reward title from the channel reward lis
 });
 test('Kick gifts become events and unrelated frames are ignored',()=>{
  const frame=JSON.stringify({push:{channel:'channel_1',pub:{data:{event:'KicksGifted',data:JSON.stringify({gift_transaction_id:'g1',message:'',sender:{id:9,username:'kickfan'},gift:{name:'Hell Yeah',amount:3}})}}}});
- assert.deepEqual(kickEvent(frame),{platform:'kick',sourceKey:'kick',id:'kicks-g1',user:'kickfan',userId:'9',parts:[],event:{kind:'gift',title:'Hell Yeah ×3',amount:3}});
+ assert.deepEqual(kickEvent(frame),{platform:'kick',sourceKey:'kick',id:'kicks-g1',user:'kickfan',userId:'9',parts:[],event:{kind:'gift',title:'Hell Yeah ×3',amount:3},support:{metric:'kicks',amount:3}});
  assert.equal(kickEvent(JSON.stringify({push:{pub:{data:{event:'KicksLeaderboardUpdated',data:'{}'}}}})),null);
  assert.equal(kickEvent('not json'),null);
 });
@@ -53,3 +53,12 @@ test('chat-connection messages use official badges and reward details when signe
  const live=new TwitchLive({onMessage:m=>messages.push(m),Socket,schedule:()=>0,cancel:()=>{},reward:id=>id==='w1'?{title:'Hydrate!',cost:300,color:'#00C7AC'}:null,badgeImages:tag=>tag?[{src:'https://static-cdn.jtvnw.net/badges/v1/b/3',alt:'Broadcaster'}]:[]});live.configure('channel');
  Socket.last.listeners.message({data:'@id=m1;display-name=Viewer;badges=broadcaster/1;custom-reward-id=w1;gifs=0-4||https://media.giphy.com/media/abc/giphy.gif :viewer!viewer@tmi PRIVMSG #channel :hello\r\n'});
  assert.deepEqual(messages[0].badges,[{src:'https://static-cdn.jtvnw.net/badges/v1/b/3',alt:'Broadcaster'}]);assert.deepEqual(messages[0].event,{kind:'redemption',title:'Hydrate!',amount:300,color:'#00C7AC'});assert.equal(messages[0].parts[0].type,'image','GIFs from the chat connection are kept');live.stop();});
+
+test('Kick support uses transaction IDs and validated quantities, with no leaderboard or recipient double counts',()=>{
+ const gift={event:'KicksGifted',data:{gift_transaction_id:'tx-native',sender:{username:'Fixture'},gift:{amount:500}}};assert.deepEqual(kickEvent(gift).support,{metric:'kicks',amount:500});
+ for(const amount of [0,-1,1.5,Infinity,'bad'])assert.equal(kickEvent({...gift,data:{...gift.data,gift:{amount}}}).support,undefined);
+ assert.equal(kickEvent({...gift,data:{...gift.data,gift_transaction_id:''}}),null);
+ for(const name of ['LuckyUsersWhoGotGiftSubscriptionsEvent','GiftsLeaderboardUpdated','FollowersUpdated'])assert.equal(kickEvent({event:name,data:{id:'x',username:'Fixture',months:12}}),null);
+ const sub={event:'App\\Events\\SubscriptionEvent',data:{id:'sub-native',username:'Fixture',months:24}};assert.deepEqual(kickEvent(sub).support,{metric:'subscriptions',amount:1});assert.equal(kickEvent({...sub,data:{...sub.data,id:undefined}}),null,'ID-less events cannot be deduplicated reliably');
+ const bundle={event:'App\\Events\\GiftedSubscriptionsEvent',data:{id:'gift-native',gifter_username:'Fixture',gifted_usernames:['one','two']}};assert.deepEqual(kickEvent(bundle).support,{metric:'subscriptions',amount:2});assert.equal(kickEvent({...bundle,data:{...bundle.data,gifted_usernames:[]}}),null);
+});

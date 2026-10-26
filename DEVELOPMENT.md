@@ -32,6 +32,35 @@ The installed app updates itself: the server (`updates.mjs`) asks the GitHub rel
 
 `tts.mjs` voices chat with the computer's own speech engine: Windows speech through PowerShell (`System.Speech`), or `say` on macOS. Chat text goes to the engine through a temporary file and environment variables, never a command line. The server's `emit()` passes each new message to `Speech.consider()`, which applies the Studio settings (`tts*` in `core.mjs`): platforms, the `!tts` command or every message, who may use it (each platform's roles, from `viewerRoles()`; the broadcaster always), a Twitch channel point reward by name, events, length and a per-viewer wait. Audio is served at `/api/tts/audio/<id>` for five minutes and played one at a time by the `/tts` browser source (`public/tts.js`), which OBS captures with "Control audio via OBS". Kick channel point redemptions are not available (Kick delivers them only by webhook). A shared wait (`ttsGlobalCooldown`) blocks commands from every platform after any message (paid rewards are still read), and `/tts` shows a countdown. The Twitch reward is linked by `ttsRewardId`: Studio can create it (needs `channel:manage:redemptions`; Twitch only lets an app change rewards it created), Studio edits to its name, cost and cooldown are sent to Twitch, `channel.channel_points_custom_reward.update` brings Twitch edits back, and a command elsewhere pauses the reward for the wait.
 
+## Subathon
+
+One shared countdown for all four platforms.
+
+- **State (`subathon.mjs`):** `Subathon` keeps the state in `.local/subathon.json` in the data folder: status (idle, running, paused, ended), remaining time, settings, counters, up to 12 goals, recent request IDs and hashed event IDs. Files are written atomically with mode 600.
+- **Clock checkpoint:** while running, the server writes a small `.clock` checkpoint every second. It applies only when its session and revision match the main file.
+- **Closing Bubblecast pauses the timer:** the helper calls `pauseSubathonForShutdown()` before closing its windows. A forced exit restores the last checkpoint. Either way the timer reopens paused and waits for Resume, and downtime is never deducted.
+- **Closing a view doesn't pause:** closing Studio, a dock panel or an OBS source leaves the timer running.
+- **External dev server:** a helper attached to a separately running dev server must get a confirmed pause before it quits. If that server has already stopped, it quits normally.
+- **Controls:** `POST /api/subathon` (paired) takes `{id, action, ...}` with the actions `start`, `pause`, `resume`, `end`, `reset`, `adjust`, `support`, `settings`, `goal-add` and `goal-remove`. Request IDs make retries harmless. `GET /api/subathon` and the `subathon` SSE event carry the snapshot.
+- **Shared UI:** `public/subathon.js` and `.css` are used by both Studio and the dock. `/subathon-overlay` is the transparent OBS source.
+- **Overlay look:** the `overlay*` settings in `subathonDefaults` control it:
+  - style: Bubbles, or Classic and Modern, which use Twitch's look and font (Inter or Segoe UI) as in the chat overlay;
+  - card, bar or timer-only layout, six positions, size and card width;
+  - title, counters, goals, the status dot and the time-added pop-up;
+  - motion: float amount and entrance animation;
+  - colors: the chat overlay's, or custom.
+- **Split pieces:** the timer and the goal can be separate pieces, each with its own position (`overlaySplit`, `overlayGoalPosition`). Choosing Classic or Modern in Studio turns this on and hides the counters, which is the usual Twitch setup. `/subathon-overlay?part=timer` and `?part=goal` show one piece each, so each can be its own OBS source.
+- **Motion:** changed digits slide in, counters bump when they go up, and progress bars glide. All motion stops under reduced-motion settings.
+- **Preview:** `?preview=1` shows sample numbers with the saved look; `&layout=` overrides the layout. Studio embeds that preview as a scaled 1280×720 canvas and posts unsaved edits to it (`bubblecast-subathon-look`, same origin only).
+- **Automatic support (off by default):** only new messages relayed from capture count, through `relayed()` in `server.mjs`; `/api/test` bubbles never count. `relay.mjs` also reports a native copy that adds `support` to a row the page showed first, so a cheer seen on the Twitch page before IRC still counts once. Amounts come only from structured fields, normalized in `core.mjs` as `support: {metric, amount, currency?}`, or from Twitch sub event kinds. Chat text and display strings are never parsed.
+- **Sources per platform:**
+  - Twitch: IRC `bits` and sub notices.
+  - YouTube: API `amountMicros` with currency, new memberships and gift counts.
+  - TikTok: final gift streaks and active subscriptions.
+  - Kick: KicksGifted, plus subscription events that carry an event ID.
+- **Money:** counts only in the configured currency, with no conversion.
+- **Record manually:** anything without a reliable ID or quantity (page-only YouTube payments, ID-less Kick subscriptions).
+
 ## Website
 
 `site/` is the public landing page (plain HTML, no build step), published to GitHub Pages by the Website workflow when `site/` changes on main. Its download buttons point to `releases/latest/download/Bubblecast-Setup.exe`, so a new release needs no site change. The images in `site/img` come from `pnpm screenshots` (overlay showcase and dock preview, which use made-up names) cropped with `cwebp`; never publish screenshots showing real channels or chat. Spanish text lives in the page's own script.

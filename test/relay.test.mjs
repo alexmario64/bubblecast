@@ -41,3 +41,12 @@ test('Twitch GIF-to-WebP hydration retains the first source without emitting a r
  const different=relay.ingest({...msg('giphy',''),action:'update',parts:[{...gif,src:gif.src.replace('OZ1VAPExqf1G40bBAt','DifferentAsset')}]},defaults);
  assert.ok(different.message.parts[0].src.includes('DifferentAsset'));
 });
+test('a native copy that adds support to a row the page showed first is reported once for counting',()=>{
+ const relay=new MessageRelay(),row={...msg('row','Cheer100 hype'),platform:'twitch',sourceKey:'twitch'};
+ assert.equal(relay.ingest(row,defaults).type,'message');
+ const native=relay.ingest({...row,action:'update',support:{metric:'bits',amount:100}},defaults);
+ assert.equal(native.type,'support','same appearance: counted but not repainted');assert.deepEqual(native.message.support,{metric:'bits',amount:100});
+ assert.equal(relay.ingest({...row,action:'update',support:{metric:'bits',amount:100}},defaults),null,'the same support is not reported again');
+ const other={...msg('other','Cheer50'),platform:'twitch',sourceKey:'twitch'};relay.ingest(other,defaults);
+ const changed=relay.ingest({...other,action:'update',userColor:'#123456',support:{metric:'bits',amount:50}},defaults);assert.equal(changed.type,'update');assert.equal(changed.supportAdded,true);
+});

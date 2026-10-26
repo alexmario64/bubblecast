@@ -13,7 +13,7 @@ for(const old of host.querySelectorAll('.toast:not(.leaving)'))if(old.dataset.te
 function feedback(text){toast(text);}
 
 // Pages
-const pages=['overview','connections','appearance','chat','polls','tts','dock','obs'];
+const pages=['overview','connections','appearance','chat','polls','tts','subathon','dock','obs'];
 function route(){const page=pages.includes(location.hash.slice(1))?location.hash.slice(1):'overview';for(const section of $$('[data-page]'))section.hidden=section.dataset.page!==page;for(const link of $$('[data-page-link]')){const current=link.dataset.pageLink===page;link.classList.toggle('current',current);if(current)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');}const lazy=$('#page-'+page+' iframe[data-src]');if(lazy){lazy.src=lazy.dataset.src;lazy.removeAttribute('data-src');}document.title=(page==='overview'?'':$('#page-'+page+' h1').textContent+' · ')+'Bubblecast Studio';$('main')?.scrollTo?.(0,0);}
 window.addEventListener('hashchange',route);
 
@@ -223,3 +223,5 @@ function fontStatus(){const name=form.elements.fontFamily.value.replace(/["'`]/g
 if('queryLocalFonts' in window){$('#browseFonts').hidden=false;$('#browseFonts').onclick=async()=>{try{const families=[...new Set((await window.queryLocalFonts()).map(f=>f.family))].sort((a,b)=>a.localeCompare(b));$('#fontOptions').replaceChildren(...families.map(family=>{const option=document.createElement('option');option.value=family;return option;}));toast(families.length+' installed fonts added to the font list.','success');form.elements.fontFamily.select();}catch{toast('Font access was not allowed. You can still type a font name.','error');}};}
 
 token=(await(await fetch('/api/pair')).json()).token;window.dispatchEvent(new CustomEvent('bubblecast-pair',{detail:token}));route();await status();setInterval(status,4000);initConnections(api,toast);
+
+window.bubblecastSubathon?.mount(document.querySelector('[data-subathon-controls]'),{preview:true});
