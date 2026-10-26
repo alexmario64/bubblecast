@@ -9,6 +9,8 @@ export class NetworkMerge{
  prune(){const cutoff=this.now()-60000;for(const key of ['networkRows','pageRows'])this[key]=this[key].filter(r=>!r.matched&&r.at>=cutoff).slice(-5000);}
  network(raw){
   if(this.ignored.has(raw.id))return null;this.prune();const existing=this.messages.get(raw.id);if(existing)return {...raw,id:existing.id,action:'update'};
+  // Structured support has a native event identity; empty event bodies must not merge with chat.
+  if(raw.support){bounded(this.messages,raw.id,raw);return raw;}
   const key=semantic(raw),page=this.pageRows.find(r=>!r.matched&&(r.key===key||sameBody(r.message,raw)));let m={...raw};if(page){page.matched=true;m.id=page.id;m.action='update';}else this.networkRows.push({key,id:m.id,at:this.now(),matched:false,message:raw});
   bounded(this.messages,raw.id,m);return m;
  }
@@ -64,6 +66,25 @@ function repeatedIds(fields,number){const ids=[];for(const value of all(fields,n
 function tikMessage(method,payload,nativeId){
  const m=protobuf(payload),common=child(m,1),id=str(common,2)||nativeId,sourceTime=num(common,4)*1000;
  if(method==='WebcastImDeleteMessage'){const events=[];for(const id of repeatedIds(m,2))events.push({platform:'tiktok',sourceKey:'tiktok',action:'delete',id});for(const userId of repeatedIds(m,3))events.push({platform:'tiktok',sourceKey:'tiktok',action:'delete',id:'',userId});return events;}
+ // Decode only support already delivered by the native socket. Never request gifts or history.
+ // Field numbers: TikTokLiveJava webcast.proto/data.proto, pinned in docs/HANDOFF.md.
+ if(['WebcastGiftMessage','WebcastSubNotifyMessage'].includes(method)){
+  const u=child(m,method==='WebcastGiftMessage'?7:2),user=str(u,3)||str(u,38),userId=str(u,1)||str(u,1028);
+  if(!user||!id)return [];
+  const base={id,sourceId:id,platform:'tiktok',sourceKey:'tiktok',user,userId,parts:[],badges:tikBadges(u),sourceTime};
+  if(method==='WebcastSubNotifyMessage'){
+   // Active subscriptions only. Refunds, cancellations, grace-period notices and joins do not count.
+   if(![1,2].includes(num(m,8)))return [];
+   return [{...base,event:{kind:'sub',title:'Subscription',amount:1},support:{metric:'subscriptions',amount:1}}];
+  }
+  const gift=child(m,15),type=first(gift,11),amount=num(m,5);
+  if(type===undefined||type===1n&&num(m,9)!==1||!Number.isSafeInteger(amount)||amount<=0||amount>100000)return [];
+  const group=str(m,11),room=str(common,3),giftId=str(m,2)||str(gift,5);
+  // A streak's final frame may repeat with another message ID. Use its native group identity.
+  if(type===1n){if(!group||group==='0'||!room||!userId||!giftId)return [];base.id='gift:'+room+':'+group+':'+userId+':'+giftId;}
+  const src=tikImage(child(gift,1)),name=str(gift,16)||'TikTok gift';if(src)base.parts=[{type:'image',src,alt:name,large:false}];
+  return [{...base,event:{kind:'gift',title:name,amount},support:{metric:'tiktokGifts',amount}}];
+ }
  if(!['WebcastChatMessage','WebcastEmoteChatMessage'].includes(method))return [];
  const userData=child(m,2),user=str(userData,3)||str(userData,38),userId=str(userData,1)||str(userData,1028);if(!user||!id)return [];
  let parts=[];if(method==='WebcastChatMessage'){// Inline emote formats that cannot be mapped safely use the page fallback.

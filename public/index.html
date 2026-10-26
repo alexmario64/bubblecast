@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bubblecast Studio</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/setup-guide.css"><link rel="stylesheet" href="/connection-cards.css"></head>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bubblecast Studio</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/setup-guide.css"><link rel="stylesheet" href="/connection-cards.css"><link rel="stylesheet" href="/subathon.css"></head>
 <body data-theme="rose">
 <div class="app">
 <aside class="sidebar">
@@ -11,6 +11,7 @@
   <span class="nav-label">Overlays</span>
   <a href="#chat" data-page-link="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12.5h5"/></svg>Chat overlay</a>
   <a href="#polls" data-page-link="polls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Poll overlay</a>
+  <a href="#subathon" data-page-link="subathon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M9 2h6m-3 3v8l4 2"/></svg>Subathon</a>
   <a href="#tts" data-page-link="tts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>Text to speech</a>
   <span class="nav-label">Workspace</span>
   <a href="#dock" data-page-link="dock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M14 4v16"/></svg>Chat dock</a>
@@ -295,6 +296,8 @@
  </div>
 </section>
 
+<section class="page" data-page="subathon" id="page-subathon" hidden><header class="page-header"><div><h1>Subathon</h1><p>A little support. A little more time together.</p></div></header><div data-subathon-controls></div></section>
+
 <section class="page" data-page="dock" id="page-dock" hidden>
  <header class="page-header"><div><h1>Chat dock</h1><p>One feed for every platform, inside OBS.</p></div><span class="save-state" aria-live="polite"></span></header>
  <div class="editor">
@@ -322,6 +325,7 @@
  <fieldset class="group wide"><legend>Browser sources</legend>
   <div class="source-row"><div><strong>Chat overlay</strong><span id="obsSizeHint">3840 × 2160</span></div><button type="button" class="button primary" id="copy" data-copy="/overlay">Copy URL</button><a class="text-link" href="/overlay?showcase=1" target="_blank" rel="noopener">Preview ↗</a></div>
   <div class="source-row"><div><strong>Poll overlay</strong><span>Same size as your canvas</span></div><button type="button" class="button" data-copy="/poll-overlay">Copy URL</button><a class="text-link" href="/poll-overlay?preview=1" target="_blank" rel="noopener">Preview ↗</a></div>
+  <div class="source-row"><div><strong>Subathon</strong><span>Timer, counters and goals</span></div><button type="button" class="button" data-copy="/subathon-overlay">Copy URL</button><a class="text-link" href="/subathon-overlay?preview=1" target="_blank" rel="noopener">Preview ↗</a></div>
   <div class="source-row"><div><strong>Vertical chat</strong><span>1080 × 1920</span></div><button type="button" class="button" data-copy="/overlay?layout=vertical">Copy URL</button><a class="text-link" href="/overlay?layout=vertical&amp;showcase=1" target="_blank" rel="noopener">Preview ↗</a></div>
   <div class="source-row"><div><strong>Chat below webcam</strong><span>800 × 480</span></div><button type="button" class="button" data-copy="/overlay?layout=webcam">Copy URL</button><a class="text-link" href="/overlay?layout=webcam&amp;showcase=1" target="_blank" rel="noopener">Preview ↗</a></div>
   <div class="source-row"><div><strong>Chat dock</strong><span>Docks → Custom Browser Docks</span></div><button type="button" class="button" data-copy="/dock">Copy URL</button><a class="text-link" href="/dock" target="_blank" rel="noopener">Open ↗</a></div>
@@ -337,5 +341,5 @@
 </div>
 <form id="previewOnly" hidden></form>
 <div class="toasts" id="toasts" aria-live="polite"></div>
-<script src="/i18n.js"></script><script src="/connection-status.js"></script><script src="/tooltip.js"></script><script src="/select.js"></script><script src="/setup-guide.js"></script><script type="module" src="/app.js"></script>
+<script src="/i18n.js"></script><script src="/connection-status.js"></script><script src="/subathon.js"></script><script src="/tooltip.js"></script><script src="/select.js"></script><script src="/setup-guide.js"></script><script type="module" src="/app.js"></script>
 </body></html>

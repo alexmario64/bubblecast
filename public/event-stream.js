@@ -7,7 +7,7 @@
   const snapshots=new Map();let opened=false;
   const dispatch=(type,event)=>{
    if(type==='open')opened=true;if(type==='error')opened=false;
-   if(['settings','polls','tts-cooldown'].includes(type))snapshots.set(type,event);
+   if(['settings','polls','tts-cooldown','subathon'].includes(type))snapshots.set(type,event);
    if(type==='poll'||type==='poll-remove'){try{const update=JSON.parse(event.data),polls=JSON.parse(snapshots.get('polls')?.data||'[]').filter(p=>p.sourceKey!==update.sourceKey||type==='poll-remove'&&p.id!==update.id);if(type==='poll')polls.push(update);snapshots.set('polls',{data:JSON.stringify(polls)});}catch{}}
    for(const fn of listeners.get(type)||[])fn(event);
   };

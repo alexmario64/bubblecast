@@ -5,7 +5,8 @@ import {gzipSync} from 'node:zlib';
 import {youtubeActions,tiktokPayload,protobuf,NetworkMerge,NetworkFeed} from '../network-chat.mjs';
 import {attachNetworkCapture} from '../desktop/network-capture.mjs';
 import {MessageRelay} from '../relay.mjs';
-import {defaults} from '../core.mjs';
+import {defaults,normalize} from '../core.mjs';
+import {Subathon} from '../subathon.mjs';
 const message=(id,content='hello')=>({id,sourceId:id,platform:'youtube',sourceKey:'youtube',user:'Full Name',userId:'user-id',parts:[{type:'text',text:content}],badges:[]});
 const yt=(id,time=2000000)=>({id,authorName:{simpleText:'Full Name'},authorExternalChannelId:'user-id',timestampUsec:String(time*1000),message:{runs:[{text:'hello '},{emoji:{emojiId:'dance',shortcuts:[':dance:'],image:{thumbnails:[{url:'https://yt3.ggpht.com/dance.gif'}]}}}]},authorBadges:[{liveChatAuthorBadgeRenderer:{tooltip:'Member',customThumbnail:{thumbnails:[{url:'https://yt3.ggpht.com/member.png'}]}}}]});
 const batch=(...items)=>({continuationContents:{liveChatContinuation:{actions:items.map(item=>({addChatItemAction:{item:{liveChatTextMessageRenderer:item}}}))}}});
@@ -74,4 +75,27 @@ test('TikTok emote ID versus rendered aria label does not duplicate the same med
 
 test('duplicate YouTube batches never inflate first-arrival source latency',()=>{
  let now=1000;const feed=new NetworkFeed({platform:'youtube',sourceKey:'youtube',now:()=>now,onMessage(){}}),m={...message('one'),sourceTime:1800};now=2000;feed.accept([m]);assert.equal(feed.lastSourceDelayMs,200);now=9000;feed.accept([m]);assert.equal(feed.lastSourceDelayMs,200);
+});
+
+// Synthetic protobuf fixtures based on the public schema, never recordings of a real stream.
+const tikGift=({id=9007199254740993n,type=1,end=1,amount=5,group=42,room=9}={})=>proto(field(1,proto(common(id),integer(3,room))),integer(2,77),integer(5,amount),field(7,tikUser()),integer(9,end),integer(11,group),field(15,proto(integer(11,type),field(16,'Fixture rose'),field(1,img('https://p16-webcast.tiktokcdn.com/rose.gif')))));
+const readGift=options=>tiktokPayload(push(response(envelope('WebcastGiftMessage',tikGift(options)))));
+test('TikTok counts only a completed gift streak, preserving its group ID, quantity and animated artwork',()=>{
+ assert.deepEqual(readGift({end:0}),[]);const [m]=readGift({});assert.equal(m.sourceId,'9007199254740993');assert.equal(m.id,'gift:9:42:987654321012345678:77');assert.deepEqual(m.support,{metric:'tiktokGifts',amount:5});assert.equal(m.parts[0].src,'https://p16-webcast.tiktokcdn.com/rose.gif');assert.equal(normalize(m,defaults).support.amount,5);
+ assert.deepEqual(readGift({group:0}),[]);assert.deepEqual(readGift({amount:0}),[]);assert.deepEqual(readGift({amount:100001}),[]);assert.equal(readGift({type:2,end:0})[0].id,'9007199254740993');
+});
+test('TikTok repeated final gift frames add time once; history and old support stay suppressed',()=>{
+ const timer=new Subathon({now:()=>0});timer.command({id:'settings-fixture',action:'settings',patch:{automatic:true}});timer.command({id:'start-fixture',action:'start'});
+ const seen=[],feed=new NetworkFeed({platform:'tiktok',sourceKey:'tiktok',now:()=>1999000,onMessage:m=>{seen.push(m);if(m.action!=='update')timer.accept(normalize(m,defaults));}});
+ feed.accept(readGift({}));feed.accept(readGift({id:9007199254740994n}));assert.equal(seen[1].action,'update');assert.equal(timer.snapshot().counters.tiktokGifts,5);assert.equal(timer.snapshot().addedMs,50000);
+ assert.deepEqual(tiktokPayload(push(response(envelope('WebcastGiftMessage',tikGift(),{history:true})))),[]);
+ const old=new NetworkFeed({platform:'tiktok',sourceKey:'tiktok',now:()=>2001000,onMessage:()=>assert.fail('Old gifts must not add time')});old.accept(readGift({group:99}));
+ const baseline=new NetworkFeed({platform:'tiktok',sourceKey:'tiktok',now:()=>1999000,onMessage:()=>assert.fail('Startup gifts must not add time')});baseline.accept(readGift({}),{baseline:true});baseline.accept(readGift({}));
+});
+test('TikTok subscription notices count one subscription, never subscription months, cancellations or refunds',()=>{
+ const read=status=>tiktokPayload(push(response(envelope('WebcastSubNotifyMessage',proto(field(1,common(501)),field(2,tikUser()),integer(4,24),integer(8,status))))));
+ for(const status of [1,2])assert.deepEqual(read(status)[0].support,{metric:'subscriptions',amount:1});for(const status of [0,3,4,5,6,100])assert.deepEqual(read(status),[]);
+});
+test('structured support never merges with an unrelated page row from the same sender',()=>{
+ const merge=new NetworkMerge(),[gift]=readGift({});merge.page({...gift,id:'page-chat',support:undefined,event:undefined,parts:[]});const native=merge.network(gift);assert.equal(native.id,gift.id);assert.equal(native.action,undefined);
 });
