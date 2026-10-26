@@ -2,7 +2,7 @@
 
 A local streaming workspace for Twitch, YouTube (including a second Shorts stream), TikTok LIVE and Kick. It combines every chat into one OBS dock, puts chat, polls and stream events on transparent OBS overlays in a comic bubble style, and runs native polls across platforms. Everything runs on your own computer; there is no Bubblecast cloud service.
 
-Made by **TrueAlex**, a Spanish-speaking Nintendo content creator who streams the newest games on Twitch, mostly in Spanish (English welcome too, and every language). Come say hi: **[twitch.tv/truealexlive](https://www.twitch.tv/truealexlive)**
+Made by **TrueAlex**, a Nintendo content creator who streams the newest games on Twitch in Spanish. Come say hi: **[twitch.tv/truealexlive](https://www.twitch.tv/truealexlive)**
 
 **[⬇ Download Bubblecast for Windows](https://github.com/alexmario64/bubblecast/releases/latest/download/Bubblecast-Setup.exe)** · [All versions](https://github.com/alexmario64/bubblecast/releases)
 
@@ -11,11 +11,18 @@ Made by **TrueAlex**, a Spanish-speaking Nintendo content creator who streams th
 - **Chat dock** (`/dock`): one feed for every platform, or side-by-side panes. Send to any connected chat, run and end polls on several platforms at once, and see live viewer counts. Bots show in the dock unless you hide them from its Bots menu.
 - **Chat overlay** (`/overlay`): chat bubbles with native emotes, animated GIFs, badges and platform logos. Stream events (subs, gifted subs, raids, channel-point redemptions, Kicks gifts, Super Chats, memberships) appear as highlighted bubbles. Vertical (`?layout=vertical`) and below-webcam (`?layout=webcam`) layouts are available.
 - **Poll overlay** (`/poll-overlay`): one card that combines a poll running on several platforms, with its own position, colors, labels and timing.
+- **Subathon** (`/subathon-overlay`): one countdown for every platform. Subscriptions, bits, YouTube Super Chats and memberships, TikTok gifts and Kicks add time by your own rules, with goals and a transparent overlay in Bubbles, Classic or Modern style. The timer and the goal can be separate OBS sources. Closing Bubblecast pauses the timer until you resume it.
 - **Studio** (`/`): setup and customization. Overview with live viewers and channel status, Connections, Appearance (app and dock themes), Chat overlay, Poll overlay, Chat dock and OBS setup. Changes preview live and save automatically.
 
 Text to speech reads chat aloud through a `/tts` browser source with your computer's own voices: viewers use `!tts` on any platform or a Twitch channel point reward, and you choose which roles (everyone, subscribers and members, VIPs, moderators) can use it.
 
 Optional OBS interface themes that match Bubblecast are in `obs-themes/` (install with Install OBS Themes.cmd).
+
+## Project status: maintenance only
+
+TrueAlex built Bubblecast to solve his own streaming problem and shared it so others could use it too. Version 1.34 is the final feature update. He keeps maintaining it, because he uses it on every stream, so bugs and platform changes still get fixed, but no new major features are planned. His focus now is his Nintendo content.
+
+Bubblecast is open source under the [MIT license](LICENSE). You're welcome to fork it and build your own version, or to contribute fixes here through a pull request.
 
 ## Getting started
 
@@ -50,3 +57,7 @@ The server listens only on 127.0.0.1:3927. Sign-in sessions, settings and recent
 ## Development
 
 `pnpm test` runs the unit and DOM fixture tests; `pnpm screenshots` captures every page for visual review. Changes go through pull requests. See [DEVELOPMENT.md](DEVELOPMENT.md) and [AGENTS.md](AGENTS.md).
+
+## License
+
+[MIT](LICENSE) © 2026 TrueAlex (alexmario64). Fork it, change it and share it; keep the copyright notice in your copy.
