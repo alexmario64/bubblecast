@@ -4,14 +4,21 @@ For any coding agent (Codex, Claude) or person picking up this repo. Read `AGENT
 
 ## Current review handoff — 2026-10-25 (America/Puerto_Rico)
 
-**All five requested items (diagnostics plus four stream bugs) have implementations; real Windows stream/OBS validation is still pending.** The latest published release is [v1.33.2](https://github.com/alexmario64/bubblecast/releases/tag/v1.33.2). Checkout/helper version 1.33.8 is development code, not a published release. The owner requested a handoff for independent review; do not begin another feature or assume the fixes are proven live.
+**All five requested items (diagnostics plus four stream bugs) are merged; real Windows stream/OBS validation is still pending.** The owner approved publishing helper 1.33.8 after merging #69 and #70. The review and validation notes below still apply; do not assume automated checks prove live compatibility.
+
+### Published release — 2026-10-25 (America/Puerto_Rico)
+
+- [v1.33.8](https://github.com/alexmario64/bubblecast/releases/tag/v1.33.8) is published as the latest stable release, tagged from merged `main` commit `d465f39`. The [release installer build](https://github.com/alexmario64/bubblecast/actions/runs/40254400652) passed. The existing three version locations already agreed at 1.33.8; no further version bump was needed.
+- Both installer names (`Bubblecast-Setup-1.33.8.exe` and `Bubblecast-Setup.exe`) and the versioned SHA-256 file are attached. The installer assets have identical published SHA-256 digests; the checksum file matches that digest. The public installer URL returned HTTP 200.
+- The live [website](https://alexmario64.github.io/bubblecast/) returned HTTP 200. Both download buttons already use `releases/latest/download/Bubblecast-Setup.exe`, which now redirects to v1.33.8, and the version label queries the latest release. No website source edit or redeployment was necessary.
+- Next: install/update on the Windows streaming PC, then refresh Studio, the dock and affected OBS browser sources once. The real-stream validation matrix and owner appearance acceptance below remain pending. This release does not claim those checks have been completed.
 
 ### Repository and PR state
 
-- Authoritative checkout: `/Users/truealex/bubblecast`; one Git worktree. Active branch: `style/dock-studio-cards`, tracking `origin/style/dock-studio-cards`. At this audit it was clean and synchronized at functional head `919e0fc`; this documentation-only handoff follows that commit on the same PR. No work is committed or pushed directly to `main`.
+- Authoritative checkout: `/Users/truealex/bubblecast`; one Git worktree. Returned to `main` and pulled with `--ff-only` after both owner merges, reaching `d465f39`. The release handoff update uses `docs/release-1.33.8`. No work is committed or pushed directly to `main`.
 - [#65 diagnostics](https://github.com/alexmario64/bubblecast/pull/65), [#66 bounded YouTube/no-app discovery](https://github.com/alexmario64/bubblecast/pull/66), [#67 TikTok startup/session](https://github.com/alexmario64/bubblecast/pull/67) and [#68 overlay recovery](https://github.com/alexmario64/bubblecast/pull/68) are merged.
-- [#69 — encoder-key matching and Studio/dock synchronization](https://github.com/alexmario64/bubblecast/pull/69) is **open**, branch `fix/youtube-stream-key-slots`, head `016730b`, helper 1.33.7. Both Windows test runs passed **521 tests, 0 failures/skips**, and its installer build passed.
-- [#70 — shared Studio/dock appearance and unavailable-status repair](https://github.com/alexmario64/bubblecast/pull/70) is **open**, branch `style/dock-studio-cards`, functional head `919e0fc`, helper 1.33.8. It targets `main` and includes #69 until that PR merges. **Review/merge #69 first, then #70; the owner merges.** To review only the appearance change, compare `016730b...style/dock-studio-cards`.
+- [#69 — encoder-key matching and Studio/dock synchronization](https://github.com/alexmario64/bubblecast/pull/69) is **merged** at `558b594`, helper 1.33.7. Both Windows test runs passed **521 tests, 0 failures/skips**, and its installer build passed.
+- [#70 — shared Studio/dock appearance and unavailable-status repair](https://github.com/alexmario64/bubblecast/pull/70) is **merged** at `d465f39`, helper 1.33.8. Both Windows test jobs and the installer passed at its final head `0d1cbad`; the merged-main [Windows tests](https://github.com/alexmario64/bubblecast/actions/runs/40254191336) passed as well.
 - All three helper version spots (`package.json`, `desktop/package.json`, `desktop/main.cjs`, including its four reports) agree at 1.33.8 on the current branch. After owner merges, return to `main` and `git pull --ff-only` before new work. Preserve local sessions/settings; do not recreate or copy them.
 
 ### Work completed and review targets
