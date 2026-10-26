@@ -142,7 +142,7 @@ time{margin-left:auto;font-size:10.5px;font-variant-numeric:tabular-nums;color:v
 .field-section{padding:2px 0 10px}
 .field-section+.field-section{border-top:1px solid var(--line);padding-top:8px}
 .field-section label{display:block;font-size:12px;font-weight:550;color:var(--text-2);margin:10px 0}
-.field-section label>span{float:right;font-size:11px;font-weight:400;color:var(--text-3)}
+.field-section label>span:not(.bc-select){float:right;font-size:11px;font-weight:400;color:var(--text-3)}
 .field-section input,.theme-section select{width:100%;display:block;margin-top:6px;padding:8px 11px;border:1px solid var(--field-border);border-radius:10px;background:var(--field);font-size:13px;transition:border-color .2s,box-shadow .2s}
 .field-section input:focus,.theme-section select:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3.5px var(--focus)}
 .field-section input::placeholder{color:var(--text-3)}
@@ -384,3 +384,28 @@ body[data-theme=midnight] #autoscroll[aria-pressed=false],body[data-theme=midnig
 .diagnostics-card{font-size:11px;color:var(--text-3)}.diagnostics-card ul{list-style:none;padding:0;margin:10px 0}.diagnostics-card li{display:grid;gap:3px;border-bottom:1px solid var(--border);padding:7px 0}.diagnostics-card strong{color:var(--text-2)}.diagnostics-card p{overflow-wrap:anywhere}.diagnostic-error{color:var(--bad)}
 
 .found-streams .bc-select{grid-column:2;grid-row:1/span 2;max-width:130px}
+
+/* Studio platform cards, fitted to a compact dock sheet. */
+#sourcePanel{background:var(--bg);border-radius:22px}
+#sourcePanel>.sheet-heading{padding:18px;background:var(--sidebar);border-bottom:1px solid var(--border);margin-bottom:12px}
+#sourcePanel>.sheet-heading h2{color:var(--title)}
+#sourcePanel>.sheet-heading p{color:var(--title-2)}
+#sourcePanel .sheet-scroll{padding:0 12px 16px}
+#captureControls>.section-title,#captureControls>.session-help{display:none}
+#accounts{display:grid;gap:12px}
+.account-row.platform-card{display:block;padding:14px;border-bottom:1px solid var(--border)}
+.account-row.platform-card .platform-head{gap:7px}
+.account-row.platform-card .platform-head h3{font-size:13px}
+.account-row.platform-card .pill{font-size:10px;padding:3px 7px}
+.account-row.platform-card .account-line{margin-top:12px}
+.account-row.platform-card .field-section{margin-top:12px;padding:0}
+.account-row.platform-card .field-section label{margin:0}
+.account-row.platform-card .youtube-connection{margin-bottom:0}
+.account-row.platform-card .youtube-check{flex-wrap:wrap;padding-top:10px;margin-top:10px;border-top:1px solid var(--line);gap:8px}
+.account-row.platform-card .youtube-check p{margin:0}
+#sourcePanel .connection-overrides,#sourcePanel .theme-section,#sourcePanel .dock-link{padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);margin-top:12px}
+#sourcePanel .connection-overrides summary{color:var(--text-2)}
+#sourcePanel .theme-section{padding-top:4px}
+#sourcePanel .primary{border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);box-shadow:var(--shadow-sm),0 4px 12px color-mix(in srgb,var(--accent) 28%,transparent)}
+
+.account-row.platform-card .youtube-check p{min-width:min(100%,150px)}.account-row.platform-card .youtube-check button{margin-left:auto}

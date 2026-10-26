@@ -158,19 +158,12 @@ main{min-width:0;padding:30px clamp(20px,3.4vw,52px) 60px}
 .platform-list img{width:26px;height:26px;object-fit:contain;padding:4px;border-radius:8px;background:var(--surface-2)}
 .platform-list div{flex:1;min-width:0}.platform-list strong{display:block;font-size:13px;font-weight:600}.platform-list div span{display:block;font-size:11.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .platform-list .count{font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums}
-.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;background:var(--surface-2);color:var(--text-3)}
-.pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
-.pill[data-state=live]{background:#34c7591f;color:var(--good)}.pill[data-state=waiting]{background:#ffb3401f;color:var(--warn)}
 .quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 14px 0}
 .quick{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:13px;border-radius:13px;border:1px solid var(--line);background:var(--surface-solid);color:var(--text);font-size:12.5px;font-weight:550;text-align:left;cursor:pointer;transition:transform .2s var(--spring),box-shadow .2s}
 .quick svg{color:var(--accent);width:20px;height:20px}.quick:hover{transform:translateY(-2px);box-shadow:0 6px 16px #0000000f}.quick:active{transform:scale(.97)}
 
 /* Connections */
 .connection-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
-.platform-card{padding:18px 18px 14px;transition:transform .25s var(--ease),box-shadow .25s}
-.platform-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-.platform-head img{width:30px;height:30px;object-fit:contain;padding:5px;border-radius:9px;background:var(--surface-2)}
-.platform-head h2{flex:1}
 .field{display:block;font-size:12px;font-weight:550;color:var(--text-2);margin:12px 0 0}
 .field .optional{font-weight:400;color:var(--text-3)}
 input:not([type]),input[inputmode],.field input,.row input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,.chip-input input{display:block;width:100%;margin-top:6px;padding:8px 11px;border:1px solid var(--field-border);border-radius:9px;background:var(--field);font-size:13px;transition:border-color .2s,box-shadow .2s}

@@ -1,0 +1,17 @@
+/* One platform-card appearance for Studio and the compact dock. Theme colors stay shared. */
+.platform-card{padding:18px 18px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);transition:transform .25s var(--ease),box-shadow .25s}
+.platform-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;min-width:0}
+.platform-head img{width:30px;height:30px;flex-shrink:0;object-fit:contain;padding:5px;border-radius:9px;background:var(--surface-2)}
+.platform-head h2,.platform-head h3{flex:1;min-width:0;margin:0;font-size:14px;font-weight:650;letter-spacing:-.2px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;background:var(--surface-2);color:var(--text-3)}
+.pill::before{content:'';width:6px;height:6px;flex-shrink:0;border-radius:50%;background:currentColor;opacity:.8}
+.pill[data-state=live]{background:#34c7591f;color:var(--good)}.pill[data-state=waiting]{background:#ffb3401f;color:var(--warn)}
+.platform-card .account-line{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.platform-card .account-line>span{flex:1;min-width:min(100%,140px);font-size:12px;line-height:1.5;color:var(--text-3)}.platform-card .account-line>span.connected{color:var(--good)}
+.platform-card .account-line>button,.platform-card .account-line>a,.platform-card .youtube-check button{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;min-height:32px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-solid);color:var(--text);font-size:12px;font-weight:600;box-shadow:var(--shadow-sm)}
+.platform-card .account-line>button:hover,.platform-card .account-line>a:hover,.platform-card .youtube-check button:hover{background:var(--field);box-shadow:var(--shadow)}
+
+.platform-head img[src$="tiktok-on-dark.svg"]{background:#161823;border-radius:7px;padding:3px}
+.platform-card .bc-select-button{border-radius:9px;background:var(--field);border-color:var(--field-border);font-weight:400}
+
+.platform-card .account-line>button,.platform-card .account-line>a{margin-left:auto}

@@ -3,6 +3,8 @@
  const platforms=['twitch','youtube','tiktok','kick'],names={twitch:'Twitch',youtube:'YouTube',tiktok:'TikTok LIVE',kick:'Kick'};
  const tr=text=>window.bubblecastI18n?.translate?.(text)??text;
  const sourceIds=['twitchChannel','youtubeChannel','youtubeVideo','youtubeShortsVideo','tiktokChannel','kickChannel'];
+ function platformState(j,p){const configured=!!(j.sources?.enabled!==false&&(j.sources?.urls?.[p]||p==='youtube'&&(j.sources?.urls?.youtubeShorts||j.sources?.youtubeLive||j.youtube?.connected))),live=Date.now()-(j.bridge?.[p]||0)<25000;return live?'live':configured?'waiting':'off';}
+ const stateLabel={live:'Receiving chat',waiting:'Waiting for stream',off:'Not connected'};
  function youtubeState(y={}){const quota=!!y.quotaUntil,page=y.readMode?y.readMode==='page':!y.configured||quota;
   return {page,quota,description:quota?'The YouTube quota is used up. Reading continues from the public chat page until it resets; sending and polls are unavailable.':'Enter your YouTube channel below to read chat without a Google app. Sending messages and running polls need your Google app.',account:y.connected?'Connected as '+(y.channel?.title||'your channel')+(y.live===false?' · reads chat while OBS is live':''):y.configured?'Not connected · connect to read chat, send messages, run polls and see viewers':'Read-only YouTube chat'};
  }
@@ -40,5 +42,5 @@ function paintStreams(list,y,{post,refresh,onError}){const streams=y.candidates|
   choice.value=c.hidden?'hide':c.formatSource&&c.formatSource!=='manual'?'auto':c.format||'auto';choice.setAttribute('aria-label','Format for '+(c.title||c.video));choice.onchange=async()=>{choice.disabled=true;try{await post('youtube/stream',{video:c.video,choice:choice.value});await refresh();}catch(e){onError(e.message);}finally{choice.disabled=false;}};
   row.append(name,state,choice);list.append(row);}}
 
- window.bubblecastConnections={youtubeState,tiktokAccount,paintDiagnostics,paintStreams,syncSources,sourceValues,sourceIds};
+ window.bubblecastConnections={platformState,stateLabel,youtubeState,tiktokAccount,paintDiagnostics,paintStreams,syncSources,sourceValues,sourceIds};
 })();
