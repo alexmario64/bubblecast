@@ -39,3 +39,13 @@ test('a settings save preserves edits made while its response is in flight',{tim
  await page.locator('[data-config=title]').fill('First title');await page.locator('.sub-configuration [data-action=settings]').click();await intercepted;await page.locator('[data-config=title]').fill('Second title');release();await page.waitForFunction(()=>!document.querySelector('[data-action=settings]').disabled);assert.equal(await page.locator('[data-config=title]').inputValue(),'Second title');
  await page.unroute('**/api/subathon');await page.locator('.sub-configuration [data-action=settings]').click();await page.waitForFunction(()=>document.querySelector('.sub-title').textContent==='Second title');
 });
+test('the subathon overlay keeps the same on-screen size on 1080p, 1440p and 4K canvases',async t=>{
+ const server=await isolatedServer(t,{browser:true}),browser=await chromium.launch();t.after(()=>browser.close());const {token}=await(await server.request('/api/pair')).json();
+ const send=(path,method,body)=>server.request(path,{method,headers:{'content-type':'application/json','x-bubblecast-token':token},body:JSON.stringify(body)});
+ await send('/api/subathon','POST',{id:randomUUID(),action:'start'});const sizes={};
+ for(const [resolution,width,height] of [['1080',1920,1080],['1440',2560,1440],['2160',3840,2160]]){
+  await send('/api/settings','PATCH',{resolution});const page=await browser.newPage({viewport:{width,height}});await page.goto(server.url+'/subathon-overlay');
+  await page.waitForFunction(()=>!document.querySelector('#subathonOverlay').hidden);sizes[resolution]=await page.evaluate(()=>{const r=document.querySelector('.so-clock').getBoundingClientRect();return r.width/innerWidth;});await page.close();
+ }
+ for(const r of ['1440','2160'])assert.ok(Math.abs(sizes[r]-sizes['1080'])<.01,'clock takes the same share of the canvas at '+r+'p: '+JSON.stringify(sizes));
+});

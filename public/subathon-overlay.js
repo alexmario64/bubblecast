@@ -11,7 +11,8 @@ function style(s){settings={...defaults,...s};window.bubblecastI18n.setLanguage(
 function look(c){
  const own=c.overlayColors==='custom';
  root.style.setProperty('--accent',own?c.overlayAccent:settings.accent);root.style.setProperty('--card',own?c.overlayCard:settings.bubble);root.style.setProperty('--ink',own?c.overlayText:settings.text);
- root.style.setProperty('--size',(c.overlaySize||100)/100);root.style.setProperty('--width',(c.overlayWidth||420)+'px');root.style.setProperty('--float',(c.overlayFloatAmount??8)/20+'em');
+ // Sized for a 1080p canvas and scaled to the canvas chosen in OBS setup (1440p, 4K), like the chat overlay.
+ const canvas=preview?1:(Number(settings.resolution)||1080)/1080;root.style.setProperty('--size',(c.overlaySize||100)/100*canvas);root.style.setProperty('--width',(c.overlayWidth||420)+'px');root.style.setProperty('--float',(c.overlayFloatAmount??8)/20+'em');
  const place=(v,fallback)=>/^(top|bottom)-(left|center|right)$/.test(v||'')?v:['left','center','right'].includes(v)?'top-'+v:fallback;
  // A separate OBS source for one piece fills its own canvas, so OBS does the placing.
  q('.so-timer-piece').className='so-piece so-timer-piece pos-'+(part?'top-left':place(c.overlayPosition,'top-left'));
