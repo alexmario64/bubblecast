@@ -110,6 +110,8 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-betw
 .favs li{padding:5px 12px;border-radius:99px;background:#ffffff24;border:1px solid #ffffff40;font-size:14px;font-weight:800;color:#fff}
 .follow{display:inline-flex;align-items:center;gap:10px;padding:15px 24px;border-radius:99px;background:#fff;color:#6c2bd9;font-weight:900;font-size:17px;text-decoration:none;white-space:nowrap;box-shadow:0 10px 26px #2a0f6655;transition:transform .2s cubic-bezier(.2,.9,.25,1.15)}
 .follow:hover{transform:translateY(-2px) scale(1.03)}
+.follow-row{display:flex;flex-direction:column;gap:12px}
+.follow-row .follow{justify-content:flex-start}
 .follow img{width:22px;height:22px}
 @media (max-width:760px){.creator-card{grid-template-columns:1fr;justify-items:start;padding:28px}}
 /* The download prompt: a friendly ask to follow or greet TrueAlex. Every choice still downloads. */
@@ -160,7 +162,7 @@ html.js .reveal.in{opacity:1;transform:none}
 </style>
 </head>
 <body>
-<div class="promo"><div class="wrap"><img src="img/twitch.webp" alt="" width="20" height="20"><span data-i18n="promo.text">Made by TrueAlex · Spanish-language Nintendo streams on Twitch</span><a href="https://www.twitch.tv/truealexlive" target="_blank" rel="noopener" data-i18n="promo.follow">Follow</a></div></div>
+<div class="promo"><div class="wrap"><img src="img/twitch.webp" alt="" width="20" height="20"><span data-i18n="promo.text">Made by TrueAlex · Nintendo streams in Spanish</span><a href="https://www.twitch.tv/truealexlive" target="_blank" rel="noopener">Twitch</a><a href="https://www.youtube.com/@truealex" target="_blank" rel="noopener">YouTube</a><a href="https://www.tiktok.com/@truealex" target="_blank" rel="noopener">TikTok</a></div></div>
 <header class="hero">
  <div class="bubbles" aria-hidden="true"><span style="left:5%;width:40px;height:40px;animation-duration:9s"></span><span style="left:22%;width:18px;height:18px;animation-duration:6s;animation-delay:-3s"></span><span style="left:41%;width:28px;height:28px;animation-duration:8s;animation-delay:-5s"></span><span style="left:58%;width:14px;height:14px;animation-duration:5.5s;animation-delay:-1s"></span><span style="left:77%;width:46px;height:46px;animation-duration:11s;animation-delay:-6s"></span><span style="left:92%;width:22px;height:22px;animation-duration:7s;animation-delay:-2s"></span></div>
  <div class="wrap">
@@ -256,10 +258,10 @@ html.js .reveal.in{opacity:1;transform:none}
    <div>
     <h2 data-i18n="creator.title">Made by TrueAlex</h2>
     <p data-i18n="creator.text">I’m a Spanish-speaking Nintendo content creator, and I built Bubblecast for my own streams. I stream the latest Nintendo games, like the Ocarina of Time remake. Feel free to join!</p>
-    <p data-i18n="creator.lang">I speak Spanish and English and stream mostly in Spanish, but everyone’s welcome, whatever language you speak. Say hi in chat: it might show up in a bubble.</p>
+    <p data-i18n="creator.lang">I stream in Spanish on Twitch, YouTube and TikTok, and everyone’s welcome. Say hi in chat: it might show up in a bubble.</p>
     <div class="favs"><span data-i18n="creator.fav">Big fan of</span><ul><li>The Legend of Zelda</li><li>Super Mario</li><li>Final Fantasy</li><li>Kingdom Hearts</li><li>Smash Bros.</li><li>Mario Kart</li><li>Sonic the Hedgehog</li></ul></div>
    </div>
-   <a class="follow" href="https://www.twitch.tv/truealexlive" target="_blank" rel="noopener"><img src="img/twitch.webp" alt=""><span data-i18n="creator.follow">Follow on Twitch</span></a>
+   <div class="follow-row"><a class="follow" href="https://www.twitch.tv/truealexlive" target="_blank" rel="noopener"><img src="img/twitch.webp" alt=""><span data-i18n="creator.follow">Follow on Twitch</span></a><a class="follow" href="https://www.youtube.com/@truealex" target="_blank" rel="noopener"><img src="img/youtube.svg" alt=""><span data-i18n="creator.youtube">Subscribe on YouTube</span></a><a class="follow" href="https://www.tiktok.com/@truealex" target="_blank" rel="noopener"><img src="img/tiktok.svg" alt=""><span data-i18n="creator.tiktok">Follow on TikTok</span></a></div>
   </div>
  </div>
 </section>
@@ -277,7 +279,7 @@ html.js .reveal.in{opacity:1;transform:none}
 <footer>
  <div class="wrap">
   <span data-i18n="footer.made">Bubblecast · open source, runs on your PC</span>
-  <span><a href="https://www.twitch.tv/truealexlive" target="_blank" rel="noopener">Twitch: TrueAlex</a> · <a href="https://github.com/alexmario64/bubblecast">GitHub</a> · <a href="privacy.html" data-i18n="footer.privacy">Privacy</a> · <a href="https://github.com/alexmario64/bubblecast/releases" data-i18n="cta.all">All versions</a></span>
+  <span><a href="https://www.twitch.tv/truealexlive" target="_blank" rel="noopener">Twitch</a> · <a href="https://www.youtube.com/@truealex" target="_blank" rel="noopener">YouTube</a> · <a href="https://www.tiktok.com/@truealex" target="_blank" rel="noopener">TikTok</a> · <a href="https://github.com/alexmario64/bubblecast">GitHub</a> · <a href="privacy.html" data-i18n="footer.privacy">Privacy</a> · <a href="https://github.com/alexmario64/bubblecast/releases" data-i18n="cta.all">All versions</a></span>
  </div>
 </footer>
 
@@ -286,10 +288,10 @@ html.js .reveal.in{opacity:1;transform:none}
   <button class="thanks-close" type="button" data-thanks-close aria-label="Close">×</button>
   <div class="mark"><img src="img/twitch.webp" alt=""></div>
   <h2 id="thanksTitle" data-i18n="thanks.title">Say hi to TrueAlex!</h2>
-  <p data-i18n="thanks.text">Bubblecast is free. If it helps your streams, follow TrueAlex on Twitch or drop a thank-you in chat. TrueAlex streams the latest Nintendo games in Spanish and speaks English too, so come say hi in any language!</p>
+  <p data-i18n="thanks.text">Bubblecast is free. If it helps your streams, follow TrueAlex on Twitch, YouTube or TikTok, or drop a thank-you in chat. TrueAlex streams the latest Nintendo games in Spanish.</p>
   <div class="thanks-actions">
-   <a class="thanks-follow" href="https://www.twitch.tv/truealexlive" target="_blank" rel="noopener" data-thanks-go><img src="img/twitch.webp" alt=""><span data-i18n="thanks.follow">Follow on Twitch and download</span></a>
-   <a class="thanks-chat" href="https://www.twitch.tv/popout/truealexlive/chat" target="_blank" rel="noopener" data-thanks-go data-i18n="thanks.chat">Say thanks in chat and download</a>
+   <a class="thanks-follow" href="https://www.twitch.tv/truealexlive" target="_blank" rel="noopener" data-thanks-go><img src="img/twitch.webp" alt=""><span data-i18n="thanks.follow">Follow on Twitch and download</span></a><a class="thanks-follow" href="https://www.youtube.com/@truealex" target="_blank" rel="noopener" data-thanks-go><img src="img/youtube.svg" alt=""><span data-i18n="thanks.youtube">Subscribe on YouTube and download</span></a><a class="thanks-follow" href="https://www.tiktok.com/@truealex" target="_blank" rel="noopener" data-thanks-go><img src="img/tiktok.svg" alt=""><span data-i18n="thanks.tiktok">Follow on TikTok and download</span></a>
+   <a class="thanks-chat" href="https://www.twitch.tv/popout/truealexlive/chat" target="_blank" rel="noopener" data-thanks-go data-i18n="thanks.chat">Say thanks in Twitch chat and download</a>
    <button class="thanks-skip" type="button" data-thanks-go data-i18n="thanks.skip">No thanks, just download</button>
   </div>
  </div>
@@ -302,7 +304,7 @@ const es={'nav.features':'Funciones','nav.install':'Instalar','hero.title':'Todo
 'cap.dock':'<b>El dock del chat.</b> Vive dentro de OBS junto a tus escenas.','cap.studio':'<b>Studio.</b> Conecta tus canales y personaliza el dock y los overlays.',
 'install.title':'En vivo en cuatro pasos','install.lede':'El instalador prepara todo lo que OBS necesita. Sin Node.js ni línea de comandos.','s1.t':'Cierra OBS y ejecuta el instalador','s1.d':'Windows puede avisar que la app no es reconocida. Elige Más información y luego Ejecutar de todas formas.','s2.t':'Se configura solo','s2.d':'Bubblecast crea accesos directos, inicia con Windows, agrega el dock del chat a OBS y abre Studio.','s3.t':'Conecta tus canales','s3.d':'La guía de configuración de Bubblecast te lleva por cada plataforma, con una imagen de cada pantalla.','s4.t':'Agrega los overlays','s4.d':'En Studio → Configuración de OBS, agrega los overlays de chat y encuestas a tu escena con un clic.','install.note':'<b>El inicio de sesión de YouTube y Kick</b> usa tu propia app de desarrollador gratuita, así que tus límites son solo tuyos. La guía de configuración de Bubblecast muestra cada paso con imágenes. Toma unos diez minutos, una sola vez.',
 'faq.title':'Preguntas','q1.q':'¿De verdad es gratis?','q1.a':'Sí. Bubblecast es de código abierto y no tiene servidores que pagar: todo funciona en tu computadora.','q2.q':'¿Funciona en Mac?','q2.a':'El instalador es para Windows, donde la mayoría usa OBS. Los desarrolladores pueden ejecutarlo desde el código en macOS.','q3.q':'¿Mi cuenta está segura?','q3.a':'Bubblecast nunca ve tus contraseñas. Twitch, YouTube y Kick usan el inicio de sesión oficial de cada plataforma, y el acceso se guarda en tu propia carpeta de usuario de Windows.','q4.q':'¿Cómo actualizo?','q4.a':'Descarga el instalador más reciente y ejecútalo. Tus canales, ajustes y sesiones se conservan.','q5.q':'El dock no aparece en OBS.','q5.a':'Seguramente OBS estaba abierto durante la instalación. Cierra OBS y pulsa Agregar dock en Studio → Configuración de OBS, o usa Agregar dock a OBS desde el icono de Bubblecast en la bandeja.',
-'final.title':'Junta todos tus chats','footer.made':'Bubblecast · código abierto, funciona en tu PC','footer.privacy':'Privacidad','promo.text':'Hecho por TrueAlex · Streams de Nintendo en español en Twitch','promo.follow':'Seguir','creator.title':'Hecho por TrueAlex','creator.text':'Soy creador de contenido de Nintendo en español e hice Bubblecast para mis propios streams. Transmito los juegos más nuevos de Nintendo, como el remake de Ocarina of Time. ¡Únete!','creator.lang':'Hablo español e inglés y transmito casi siempre en español, pero todos son bienvenidos, hables el idioma que hables. Saluda en el chat: puede que salgas en una burbuja.','creator.follow':'Seguir en Twitch','creator.fav':'Fan de','thanks.title':'¡Saluda a TrueAlex!','thanks.text':'Bubblecast es gratis. Si te ayuda en tus streams, sigue a TrueAlex en Twitch o déjale un gracias en el chat. TrueAlex transmite los juegos más nuevos de Nintendo en español y también habla inglés, ¡así que saluda en el idioma que quieras!','thanks.follow':'Seguir en Twitch y descargar','thanks.chat':'Dar las gracias en el chat y descargar','thanks.skip':'No, gracias, solo descargar'};
+'final.title':'Junta todos tus chats','footer.made':'Bubblecast · código abierto, funciona en tu PC','footer.privacy':'Privacidad','promo.text':'Hecho por TrueAlex · Streams de Nintendo en español','promo.follow':'Seguir','creator.title':'Hecho por TrueAlex','creator.text':'Soy creador de contenido de Nintendo en español e hice Bubblecast para mis propios streams. Transmito los juegos más nuevos de Nintendo, como el remake de Ocarina of Time. ¡Únete!','creator.lang':'Transmito en español en Twitch, YouTube y TikTok, y todos son bienvenidos. Saluda en el chat: puede que salgas en una burbuja.','creator.follow':'Seguir en Twitch','creator.youtube':'Suscribirse en YouTube','creator.tiktok':'Seguir en TikTok','creator.fav':'Fan de','thanks.title':'¡Saluda a TrueAlex!','thanks.text':'Bubblecast es gratis. Si te ayuda en tus streams, sigue a TrueAlex en Twitch, YouTube o TikTok, o déjale un gracias en el chat. TrueAlex transmite los juegos más nuevos de Nintendo en español.','thanks.follow':'Seguir en Twitch y descargar','thanks.youtube':'Suscribirse en YouTube y descargar','thanks.tiktok':'Seguir en TikTok y descargar','thanks.chat':'Dar las gracias en el chat de Twitch y descargar','thanks.skip':'No, gracias, solo descargar'};
 const nodes=[...document.querySelectorAll('[data-i18n]')],en=new Map(nodes.map(n=>[n,n.innerHTML])),button=document.getElementById('lang');
 let lang='en';try{lang=localStorage.getItem('lang')||(navigator.language.startsWith('es')?'es':'en');}catch{lang=navigator.language.startsWith('es')?'es':'en';}
 function apply(){document.documentElement.lang=lang;for(const n of nodes)n.innerHTML=lang==='es'&&es[n.dataset.i18n]?es[n.dataset.i18n]:en.get(n);button.textContent=lang==='es'?'EN':'ES';button.setAttribute('aria-label',lang==='es'?'English':'Español');release();}
