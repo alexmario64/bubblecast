@@ -8,12 +8,12 @@ const root=new URL('../../public/',import.meta.url);
 const status={settings:{...defaults,ignoredBots:['MyBot']},bridge:{},traffic:{twitch:{received:12}},sources:{configured:true,enabled:true,twitchChannel:'test',youtubeVideo:'normal',urls:{twitch:'t',youtube:'y'}},collector:{active:true,accounts:{youtube:{signedIn:true,canSend:false}}},youtube:{configured:true,connected:true,channel:{title:'My channel'}}};
 async function studio(t,hash='',translate=false){
  const w=new Window({url:'http://127.0.0.1:3927/'+hash});t.after(()=>w.happyDOM.abort());w.document.write(await readFile(new URL('index.html',root),'utf8'));
- if(translate)w.eval(await readFile(new URL('i18n.js',root),'utf8'));
- const calls=[];w.fetch=async(url,options)=>{calls.push([url,options]);return {ok:true,json:async()=>url==='/api/pair'?{token:'test'}:url==='/api/status'?structuredClone(status):url==='/api/settings'?JSON.parse(options.body):{}};};
+ w.eval(await readFile(new URL('../../public/connection-status.js',import.meta.url),'utf8'));if(translate)w.eval(await readFile(new URL('i18n.js',root),'utf8'));
+ let refresh;const repeat=w.setInterval.bind(w);w.setInterval=(fn,ms,...args)=>{if(ms===4000)refresh=fn;return repeat(fn,ms,...args);};const calls=[];w.fetch=async(url,options)=>{calls.push([url,options]);return {ok:true,json:async()=>url==='/api/pair'?{token:'test'}:url==='/api/status'?structuredClone(status):url==='/api/settings'?({...status.settings,...JSON.parse(options.body)}):{}};};
  const connections=(await readFile(new URL('connections.js',root),'utf8')).replace('export function','function');
  const code='const knownBots='+JSON.stringify(knownBots)+';'+(await readFile(new URL('app.js',root),'utf8')).replace(/^import[^\n]*\n/gm,'');await w.eval('(async()=>{'+connections+'\n'+code+'})()');
- const saved=()=>calls.filter(([url])=>url==='/api/settings').map(([,o])=>JSON.parse(o.body));
- return {w,doc:w.document,calls,saved};
+ const saved=()=>calls.filter(([url,o])=>url==='/api/settings'&&o?.body).map(([,o])=>JSON.parse(o.body));
+ return {w,doc:w.document,calls,saved,refresh:()=>refresh()};
 }
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 test('studio loads settings, connection controls and account identity without requiring an available chat',async t=>{
@@ -44,7 +44,7 @@ test('studio lists built-in and custom bots with separate stream and dock visibi
  doc.querySelector('#botName').value='@TrueBot64';doc.querySelector('#addBot').click();doc.querySelector('#botName').value='truebot64';doc.querySelector('#addBot').click();assert.equal(rows().filter(r=>/truebot64/i.test(r.textContent)).length,1);
  const [stream]=row('TrueBot64').querySelectorAll('input');stream.checked=true;stream.onchange();const dock=row('Nightbot').querySelectorAll('input')[1];dock.checked=false;dock.onchange();
  row('MyBot').querySelector('.bot-remove').click();
- await wait(520);const last=saved().at(-1);assert.equal(last.ignoredBots,'TrueBot64');assert.equal(last.overlayShownBots,'TrueBot64');assert.equal(last.dockHiddenBots,'Nightbot');assert.equal(last.filterBots,true);
+ await wait(520);const last=saved().at(-1);assert.equal(last.ignoredBots,'TrueBot64');assert.equal(last.overlayShownBots,'TrueBot64');assert.equal(last.dockHiddenBots,'Nightbot');assert.equal(last.filterBots,undefined,'unchanged settings are not sent back over dock edits');
  const filter=doc.querySelector('[name=filterBots]');filter.checked=false;filter.dispatchEvent(ev('change'));assert.ok(rows().every(r=>r.querySelectorAll('input')[0].checked&&r.querySelectorAll('input')[0].disabled));
 });
 test('Connect Twitch starts official sign-in and shows the activation code',async t=>{
@@ -66,7 +66,7 @@ test('Studio keeps automatic channels out of manual fields and saves blank overr
  const prior=status.sources;status.sources={configured:true,enabled:true,twitchChannel:'owner',kickChannel:'kick-owner',entered:{twitchChannel:'',kickChannel:''},urls:{twitch:'t',kick:'k'}};
  t.after(()=>{status.sources=prior;});const {doc,w,calls}=await studio(t,'#connections');await wait(20);
  assert.equal(doc.querySelector('#twitchChannel').value,'');assert.equal(doc.querySelector('#kickChannel').value,'');
- doc.querySelector('#saveConnections').click();await wait(20);const call=calls.find(([url,o])=>url==='/api/sources'&&o?.method==='POST');assert.ok(call);const body=JSON.parse(call[1].body);assert.equal(body.twitchChannel,'');assert.equal(body.kickChannel,'');
+ doc.querySelector('#saveConnections').click();await wait(20);const call=calls.find(([url,o])=>url==='/api/sources'&&o?.method==='PATCH');assert.ok(call);const body=JSON.parse(call[1].body);assert.equal(body.twitchChannel,undefined);assert.equal(body.kickChannel,undefined);assert.equal(body.enabled,true);
 });
 test('Connect Kick queues one helper flow without opening a separate browser or poll login',async t=>{
  const prior=status.kick;status.kick={configured:true,connected:false};t.after(()=>{status.kick=prior;});const {doc,w,calls}=await studio(t,'#connections');await wait(20);let opened=0;w.open=()=>{opened++;};
@@ -109,4 +109,21 @@ test('TikTok missing-session prompt remains explicit in Connections and diagnost
  const {doc,calls}=await studio(t,'#connections');assert.equal(doc.querySelector('#account-tiktok').textContent,'Sign in to TikTok · reading chat');const row=doc.querySelectorAll('#diagnosticPlatforms li')[2];assert.match(row.textContent,/Sign in to TikTok.*Hidden window started/);
  doc.querySelector('[data-setup-signin="tiktok"]').click();await wait(10);const actions=calls.filter(([url])=>url==='/api/collector/control');assert.equal(actions.length,1);assert.equal(JSON.parse(actions[0][1].body).action,'signin');
  status.settings.language='es';const spanish=await studio(t,'#connections',true);assert.match(spanish.doc.querySelector('#account-tiktok').textContent,/Inicia sesión en TikTok · leyendo el chat/);assert.match(spanish.doc.querySelector('#diagnosticPlatforms').textContent,/Ventana oculta iniciada/);
+});
+
+test('Studio explains automatic main/vertical matches, ambiguity and missing keys without exposing credentials',async t=>{
+ const previous={youtube:status.youtube,language:status.settings.language};t.after(()=>{status.youtube=previous.youtube;status.settings.language=previous.language;});
+ status.youtube={configured:true,connected:true,candidates:[{video:'mmmmmmmmmmm',title:'Main stream',live:true,format:'horizontal',formatSource:'obs-main'},{video:'vvvvvvvvvvv',title:'Vertical stream',live:true,format:'vertical',formatSource:'aitum-vertical'},{video:'sssssssssss',title:'Unknown stream',format:'',formatSource:'ambiguous'},{video:'uuuuuuuuuuu',title:'Unmatched stream',formatSource:'unknown'}]};
+ const {doc}=await studio(t,'#connections'),rows=doc.querySelectorAll('#youtubeStreams li');assert.match(rows[0].textContent,/Matched OBS main key/);assert.match(rows[1].textContent,/Matched Aitum Vertical key/);assert.equal(rows[0].querySelector('select').value,'auto');assert.equal(rows[1].querySelector('select').value,'auto');assert.match(rows[2].textContent,/Same key on both outputs/);assert.match(rows[3].textContent,/Stream key not matched/);
+ status.settings.language='es';const spanish=await studio(t,'#connections',true);assert.match(spanish.doc.querySelector('#youtubeStreams').textContent,/Coincide con la clave principal de OBS/);assert.match(spanish.doc.querySelector('#youtubeStreams').textContent,/Coincide con la clave de Aitum Vertical/);
+});
+
+test('Studio refreshes all saved settings after an autosave without replacing an unsaved draft',async t=>{
+ const previous=structuredClone(status.settings);t.after(()=>{status.settings=previous;});const f=await studio(t,'#polls'),width=f.doc.querySelector('[name=pollWidth]');width.value='640';width.dispatchEvent(new f.w.Event('input',{bubbles:true}));status.settings={...status.settings,language:'es',dockTheme:'red'};await f.refresh();assert.equal(width.value,'640');await wait(520);assert.equal(f.saved().length,1);assert.deepEqual(f.saved()[0],{pollWidth:640});
+ status.settings={...status.settings,pollWidth:640,uiTheme:'midnight',dockHiddenBots:['nightbot']};await f.refresh();assert.equal(f.doc.body.dataset.theme,'midnight');assert.equal(f.doc.querySelector('[name=dockHiddenBots]').value,'nightbot');assert.equal(f.doc.querySelector('[name=language][value=es]').checked,true);assert.equal(width.value,'640');
+});
+
+test('Studio keeps edits made while a settings save is in flight and sends them in a subsequent patch',async t=>{
+ const f=await studio(t,'#polls');let finish,remote={...status.settings},saves=0;const original=f.w.fetch;f.w.fetch=async(url,options)=>{if(url!=='/api/settings')return original(url,options);f.calls.push([url,options]);const patch=JSON.parse(options.body);if(++saves===1)await new Promise(r=>{finish=r;});remote={...remote,...patch};return {ok:true,json:async()=>structuredClone(remote)};};
+ const width=f.doc.querySelector('[name=pollWidth]');width.value='600';width.dispatchEvent(new f.w.Event('input',{bubbles:true}));await wait(480);assert.equal(saves,1);width.value='720';width.dispatchEvent(new f.w.Event('input',{bubbles:true}));finish();await wait(520);assert.equal(width.value,'720');assert.equal(saves,2);assert.deepEqual(f.saved(),[{pollWidth:600},{pollWidth:720}]);
 });

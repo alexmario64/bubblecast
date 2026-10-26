@@ -78,3 +78,13 @@ test('TikTok collector startup and session states reach diagnostics without priv
  report.feeds.tiktok.startup='fixture-private-cookie';await post('/api/collector/status',report);status=await (await request('/api/status')).json();assert.equal(status.collector.feeds.tiktok.startup,null);assert.equal(status.diagnostics.platforms.tiktok.startup,'not-started');
  await advance(5001);await new Promise(r=>setTimeout(r,5100));const log=await readFile(join(dir,'.local','diagnostics.log'),'utf8');assert.ok(!log.includes('fixture-private-cookie'));assert.ok(!log.includes('Synthetic offline fixture'));const latest=JSON.parse(log.trim().split('\n').at(-1));assert.equal(latest.platforms.tiktok.startup,'not-started');assert.equal(latest.platforms.tiktok.session,'signed-out');assert.equal(latest.platforms.tiktok.received,1);
 });
+
+test('server discovery restores key matches without OBS and never exposes ingestion names or fingerprints in status or logs',async t=>{
+ const {request,dir,networkCalls}=await isolatedServer(t,{youtubeFixture:'keys'}),{token}=await (await request('/api/pair')).json();
+ const post=async(path,data)=>{const response=await request(path,{method:'POST',headers:{'content-type':'application/json','x-bubblecast-token':token},body:JSON.stringify(data)});assert.equal(response.status,200,await response.clone().text());return response.json();};
+ await post('/api/obs/streaming',{streaming:false});await request('/api/status');assert.deepEqual((await networkCalls()).calls,[],'opening OBS or recording offline spends no YouTube quota');
+ await post('/api/youtube/check',{});const status=await (await request('/api/status')).json();assert.equal(status.sources.youtubeFound.find(f=>f.slot==='youtube').video,'bbbbbbbbbbb');assert.equal(status.sources.youtubeFound.find(f=>f.slot==='youtubeShorts').video,'aaaaaaaaaaa');assert.ok(status.youtube.candidates.every(c=>c.formatSource==='remembered-key'));
+ const outgoing=(await networkCalls()).calls;assert.equal(outgoing.filter(url=>url.includes('/liveStreams?')).length,1);assert.equal(status.youtube.readMode,'api');assert.equal(status.diagnostics.youtube.route,'api');
+ const publicText=JSON.stringify(status),log=await readFile(join(dir,'.local','diagnostics.log'),'utf8');for(const secret of ['fixture-main-ingestion-private','fixture-vertical-ingestion-private','sha256:']){assert.ok(!publicText.includes(secret));assert.ok(!log.includes(secret));assert.ok(!JSON.stringify(outgoing).includes(secret));}
+ const commands=await (await request('/api/collector/commands',{headers:{'x-bubblecast-token':token}})).json();assert.deepEqual(commands.commands,[],'matching never queues page discovery or platform actions');
+});

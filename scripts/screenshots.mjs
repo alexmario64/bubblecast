@@ -13,10 +13,13 @@ const shots=[
  ...['rose','red','midnight','white'].flatMap(theme=>studioPages.map(page=>({name:`studio-${page}-${theme}`,path:'/#'+page,viewport:desktop,theme,full:true}))),
  ...[{name:'studio-youtube-no-app',viewport:desktop},{name:'studio-youtube-no-app-narrow',viewport:{width:420,height:880}},{name:'studio-youtube-no-app-spanish',viewport:desktop,language:'es'}].map(s=>({...s,path:'/#connections',scenario:'no-app',offlineOnly:true,full:true})),
  ...[{name:'studio-tiktok-session',viewport:desktop},{name:'studio-tiktok-session-narrow',viewport:{width:420,height:880}},{name:'studio-tiktok-session-spanish',viewport:desktop,language:'es'}].map(s=>({...s,path:'/#connections',offlineOnly:true,scroll:'[data-platform="tiktok"]',full:true})),
+ ...[...['rose','red','midnight','white'].map(theme=>({name:'studio-youtube-key-matches-'+theme,viewport:desktop,theme})),{name:'studio-youtube-key-matches-narrow',viewport:{width:420,height:880}},{name:'studio-youtube-key-matches-spanish',viewport:desktop,language:'es'}].map(s=>({...s,path:'/#connections',scenario:'key-matches',offlineOnly:true,scroll:'#youtubeStreams',full:true})),
  {name:'studio-diagnostics-narrow',path:'/#overview',viewport:{width:420,height:880},scroll:'.diagnostics-card'},
  {name:'studio-diagnostics-spanish',path:'/#overview',viewport:desktop,language:'es',full:true},
  {name:'studio-overview-narrow',path:'/#overview',viewport:{width:420,height:880}},
  ...['rose','red','midnight','white'].flatMap(theme=>[{name:`dock-${theme}`,path:'/dock?preview=1',viewport:dockNarrow,theme},{name:`dock-wide-${theme}`,path:'/dock?preview=1',viewport:dockWide,theme}]),
+ ...['no-app','key-matches'].flatMap(scenario=>['rose','red','midnight','white','spanish'].map(theme=>({name:`dock-connections-${scenario}-${theme}`,path:'/dock?preview=1',viewport:{width:360,height:880},scenario,theme:theme==='spanish'?'rose':theme,language:theme==='spanish'?'es':'en',offlineOnly:true,click:'#connections'}))),
+ ...['en','es'].map(language=>({name:`dock-diagnostics-${language}`,path:'/dock',viewport:{width:360,height:880},language,offlineOnly:true,click:'#connections',reveal:'.diagnostics-card'})),
  {name:'dock-connections',path:'/dock?preview=1',viewport:dockNarrow,click:'#connections'},
  {name:'dock-new-poll',path:'/dock?preview=1',viewport:dockNarrow,click:'#newPoll'},
  {name:'dock-bots',path:'/dock?preview=1',viewport:dockNarrow,click:'#botMenuButton'},
@@ -50,6 +53,7 @@ try{
   if(shot.scroll){await page.locator(shot.scroll).scrollIntoViewIfNeeded().catch(()=>{});await page.waitForTimeout(400);}
   if(shot.focus){await page.keyboard.press('Tab');await page.focus(shot.focus).catch(()=>{});await page.waitForTimeout(300);}
   if(shot.click){await page.click(shot.click).catch(()=>{});await page.waitForTimeout(500);}
+  if(shot.reveal)await page.locator(shot.reveal).evaluate(el=>{el.open=true;el.scrollIntoView({block:'center'});});
   if(shot.select){await page.selectOption(...shot.select).catch(()=>{});await page.waitForTimeout(1500);}
   await page.screenshot({path:out+shot.name+'.png',omitBackground:!!shot.transparent,fullPage:!!shot.full});
   await page.close();console.log(errors.length?'⚠':'✓',shot.name);for(const e of errors)console.log('   ',e);problems+=errors.length;

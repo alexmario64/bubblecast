@@ -13,7 +13,8 @@ export function readYouTubeStreamShape(){
  const p=window.ytInitialPlayerResponse||{},d=p.videoDetails||{},b=p.microformat?.playerMicroformatRenderer?.liveBroadcastDetails||{},canonical=document.querySelector('link[rel=canonical]')?.href||'',meta=document.querySelector('meta[itemprop=isLiveBroadcast]')?.content?.toLowerCase()==='true',ended=!!(b.endTimestamp||document.querySelector('meta[itemprop=endDate]'));
  const live=ended?false:b.isLiveNow===true||d.isLive===true||meta?true:b.isLiveNow===false||d.isLiveContent===false?false:null;
  const f=(p.streamingData?.adaptiveFormats||[]).find(f=>f.width>0&&f.height>0);
- return {video:d.videoId||canonical.match(/[?&]v=([\w-]{11})/)?.[1]||'',live,title:String(d.title||'').slice(0,120),vertical:f?f.height>f.width:null};
+ const startedAt=Date.parse(b.startTimestamp||'');
+ return {...(Number.isFinite(startedAt)?{startedAt}:{}),video:d.videoId||canonical.match(/[?&]v=([\w-]{11})/)?.[1]||'',live,title:String(d.title||'').slice(0,120),vertical:f?f.height>f.width:null};
 }
 
 // At most two new streams plus two existing chats. Existing chats are kept until the page explicitly
@@ -27,7 +28,7 @@ export async function discoverYouTubePages({channel,current=[],probe}){
  const videos=[];
  for(const video of ids){const prior=known.find(v=>v.video===video),listed=candidates.find(v=>v.video===video),shape=await probe('https://www.youtube.com/watch?v='+video,shapeScript);
   if(shape?.live===false)continue;
-  if(prior||listed)videos.push({video,title:shape?.title||listed?.title||prior?.title||'',vertical:shape?.vertical??prior?.vertical??null});
+  if(prior||listed)videos.push({video,title:shape?.title||listed?.title||prior?.title||'',vertical:shape?.vertical??prior?.vertical??null,...(Number.isFinite(shape?.startedAt)&&shape.startedAt>0?{startedAt:shape.startedAt}:{})});
  }
  return videos;
 }

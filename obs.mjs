@@ -1,3 +1,4 @@
+import {streamKeyFingerprint,aitumKeyFingerprints} from './youtube-slot-matching.mjs';
 import {createHash,randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -26,7 +27,7 @@ export async function setupObs({configOverride,Socket=WebSocket,resolution='2160
 
 // Whether OBS is streaming, on its main output and on Aitum Vertical's canvas, asked over OBS WebSocket on this
 // computer only. Returns null when OBS WebSocket isn't enabled with a password or OBS isn't open.
-export async function obsStreams({configOverride,Socket=WebSocket,folder}={}){
+export async function obsStreams({configOverride,Socket=WebSocket,folder,includeKeys=false}={}){
  let config=configOverride;if(!config){const {obsConfigFolder}=await import('./obs-dock.mjs');try{config=JSON.parse(await readFile(join(folder||obsConfigFolder(),'plugin_config','obs-websocket','config.json'),'utf8'));}catch{return null;}}
  if(!config?.server_enabled)return null;
  const socket=new Socket('ws://127.0.0.1:'+Number(config.server_port||4455));const pending=new Map(),hash=s=>createHash('sha256').update(s).digest('base64');
@@ -39,6 +40,14 @@ export async function obsStreams({configOverride,Socket=WebSocket,folder}={}){
   const rpc=(requestType,requestData={})=>new Promise((resolve,reject)=>{const requestId=randomUUID(),timer=setTimeout(()=>{pending.delete(requestId);reject(Error('timeout'));},4000);pending.set(requestId,{resolve:x=>{clearTimeout(timer);resolve(x);},reject:e=>{clearTimeout(timer);reject(e);}});socket.send(JSON.stringify({op:6,d:{requestType,requestId,requestData}}));});
   const streaming=!!(await rpc('GetStreamStatus')).outputActive;let vertical=false,verticalDetected=false;
   try{const r=await rpc('CallVendorRequest',{vendorName:'aitum-vertical-canvas',requestType:'status'});const d=r.responseData||r;vertical=d.streaming===true;verticalDetected=typeof d.streaming==='boolean';}catch{}
-  return {streaming,vertical,verticalDetected};
+  const result={streaming,vertical,verticalDetected};
+  if(includeKeys){const keys={main:[],vertical:[]};
+   if(streaming||vertical){
+    try{const r=await rpc('GetStreamServiceSettings'),key=streamKeyFingerprint(r.streamServiceSettings?.key);if(key)keys.main=[key];}catch{}
+    if(verticalDetected)try{const {obsConfigFolder}=await import('./obs-dock.mjs');const path=join(folder||obsConfigFolder(),'plugin_config','vertical-canvas','config.json');keys.vertical=aitumKeyFingerprints(JSON.parse(await readFile(path,'utf8')));}catch{}
+   }
+   result.keys=keys;
+  }
+  return result;
  }catch{return null;}finally{try{socket.close();}catch{}}
 }

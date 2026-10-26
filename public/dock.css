@@ -98,7 +98,7 @@ body[data-theme=midnight] .feed-icon.tiktok{--logo:url('/logos/tiktok-on-dark.sv
 .badge-label{font-size:10px;color:var(--text-3)}
 time{margin-left:auto;font-size:10.5px;font-variant-numeric:tabular-nums;color:var(--text-3)}
 .body{white-space:pre-wrap;line-height:1.55;font-size:13.5px}
-.emote{height:1.9em;max-width:110px;vertical-align:middle;object-fit:contain}
+.emote{height:1.9em;max-width:130px;vertical-align:middle;object-fit:contain}
 .media{display:block;max-height:150px;max-width:100%;border-radius:12px;margin-top:5px}
 .body .media{width:240px;height:150px;object-fit:contain}
 .body [data-media-loading]{opacity:0}
@@ -377,3 +377,10 @@ body[data-theme=midnight] #autoscroll[aria-pressed=false],body[data-theme=midnig
 :is(.layout-tools,.pane-heading,.composer-top) .bc-select-button{min-height:28px;padding:4px 8px 4px 12px;border-radius:999px;border-color:var(--line);background:var(--surface-2);font-size:11.5px}
 .composer-top .bc-select{max-width:calc(100% - 80px)}
 :is(#pollCreateForm,.theme-section) .bc-select{display:block;width:100%;margin-top:6px}
+
+/* Connection state and controls share presenters with Studio, in the dock's compact sheet. */
+.youtube-connection{margin:12px 0}.youtube-check{display:flex;align-items:center;gap:10px}.youtube-check p{flex:1}.youtube-check button{flex-shrink:0;border:1px solid var(--border);border-radius:10px;padding:7px 9px;background:var(--surface-2);font-size:11px}
+.found-streams{list-style:none;margin:8px 0;padding:0;display:grid;gap:10px}.found-streams li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:3px 8px;font-size:11px}.found-streams .stream-title{grid-column:1;grid-row:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:650}.found-streams .stream-state{grid-column:1;grid-row:2;color:var(--text-3);overflow-wrap:anywhere}.found-streams select{grid-column:2;grid-row:1/span 2;max-width:130px}
+.diagnostics-card{font-size:11px;color:var(--text-3)}.diagnostics-card ul{list-style:none;padding:0;margin:10px 0}.diagnostics-card li{display:grid;gap:3px;border-bottom:1px solid var(--border);padding:7px 0}.diagnostics-card strong{color:var(--text-2)}.diagnostics-card p{overflow-wrap:anywhere}.diagnostic-error{color:var(--bad)}
+
+.found-streams .bc-select{grid-column:2;grid-row:1/span 2;max-width:130px}

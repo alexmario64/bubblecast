@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 export async function isolatedServer(t,{youtubeFixture=false,browser=false}={}){
  const dir=await mkdtemp(join(tmpdir(),'bubblecast-data-')),root=fileURLToPath(new URL('..',import.meta.url));
  if(youtubeFixture){await mkdir(join(dir,'.local'),{recursive:true});const clientId='fixture.apps.googleusercontent.com';await writeFile(join(dir,'.local','app-keys.json'),JSON.stringify({youtube:{clientId,clientSecret:'fixture-secret'}}));await writeFile(join(dir,'.local','youtube-auth.json'),JSON.stringify({client_id:clientId,refresh_token:'fixture-refresh',access_token:'fixture-access',expires_at:Date.now()+3600000,channel:{id:'UCabcdefghijklmnopqrstuv',title:'Fixture'}}));}
+ if(youtubeFixture==='keys'){const {streamKeyFingerprint}=await import('../youtube-slot-matching.mjs');await writeFile(join(dir,'.local','youtube-streams.json'),JSON.stringify({formats:{},hidden:[],matches:{[streamKeyFingerprint('fixture-main-ingestion-private')]:'horizontal',[streamKeyFingerprint('fixture-vertical-ingestion-private')]:'vertical'}}));}
  let server,port=0;
  const stop=async()=>{if(server&&server.exitCode===null&&server.signalCode===null){const exited=new Promise(r=>server.once('exit',r));server.kill();await exited;}};
  const start=async()=>{
@@ -17,5 +18,6 @@ export async function isolatedServer(t,{youtubeFixture=false,browser=false}={}){
  const request=(path,options={})=>new Promise((resolve,reject)=>{const req=http.request({hostname:'127.0.0.1',port,path,method:options.method||'GET',headers:{...options.headers,Host:'127.0.0.1:3927'}},res=>{const chunks=[];res.on('data',c=>chunks.push(c));res.on('end',()=>resolve(new Response(Buffer.concat(chunks),{status:res.statusCode,headers:res.headers})));res.on('error',reject);});req.on('error',reject);if(options.body)req.write(options.body);req.end();});
  const advance=ms=>new Promise((resolve,reject)=>{server.once('message',resolve);server.send({advance:ms},e=>{if(e)reject(e);});});
  const broadcast=(type,data)=>new Promise((resolve,reject)=>{server.once('message',resolve);server.send({broadcast:{type,data}},e=>{if(e)reject(e);});});
- return {dir,request,advance,broadcast,url:'http://127.0.0.1:'+port,stop,restart:async()=>{await stop();await start();}};
+ const networkCalls=()=>new Promise((resolve,reject)=>{server.once('message',resolve);server.send({networkCalls:true},e=>{if(e)reject(e);});});
+ return {dir,request,advance,broadcast,networkCalls,url:'http://127.0.0.1:'+port,stop,restart:async()=>{await stop();await start();}};
 }

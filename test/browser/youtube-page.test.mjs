@@ -61,3 +61,7 @@ test('a hung probe is destroyed at its deadline and cannot leave the helper wait
  const context=vm.createContext({BrowserWindow,partitionFor:()=> 'fixture-reader',Date,setTimeout:fn=>{timeout=fn;return 1;},clearTimeout(){}});vm.runInContext(code.slice(start,end),context);
  const pending=context.youtubeProbe('https://www.youtube.com/@example/streams','null',Date.now()+1000);timeout();assert.equal(await pending,null);assert.equal(destroyed,true);
 });
+
+test('page-only watch metadata supplies broadcast chronology without issuing a request',t=>{
+ const w=page(t,{player:{videoDetails:{videoId:main},microformat:{playerMicroformatRenderer:{liveBroadcastDetails:{startTimestamp:'2026-10-25T15:00:00Z',isLiveNow:true}}}}});const shape=evaluate(w,readYouTubeStreamShape);assert.equal(shape.startedAt,Date.parse('2026-10-25T15:00:00Z'));assert.equal(shape.live,true);assert.equal(shape.vertical,null);
+});
