@@ -86,3 +86,8 @@ test('the goal can be its own piece with its own position',async t=>{
  const s=f.command('settings',{patch:{overlaySplit:true,overlayGoalPosition:'bottom-right',overlayPosition:'top-right'}});assert.equal(s.config.overlaySplit,true);assert.equal(s.config.overlayGoalPosition,'bottom-right');
  for(const patch of [{overlaySplit:'yes'},{overlayGoalPosition:'middle'}])assert.throws(()=>f.command('settings',{patch}),undefined,JSON.stringify(patch));
 });
+test('the goal bar and the counters each switch off, leaving the timer alone',async t=>{
+ const f=await fixture(t);const d=f.timer.snapshot().config;assert.equal(d.overlayGoalsShown,true);assert.equal(d.overlayCountersShown,true);
+ const s=f.command('settings',{patch:{overlayGoalsShown:false,overlayCountersShown:false}});assert.equal(s.config.overlayGoalsShown,false);assert.equal(s.config.overlayCountersShown,false);
+ assert.throws(()=>f.command('settings',{patch:{overlayGoalsShown:'no'}}));
+});

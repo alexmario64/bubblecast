@@ -16,7 +16,7 @@ function look(c){
  // A separate OBS source for one piece fills its own canvas, so OBS does the placing.
  q('.so-timer-piece').className='so-piece so-timer-piece pos-'+(part?'top-left':place(c.overlayPosition,'top-left'));
  q('.so-goal-piece').className='so-piece so-goal-piece pos-'+(part?'top-left':place(c.overlayGoalPosition,'bottom-left'));
- root.className=['style-'+(c.overlayStyle||'bubbles'),'layout-'+(c.overlayLayout||'card'),c.overlayStatus===false&&'no-status',c.overlayTitleShown===false&&'no-title',c.overlayFloat!==false&&(c.overlayFloatAmount??8)>0&&'float',entering,data.status].filter(Boolean).join(' ');
+ root.className=['style-'+(c.overlayStyle||'bubbles'),'layout-'+(c.overlayLayout||'card'),c.overlayStatus!==true&&'no-status',c.overlayTitleShown!==true&&'no-title',c.overlayFloat!==false&&(c.overlayFloatAmount??8)>0&&'float',entering,data.status].filter(Boolean).join(' ');
 }
 function chip(metric){
  const el=document.createElement('span'),n=document.createElement('b'),name=document.createElement('small');el.className='so-chip'+(previous[metric]!==undefined&&data.counters[metric]>previous[metric]?' bump':'');el.dataset.metric=metric;
@@ -35,9 +35,10 @@ function render(){
  // The entrance plays each time the overlay appears; afterwards the float takes over.
  if(wasHidden&&!hide&&c.overlayAnimation!=='none'){entering='enter-'+(c.overlayAnimation||'pop');clearTimeout(render.timer);render.timer=setTimeout(()=>{entering=null;if(data)look(data.config);},700);}wasHidden=hide;root.hidden=hide;look(c);q('.so-title').textContent=c.title;
  const used=Object.keys(labels).filter(m=>c.overlayCounters==='all'||c.overlayCounters!=='none'&&data.counters[m]>0);
- q('.so-counters').replaceChildren(...(c.overlayCounters==='none'?[]:used.map(chip)));Object.assign(previous,data.counters);
+ q('.so-counters').replaceChildren(...(c.overlayCounters==='none'||c.overlayCountersShown===false?[]:used.map(chip)));Object.assign(previous,data.counters);
  const done=data.goals.filter(g=>data.counters[g.metric]>=g.target),next=data.goals.find(g=>data.counters[g.metric]<g.target),goals=[];
- if(c.overlayGoals==='all')goals.push(...data.goals.map(g=>goal(g,false)));
+ if(c.overlayGoalsShown===false){}
+ else if(c.overlayGoals==='all')goals.push(...data.goals.map(g=>goal(g,false)));
  else if(c.overlayGoals!=='none'){if(next)goals.push(goal(next,true));if(done.length){const note=document.createElement('div');note.className='so-done';note.textContent='✓ '+done.length+' '+t(done.length===1?'goal reached':'goals reached');goals.push(note);}}
  // The goal sits in the timer card, or in its own piece when split (or when this source shows one part).
  const split=part||c.overlaySplit;q('.so-timer-piece').hidden=part==='goal';q('.so-goal-piece').hidden=part==='timer'||!split||!goals.length;
@@ -58,7 +59,7 @@ function paint(){
   shown=text;}
 }
 // A preview link may name a style, layout or position to show (used by the screenshots).
-const params=new URLSearchParams(location.search);let draftLook=Object.fromEntries([['overlayStyle','style'],['overlayLayout','layout'],['overlayPosition','position']].filter(([,k])=>/^[a-z-]{1,20}$/.test(params.get(k)||'')).map(([key,k])=>[key,params.get(k)]));if(params.get('split'))Object.assign(draftLook,{overlaySplit:true,overlayCounters:'none'});
+const params=new URLSearchParams(location.search);let draftLook=Object.fromEntries([['overlayStyle','style'],['overlayLayout','layout'],['overlayPosition','position']].filter(([,k])=>/^[a-z-]{1,20}$/.test(params.get(k)||'')).map(([key,k])=>[key,params.get(k)]));if(params.get('split'))Object.assign(draftLook,{overlaySplit:true,overlayCounters:'none'});if(params.get('alone'))Object.assign(draftLook,{overlayGoalsShown:false,overlayCountersShown:false});
 function accept(s){if(!s?.config)return;data=preview?{...sample,config:{...sample.config,...s.config,...draftLook,title:s.config.title||sample.config.title,visible:true}}:s;received=performance.now();connected=true;render();}
 // Studio's embedded preview reads the saved state once and then follows Studio's messages, so it never
 // takes one of the browser's few connections from the real overlays.

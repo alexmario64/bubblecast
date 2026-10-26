@@ -91,3 +91,4 @@ html,body{margin:0;background:transparent;overflow:hidden}
 @keyframes so-rise{50%{transform:translateY(-.25em)}}
 @keyframes so-out{to{opacity:0;transform:translateY(-.6em)}}
 @media(prefers-reduced-motion:reduce){.float .so-float,.so-bar i::after,.running .so-status i,.so-clock .d.tick,.so-chip.bump,[class*=enter-] .so-float{animation:none}.so-toast.show{animation:so-out .01s linear 6s forwards}.so-bar i{transition:none}}
+#subathonOverlay.no-title .so-title,#subathonOverlay.no-status .so-status{display:none}

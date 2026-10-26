@@ -22,6 +22,8 @@ const shots=[
  {name:'subathon-overlay-classic-split',path:'/subathon-overlay?preview=1&style=classic&split=1&position=top-right',viewport:canvas,transparent:true,offlineOnly:true},
  {name:'subathon-overlay-modern-split',path:'/subathon-overlay?preview=1&style=modern&split=1&position=bottom-right',viewport:canvas,transparent:true,offlineOnly:true},
  {name:'subathon-overlay-part-goal',path:'/subathon-overlay?preview=1&style=modern&part=goal',viewport:{width:640,height:240},transparent:true,offlineOnly:true},
+ {name:'subathon-overlay-alone',path:'/subathon-overlay?preview=1&alone=1',viewport:canvas,transparent:true,offlineOnly:true},
+ {name:'subathon-overlay-classic-alone',path:'/subathon-overlay?preview=1&alone=1&style=classic&position=top-right',viewport:canvas,transparent:true,offlineOnly:true},
  {name:'subathon-overlay-timer',path:'/subathon-overlay?preview=1&layout=timer',viewport:canvas,transparent:true,offlineOnly:true},
  {name:'studio-subathon-overlay-look',path:'/#subathon',viewport:desktop,offlineOnly:true,reveal:'.sub-look',scroll:'.sub-overlay-link'},
  ...['rose','red','midnight','white'].flatMap(theme=>studioPages.map(page=>({name:`studio-${page}-${theme}`,path:'/#'+page,viewport:desktop,theme,full:true}))),
