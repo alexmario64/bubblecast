@@ -132,6 +132,8 @@ $('#ttsRewardCreate').onclick=async()=>{const b=$('#ttsRewardCreate');b.disabled
 // What's new: the latest features, each linking to its page. Items newer than the version this browser last
 // saw are marked New.
 const whatsNew=[
+ {v:'1.34.0',icon:'timer',page:'subathon',title:'Subathon',text:'One timer for Twitch, YouTube, TikTok and Kick. Support adds time, with goals you set.'},
+ {v:'1.34.0',icon:'card',page:'subathon',title:'Subathon overlay',text:'Bubbles, Classic or Modern, with the timer and the goal placed anywhere on your canvas.'},
  {v:'1.33.0',icon:'chat',page:'connections',title:'YouTube without the Google app',text:'YouTube chat works from its public page when there’s no app or no quota left, and starts with any encoder.'},
  {v:'1.32.0',icon:'sparkles',page:'overview',title:'What’s new',text:'This card: the latest features at a glance, each one a click away.'},
  {v:'1.31.1',icon:'sparkles',page:'chat',title:'Modern style',text:'A third look for chat and text to speech: dark strips with each platform’s color.'},
