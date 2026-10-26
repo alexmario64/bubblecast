@@ -27,6 +27,7 @@ const shots=[
  {name:'subathon-overlay-timer',path:'/subathon-overlay?preview=1&layout=timer',viewport:canvas,transparent:true,offlineOnly:true},
  {name:'studio-subathon-overlay-look',path:'/#subathon',viewport:desktop,offlineOnly:true,reveal:'.sub-look',scroll:'.sub-overlay-link'},
  ...['rose','red','midnight','white'].flatMap(theme=>studioPages.map(page=>({name:`studio-${page}-${theme}`,path:'/#'+page,viewport:desktop,theme,full:true}))),
+ ...studioPages.map(page=>({name:`studio-${page}-spanish`,path:'/#'+page,viewport:desktop,language:'es',offlineOnly:true,full:true})),
  ...[{name:'studio-youtube-no-app',viewport:desktop},{name:'studio-youtube-no-app-narrow',viewport:{width:420,height:880}},{name:'studio-youtube-no-app-spanish',viewport:desktop,language:'es'}].map(s=>({...s,path:'/#connections',scenario:'no-app',offlineOnly:true,full:true})),
  ...[{name:'studio-tiktok-session',viewport:desktop},{name:'studio-tiktok-session-narrow',viewport:{width:420,height:880}},{name:'studio-tiktok-session-spanish',viewport:desktop,language:'es'}].map(s=>({...s,path:'/#connections',offlineOnly:true,scroll:'[data-platform="tiktok"]',full:true})),
  ...[...['rose','red','midnight','white'].map(theme=>({name:'studio-youtube-key-matches-'+theme,viewport:desktop,theme})),{name:'studio-youtube-key-matches-narrow',viewport:{width:420,height:880}},{name:'studio-youtube-key-matches-spanish',viewport:desktop,language:'es'}].map(s=>({...s,path:'/#connections',scenario:'key-matches',offlineOnly:true,scroll:'#youtubeStreams',full:true})),
