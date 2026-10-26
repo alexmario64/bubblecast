@@ -142,7 +142,7 @@ time{margin-left:auto;font-size:10.5px;font-variant-numeric:tabular-nums;color:v
 .field-section{padding:2px 0 10px}
 .field-section+.field-section{border-top:1px solid var(--line);padding-top:8px}
 .field-section label{display:block;font-size:12px;font-weight:550;color:var(--text-2);margin:10px 0}
-.field-section label>span{float:right;font-size:11px;font-weight:400;color:var(--text-3)}
+.field-section label>span:not(.bc-select){float:right;font-size:11px;font-weight:400;color:var(--text-3)}
 .field-section input,.theme-section select{width:100%;display:block;margin-top:6px;padding:8px 11px;border:1px solid var(--field-border);border-radius:10px;background:var(--field);font-size:13px;transition:border-color .2s,box-shadow .2s}
 .field-section input:focus,.theme-section select:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3.5px var(--focus)}
 .field-section input::placeholder{color:var(--text-3)}

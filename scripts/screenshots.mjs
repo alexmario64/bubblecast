@@ -19,6 +19,7 @@ const shots=[
  {name:'studio-overview-narrow',path:'/#overview',viewport:{width:420,height:880}},
  ...['rose','red','midnight','white'].flatMap(theme=>[{name:`dock-${theme}`,path:'/dock?preview=1',viewport:dockNarrow,theme},{name:`dock-wide-${theme}`,path:'/dock?preview=1',viewport:dockWide,theme}]),
  ...['no-app','key-matches'].flatMap(scenario=>['rose','red','midnight','white','spanish'].map(theme=>({name:`dock-connections-${scenario}-${theme}`,path:'/dock?preview=1',viewport:{width:360,height:880},scenario,theme:theme==='spanish'?'rose':theme,language:theme==='spanish'?'es':'en',offlineOnly:true,click:'#connections'}))),
+ ...[{name:'dock-connections-unavailable-desktop',viewport:desktop},{name:'dock-connections-unavailable-compact',viewport:{width:320,height:880}}].map(s=>({...s,path:'/dock',scenario:'unavailable',offlineOnly:true,click:'#connections'})),
  {name:'dock-connections-compact-spanish',path:'/dock',viewport:{width:320,height:880},language:'es',scenario:'no-app',offlineOnly:true,click:'#connections'},
  ...['en','es'].map(language=>({name:`dock-diagnostics-${language}`,path:'/dock',viewport:{width:360,height:880},language,offlineOnly:true,click:'#connections',reveal:'.diagnostics-card'})),
  {name:'dock-connections',path:'/dock?preview=1',viewport:dockNarrow,click:'#connections'},
@@ -44,7 +45,7 @@ try{
   if(offline)await (await import('../test/browser/offline-studio.mjs')).offlineStudio(page,{language:shot.language,scenario:shot.scenario});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.text().startsWith('Failed to load resource'))errors.push(m.text());});
   // A missing Komika Axis font is reported in the UI, not a page error.
-  page.on('response',r=>{if(r.status()>=400&&!r.url().includes('/fonts/'))errors.push(r.status()+' '+r.url());});
+  page.on('response',r=>{if(r.status()>=400&&!r.url().includes('/fonts/')&&!(shot.scenario==='unavailable'&&r.status()===503&&new URL(r.url()).pathname==='/api/status'))errors.push(r.status()+' '+r.url());});
   // The setup guide would open over Studio on a fresh browser profile.
   await page.addInitScript(()=>{try{localStorage.setItem('bubblecast-guide-seen','1');}catch{}});
   await page.goto(base+shot.path,{waitUntil:'domcontentloaded'});

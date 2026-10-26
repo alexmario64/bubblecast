@@ -40,3 +40,11 @@ test('Studio and dock synchronize saved connections and settings both ways, pres
  assert.deepEqual(await Promise.all([studio,dock].map(page=>page.evaluate(()=>window.__documentId))),documents);assert.equal(await dock.locator('#pollResultsPane').isVisible(),true);for(const frame of frames)assert.equal(await frame.evaluate(node=>node.isConnected),true);
  assert.deepEqual(errors,[]);assert.deepEqual(foreign,[]);assert.ok(!writes.some(url=>/\/api\/(?:collector\/control|chat\/send|polls\/(?:create|end)|youtube\/check)/.test(url)),'synchronization never causes platform actions or discovery');assert.deepEqual((await server.networkCalls()).calls,[]);
 });
+
+test('a fresh desktop dock keeps complete cards and contained settings when status is unavailable, then recovers',{timeout:20000},async t=>{
+ const browser=await chromium.launch();t.after(()=>browser.close());const page=await browser.newPage({viewport:{width:1440,height:960}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const {offlineStudio}=await import('./offline-studio.mjs'),fixture=await offlineStudio(page,{scenario:'unavailable'});await page.goto('http://127.0.0.1:3927/dock');await page.locator('#connections').click();await page.waitForFunction(()=>document.querySelector('#captureMessage').textContent==='Server not responding');
+ assert.equal(await page.locator('#accounts .platform-card').count(),4);assert.equal(await page.locator('#tiktokChannel').evaluate(el=>el.closest('.platform-card').dataset.platform),'tiktok');assert.equal(await page.locator('.youtube-connection').isVisible(),false);assert.equal(await page.locator('#accounts button:not(:disabled)').count(),0);
+ await page.locator('.theme-section').scrollIntoViewIfNeeded();assert.equal(await page.locator('.theme-section').evaluate(el=>{const bounds=el.getBoundingClientRect();return [...el.querySelectorAll('.bc-select-button')].every(button=>button.getBoundingClientRect().bottom<=bounds.bottom);}),true,'theme and language controls stay inside their card');
+ const creator=await page.locator('#tiktokChannel').elementHandle();fixture.setUnavailable(false);await page.waitForFunction(()=>document.querySelector('#captureMessage').textContent==='');assert.equal(await creator.evaluate(el=>el.isConnected),true);assert.equal(await page.locator('#accounts .platform-card').count(),4);assert.deepEqual(errors,[]);
+});
